@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => {
   return {
     server: {
       port: 3003,
-      strictPort: true,
+      strictPort: false, // Allow using a different port if 3003 is taken
       hmr: {
         port: 3003,
         protocol: 'ws',
