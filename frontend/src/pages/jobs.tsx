@@ -298,21 +298,24 @@ export function Jobs() {
         </CardContent>
       </Card>
 
-      {/* Empty State */}
+      {/* Empty State with Guidance */}
       {!isLoading && jobs.length === 0 && (
-        <Card className="border-2 border-dashed border-muted-foreground/25 bg-gradient-to-br from-card to-card/50">
+        <Card className="border-2 border-dashed border-primary/20 bg-gradient-to-br from-card to-card/80 shadow-lg">
           <CardContent className="flex flex-col items-center justify-center py-16 px-6">
             <div className="rounded-full bg-primary/10 p-6 mb-4">
               <Briefcase className="h-12 w-12 text-primary" />
             </div>
             <h3 className="text-2xl font-bold mb-2">No Jobs Yet</h3>
-            <p className="text-muted-foreground text-center mb-6 max-w-md">
-              Start by scraping jobs from various sources or manually adding job listings.
+            <p className="text-muted-foreground text-center mb-2 max-w-md">
+              Get started by scraping jobs from multiple sources or adding them manually.
             </p>
-            <div className="flex flex-wrap gap-3 justify-center">
+            <p className="text-sm text-muted-foreground text-center mb-6 max-w-md">
+              <strong>Tip:</strong> Create your profile in Settings first to enable AI-powered job matching!
+            </p>
+            <div className="flex flex-wrap gap-3 justify-center mb-4">
               <Button onClick={handleScrape} disabled={isScraping} className="shadow-lg">
                 <RefreshCw className={`mr-2 h-4 w-4 ${isScraping ? 'animate-spin' : ''}`} />
-                Scrape Jobs
+                {isScraping ? 'Scraping Jobs...' : 'Scrape Jobs'}
               </Button>
               <Button variant="outline" asChild>
                 <Link to="/jobs/new">
@@ -320,6 +323,23 @@ export function Jobs() {
                   Add Job Manually
                 </Link>
               </Button>
+            </div>
+            <div className="mt-4 pt-4 border-t w-full max-w-md">
+              <p className="text-xs text-muted-foreground text-center mb-3">Quick Setup Guide:</p>
+              <div className="grid grid-cols-1 gap-2 text-sm">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center font-semibold">1</span>
+                  <span>Go to <Link to="/settings?tab=profile" className="text-primary hover:underline">Settings → Profile</Link> and add your skills</span>
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center font-semibold">2</span>
+                  <span>Click "Scrape Jobs" to find jobs from hh.kz, Wellfound, and LinkedIn</span>
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center font-semibold">3</span>
+                  <span>Calculate match scores to see which jobs fit your profile</span>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>

@@ -45,43 +45,43 @@ export function ChatbotContainer({ userId, onAssessmentComplete }: ChatbotContai
         {
           id: "question_1",
           type: "multi_select",
-          question: "What career areas interest you the most?",
+          question: "What kind of code bullshit are you into? Pick your poison.",
           required: true,
           options: [
-            "Frontend Development",
-            "Backend Development", 
-            "Full Stack Development",
-            "DevOps",
-            "Data Science",
-            "Mobile Development",
-            "UI/UX Design",
-            "Product Management"
+            "Frontend (Making pixels dance)",
+            "Backend (Database wizardry)", 
+            "Full Stack (Gluten-free development)",
+            "DevOps (Herding digital cats)",
+            "Data Science (Excel on steroids)",
+            "Mobile (Tiny screen nightmares)",
+            "UI/UX (Making pretty rectangles)",
+            "Product Management (Corporate babysitting)"
           ]
         },
         {
           id: "question_2",
           type: "single_choice",
-          question: "What's your current experience level?",
+          question: "How long have you been surviving in this industry?",
           required: true,
           options: [
-            "Entry Level (0-2 years)",
-            "Mid Level (2-5 years)", 
-            "Senior Level (5+ years)",
-            "Lead/Manager"
+            "Baby Dev (Just learned Git exists)",
+            "Mid-tier Coder (Impostor syndrome expert)", 
+            "Senior Dev (Forgets how to print('Hello World'))",
+            "Lead (Meetings about meetings)"
           ]
         },
         {
           id: "question_3",
           type: "skill_selector",
-          question: "Rate your technical skills",
+          question: "Rate your bullshit tolerance... I mean, technical skills:",
           required: true,
           skills: ["JavaScript", "Python", "React", "Node.js", "TypeScript", "SQL"],
-          proficiency_levels: ["Beginner", "Intermediate", "Advanced", "Expert"]
+          proficiency_levels: ["WTF is this?", "I can Google it", "Actually useful", "Wizard level"]
         },
         {
           id: "question_4",
           type: "slider",
-          question: "How many hours per day can you dedicate to learning?",
+          question: "How many hours per day can you sacrifice to escape unemployment?",
           required: true,
           min: 1,
           max: 10,
@@ -90,9 +90,9 @@ export function ChatbotContainer({ userId, onAssessmentComplete }: ChatbotContai
         {
           id: "question_5",
           type: "text_input",
-          question: "What are your career goals for the next 2 years?",
+          question: "What's your master plan for world domination... I mean, career goals?",
           required: false,
-          placeholder: "Describe your career aspirations..."
+          placeholder: "Don't worry, we won't judge your absurd ambitions..."
         }
       ];
       
@@ -107,7 +107,7 @@ export function ChatbotContainer({ userId, onAssessmentComplete }: ChatbotContai
         setMessages([{
           id: "1",
           type: "bot",
-          content: "👋 Welcome to your career assessment! I'm here to help you discover the perfect career path based on your skills and goals.",
+          content: "🤖 ALRIGHT LISTEN UP. Let's find you a job that doesn't completely suck. No corporate bullshit, I promise.",
           timestamp: new Date()
         }, {
           id: "2", 
@@ -165,13 +165,13 @@ export function ChatbotContainer({ userId, onAssessmentComplete }: ChatbotContai
         // Add context message between questions
         let contextMessage = "";
         if (nextIndex === 1) {
-          contextMessage = "Great! Let's assess your experience level.";
+          contextMessage = "Solid choice. Now let's see how long you've been surviving this hellscape.";
         } else if (nextIndex === 2) {
-          contextMessage = "Now let's evaluate your technical skills.";
+          contextMessage = "Time to be honest about your tech skills... no lying, I can smell impostor syndrome.";
         } else if (nextIndex === 3) {
-          contextMessage = "Perfect! Let's talk about your learning capacity.";
+          contextMessage = "How much pain are you willing to endure to escape unemployment?";
         } else if (nextIndex === 4) {
-          contextMessage = "Finally, let's discuss your career aspirations.";
+          contextMessage = "Finally, tell me about your master plan for not being broke.";
         }
         
         const messagesToAdd: Array<{
@@ -221,7 +221,7 @@ export function ChatbotContainer({ userId, onAssessmentComplete }: ChatbotContai
       const completionMessage = {
         id: Date.now().toString(),
         type: "bot" as const,
-        content: "🎉 Congratulations! Your assessment is complete. I've analyzed your responses and I'm ready to help you with job matching, resume generation, and personalized learning paths.",
+        content: "💀 WELL LOOK AT YOU. Assessment complete. I've survived your responses and now I'm supposed to find you a job that pays actual money. Let's do this before you lose all hope.",
         timestamp: new Date()
       };
       
@@ -287,37 +287,43 @@ export function ChatbotContainer({ userId, onAssessmentComplete }: ChatbotContai
   }
 
   return (
-    <Card className="w-full max-w-4xl mx-auto h-[700px] flex flex-col shadow-2xl border-0 bg-gradient-to-br from-gray-50 to-gray-100">
-      <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-t-lg">
+    <div className="w-full max-w-4xl mx-auto h-[700px] flex flex-col shadow-2xl border-4 border-black bg-white">
+      {/* Header */}
+      <div className="bg-black text-cyan-400 p-4 border-b-4 border-cyan-400">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-xl font-bold flex items-center gap-2">
-            <Sparkles className="w-6 h-6" />
-            Career Assessment
-          </CardTitle>
+          <div className="font-black text-xl flex items-center gap-2">
+            <div className="w-8 h-8 bg-cyan-400 text-black rounded-full flex items-center justify-center font-black text-lg">
+              🤖
+            </div>
+            CAREER TORTURE CHAMBER
+          </div>
           {!isComplete && currentQuestionIndex > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
+            <button
               onClick={goToPreviousQuestion}
-              className="text-white hover:bg-white/20 transition-colors"
+              className="bg-cyan-400 text-black px-4 py-2 font-black border-2 border-black hover:bg-white transition-colors"
             >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Previous
-            </Button>
+              ← BACK
+            </button>
           )}
         </div>
         
-        <div className="space-y-2">
-          <Progress value={progress} className="w-full bg-white/20" />
-          <div className="flex justify-between text-sm">
-            <span>Question {currentQuestionIndex + 1} of {questions.length}</span>
-            <span>{Math.round(progress)}% Complete</span>
+        <div className="mt-3 bg-black/20 p-2 border-2 border-cyan-400">
+          <div className="flex justify-between font-mono text-sm">
+            <span>TORTURE SESSION {currentQuestionIndex + 1}/{questions.length}</span>
+            <span>{Math.round(progress)}% DONE WITH THIS BULLSHIT</span>
+          </div>
+          <div className="w-full bg-black/40 h-2 mt-2 border border-cyan-400">
+            <div 
+              className="h-full bg-cyan-400 transition-all duration-300"
+              style={{ width: `${progress}%` }}
+            />
           </div>
         </div>
-      </CardHeader>
+      </div>
       
-      <CardContent className="flex-1 overflow-hidden flex flex-col p-0">
-        <div className="flex-1 overflow-y-auto space-y-4 p-6">
+      {/* Chat Messages */}
+      <div className="flex-1 overflow-hidden flex flex-col p-0">
+        <div className="flex-1 overflow-y-auto space-y-4 p-6 bg-gray-50">
           <AnimatePresence>
             {messages.map((message) => (
               <MessageBubble key={message.id} message={message} />
@@ -334,7 +340,7 @@ export function ChatbotContainer({ userId, onAssessmentComplete }: ChatbotContai
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="border-t bg-white p-6"
+            className="border-t-4 border-black bg-white p-6"
           >
             <QuestionRenderer
               question={questions[currentQuestionIndex]}
@@ -347,34 +353,32 @@ export function ChatbotContainer({ userId, onAssessmentComplete }: ChatbotContai
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="border-t bg-white p-6"
+            className="border-t-4 border-black bg-white p-6"
           >
             <div className="text-center space-y-4">
-              <div className="text-6xl">🎯</div>
-              <h3 className="text-2xl font-bold text-gray-800">Assessment Complete!</h3>
-              <p className="text-gray-600">
-                Your career profile is now ready. Let's find your perfect job match!
+              <div className="text-6xl">💀</div>
+              <h3 className="text-3xl font-black text-black">SURVIVED THE TORTURE!</h3>
+              <p className="font-mono text-gray-600 text-lg">
+                Your career profile is ready. Let's find you a job that actually pays.
               </p>
               <div className="flex gap-4 justify-center">
-                <Button
+                <button
                   onClick={() => window.location.href = '/jobs'}
-                  className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+                  className="bg-cyan-400 text-black px-6 py-3 font-black border-2 border-black hover:bg-white transition-colors"
                 >
-                  View Job Matches
-                </Button>
-                <Button
-                  variant="outline"
+                  SHOW ME THE MONEY
+                </button>
+                <button
                   onClick={restartAssessment}
-                  className="flex items-center gap-2"
+                  className="bg-black text-cyan-400 px-6 py-3 font-black border-2 border-cyan-400 hover:bg-cyan-400 hover:text-black transition-colors"
                 >
-                  <RotateCcw className="w-4 h-4" />
-                  Retake Assessment
-                </Button>
+                  DO THIS AGAIN
+                </button>
               </div>
             </div>
           </motion.div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

@@ -54,36 +54,6 @@ export default function DemoPage() {
     }
   };
 
-  if (showAssessment) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900">
-        <div className="relative">
-          {/* Back Button */}
-          <motion.button
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="fixed top-4 left-4 z-50 bg-cyan-400 text-black px-4 py-2 border-2 border-black font-mono text-sm hover:bg-white transition-colors"
-            onClick={() => setShowAssessment(false)}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            ← ESCAPE ASSESSMENT
-          </motion.button>
-
-          {/* Assessment Container */}
-          <div className="pt-20 px-4">
-            <ChatbotContainer
-              userId="demo-user-123"
-              onAssessmentComplete={(answers) => {
-                console.log("Assessment completed:", answers);
-                // Handle completion - could redirect to results or show success
-              }}
-            />
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-white text-black overflow-x-hidden relative">
@@ -243,70 +213,308 @@ export default function DemoPage() {
             </motion.div>
           </motion.div>
 
-          {/* The Chat Section */}
+          {/* Integrated Chat Section */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 2, duration: 0.8 }}
-            className="max-w-4xl mx-auto"
+            className="max-w-6xl mx-auto mb-16"
           >
-            {/* CTA Button */}
+            {/* Section Title */}
             <motion.div
               className="text-center mb-8"
-              whileHover={{ scale: 1.02 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 2.5 }}
             >
-              <motion.button
-                className="relative overflow-hidden bg-black text-white px-16 py-8 text-3xl md:text-4xl font-black border-4 border-cyan-400 shadow-2xl group"
-                onClick={() => setShowAssessment(true)}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+              <div className="text-3xl md:text-4xl font-black mb-4">
+                <span className="bg-black text-white px-4">TRY IT RIGHT HERE</span>
+              </div>
+              <div className="text-lg font-mono text-gray-600">
+                No popup. No overlay. Just the real deal.
+              </div>
+            </motion.div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+              {/* Benefits - Left */}
+              <motion.div
+                className="space-y-6"
+                initial={{ opacity: 0, x: -50 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 2.8, duration: 0.8 }}
+              >
+                <motion.div
+                  className="bg-black text-white p-6 border-4 border-cyan-400 -rotate-1"
+                  whileHover={{ rotate: 0, scale: 1.05 }}
+                  onMouseEnter={textEnter}
+                  onMouseLeave={textLeave}
+                >
+                  <div className="text-xl font-black mb-2">THIS ISN'T YOUR</div>
+                  <div className="text-xl font-black text-cyan-400">AVERAGE CHATBOT</div>
+                  <div className="text-sm font-mono mt-2">
+                    No templates. No keyword matching.<br/>
+                    Just AI that actually gets you hired.
+                  </div>
+                </motion.div>
+
+                <div className="space-y-4">
+                  {[
+                    "Actually understands your personality",
+                    "Matches you with real companies", 
+                    "Creates custom learning paths",
+                    "Optimizes your resume automatically"
+                  ].map((feature, index) => (
+                    <motion.div
+                      key={index}
+                      className="bg-white border-2 border-black p-4 flex items-start space-x-3"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 3 + index * 0.1 }}
+                      whileHover={{ scale: 1.02, x: 5 }}
+                      onMouseEnter={textEnter}
+                      onMouseLeave={textLeave}
+                    >
+                      <div className="w-6 h-6 bg-cyan-400 text-black rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 mt-0.5">
+                        ✓
+                      </div>
+                      <span className="text-sm font-mono">{feature}</span>
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+
+              {/* Center: Actual Chat */}
+              <motion.div
+                className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl shadow-2xl border-4 border-black overflow-hidden"
+                initial={{ opacity: 0, y: 50 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 3, duration: 0.8 }}
+                whileHover={{ scale: 1.02 }}
                 onMouseEnter={textEnter}
                 onMouseLeave={textLeave}
               >
-                {/* Background gradient overlay */}
-                <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-cyan-400 via-purple-400 to-cyan-400"
-                  initial={{ x: "-100%" }}
-                  whileHover={{ x: "100%" }}
-                  transition={{ duration: 0.6, ease: "easeInOut" }}
-                />
-                
-                {/* Button text */}
-                <span className="relative z-10 flex items-center justify-center space-x-4">
-                  <Rocket className="w-8 h-8" />
-                  <span>START THE DAMN THING</span>
-                  <Zap className="w-8 h-8" />
-                </span>
-              </motion.button>
-              
-              <motion.p
-                className="mt-6 text-lg font-mono text-gray-600"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 2.5 }}
-              >
-                {"<"} 10 minutes → 89% success → actually gets you hired {"/>"}
-              </motion.p>
-            </motion.div>
+                {!showAssessment ? (
+                  <>
+                    {/* Chat Header */}
+                    <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-4 border-b-2 border-black">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 bg-cyan-400 text-black rounded-full flex items-center justify-center font-black text-lg">
+                            🤖
+                          </div>
+                          <div>
+                            <div className="font-black text-sm">CAREER AI</div>
+                            <div className="text-xs opacity-80">• Ready to help</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                          <span className="text-xs font-mono">LIVE</span>
+                        </div>
+                      </div>
+                    </div>
 
+                    {/* Chat Messages Preview */}
+                    <div className="p-4 h-96 overflow-y-auto space-y-3">
+                      {/* Bot Message 1 */}
+                      <motion.div
+                        className="flex gap-3"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 3.5 }}
+                      >
+                        <div className="w-8 h-8 bg-cyan-400 text-black rounded-full flex items-center justify-center text-sm font-black flex-shrink-0">
+                          🤖
+                        </div>
+                        <div className="bg-white border-2 border-black rounded-2xl px-4 py-3 max-w-[80%] relative">
+                          <div className="absolute -left-2 top-3 w-0 h-0 border-t-8 border-t-transparent border-r-8 border-r-black border-b-8 border-b-transparent"></div>
+                          <div className="text-sm font-black mb-1">👋 Hey! Let's find you a job that doesn't suck.</div>
+                          <div className="text-xs font-mono opacity-70">First, what kind of work interests you?</div>
+                        </div>
+                      </motion.div>
+
+                      {/* User Message 1 */}
+                      <motion.div
+                        className="flex gap-3 justify-end"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 4 }}
+                      >
+                        <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white border-2 border-black rounded-2xl px-4 py-3 max-w-[80%] relative">
+                          <div className="absolute -right-2 top-3 w-0 h-0 border-t-8 border-t-transparent border-l-8 border-l-blue-500 border-b-8 border-b-transparent"></div>
+                          <div className="text-sm">Frontend Development, Full Stack, maybe some DevOps</div>
+                        </div>
+                        <div className="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center text-sm font-black flex-shrink-0">
+                          👤
+                        </div>
+                      </motion.div>
+
+                      {/* Typing Indicator */}
+                      <motion.div
+                        className="flex gap-3"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 4.5, repeat: Infinity, repeatDelay: 2 }}
+                      >
+                        <div className="w-8 h-8 bg-cyan-400 text-black rounded-full flex items-center justify-center text-sm font-black flex-shrink-0">
+                          🤖
+                        </div>
+                        <div className="bg-white border-2 border-black rounded-2xl px-4 py-3 relative">
+                          <div className="absolute -left-2 top-3 w-0 h-0 border-t-8 border-t-transparent border-r-8 border-r-black border-b-8 border-b-transparent"></div>
+                          <div className="flex space-x-1">
+                            <motion.div
+                              className="w-2 h-2 bg-black rounded-full"
+                              animate={{ scale: [1, 1.2, 1] }}
+                              transition={{ repeat: Infinity, duration: 0.8 }}
+                            />
+                            <motion.div
+                              className="w-2 h-2 bg-black rounded-full"
+                              animate={{ scale: [1, 1.2, 1] }}
+                              transition={{ repeat: Infinity, duration: 0.8, delay: 0.2 }}
+                            />
+                            <motion.div
+                              className="w-2 h-2 bg-black rounded-full"
+                              animate={{ scale: [1, 1.2, 1] }}
+                              transition={{ repeat: Infinity, duration: 0.8, delay: 0.4 }}
+                            />
+                          </div>
+                        </div>
+                      </motion.div>
+                    </div>
+
+                    {/* Chat Input Preview with CTA */}
+                    <div className="p-4 border-t-2 border-black bg-white">
+                      <motion.button
+                        className="w-full bg-gradient-to-r from-cyan-400 to-purple-400 text-black px-6 py-4 text-lg font-black border-2 border-black shadow-2xl"
+                        onClick={() => setShowAssessment(true)}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onMouseEnter={textEnter}
+                        onMouseLeave={textLeave}
+                      >
+                        <span className="flex items-center justify-center space-x-3">
+                          <Zap className="w-5 h-5" />
+                          <span>START CHATTING NOW</span>
+                          <Rocket className="w-5 h-5" />
+                        </span>
+                      </motion.button>
+                      <div className="text-center mt-3 text-xs font-mono text-gray-500">
+                        Takes 10 minutes • No credit card required
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="h-[600px] relative">
+                    {/* Back Button */}
+                    <motion.button
+                      className="absolute top-4 left-4 z-50 bg-cyan-400 text-black px-4 py-2 border-2 border-black font-mono text-sm hover:bg-white transition-colors"
+                      onClick={() => setShowAssessment(false)}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      ← BACK TO DEMO
+                    </motion.button>
+                    
+                    <ChatbotContainer
+                      userId="demo-user-123"
+                      onAssessmentComplete={(answers) => {
+                        console.log("Assessment completed:", answers);
+                        // Handle completion - could show success message
+                      }}
+                    />
+                  </div>
+                )}
+              </motion.div>
+
+              {/* Trust Badges - Right */}
+              <motion.div
+                className="space-y-6"
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 3.2, duration: 0.8 }}
+              >
+                <motion.div
+                  className="bg-gradient-to-r from-cyan-400 to-purple-400 text-black p-6 border-4 border-black rotate-1"
+                  whileHover={{ rotate: 0, scale: 1.05 }}
+                  onMouseEnter={textEnter}
+                  onMouseLeave={textLeave}
+                >
+                  <div className="text-2xl font-black mb-2">REAL RESULTS</div>
+                  <div className="text-4xl font-black mb-2">89%</div>
+                  <div className="text-sm font-mono">SUCCESS RATE</div>
+                </motion.div>
+
+                <div className="space-y-4">
+                  <div className="flex flex-col space-y-3">
+                    <motion.div
+                      className="flex items-center space-x-3 bg-white border-2 border-black p-4"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 3.5 }}
+                      whileHover={{ scale: 1.05 }}
+                      onMouseEnter={textEnter}
+                      onMouseLeave={textLeave}
+                    >
+                      <div className="w-4 h-4 bg-green-400 rounded-full animate-pulse"></div>
+                      <span className="text-sm font-mono">• Gets you hired in 21 days</span>
+                    </motion.div>
+
+                    <motion.div
+                      className="flex items-center space-x-3 bg-white border-2 border-black p-4"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 3.7 }}
+                      whileHover={{ scale: 1.05 }}
+                      onMouseEnter={textEnter}
+                      onMouseLeave={textLeave}
+                    >
+                      <div className="w-4 h-4 bg-cyan-400 rounded-full animate-pulse"></div>
+                      <span className="text-sm font-mono">• 2,847 companies hiring now</span>
+                    </motion.div>
+
+                    <motion.div
+                      className="flex items-center space-x-3 bg-white border-2 border-black p-4"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 3.9 }}
+                      whileHover={{ scale: 1.05 }}
+                      onMouseEnter={textEnter}
+                      onMouseLeave={textLeave}
+                    >
+                      <div className="w-4 h-4 bg-purple-400 rounded-full animate-pulse"></div>
+                      <span className="text-sm font-mono">• No bullshit guarantee</span>
+                    </motion.div>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </motion.div>
+
+          {/* The Chat Section */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 2.2, duration: 0.8 }}
+            className="max-w-4xl mx-auto"
+          >
             {/* Trust Indicators */}
             <motion.div
               className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-8 mb-16"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 3 }}
+              transition={{ delay: 4.5 }}
             >
               <div className="flex items-center space-x-2">
                 <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-                <span className="text-sm font-mono">✓ No Bullshit</span>
+                <span className="text-sm font-mono">✓ No More Rejections</span>
               </div>
               <div className="flex items-center space-x-2">
                 <div className="w-3 h-3 bg-cyan-400 rounded-full animate-pulse"></div>
-                <span className="text-sm font-mono">✓ Real Results</span>
+                <span className="text-sm font-mono">✓ Real Companies Only</span>
               </div>
               <div className="flex items-center space-x-2">
                 <div className="w-3 h-3 bg-purple-400 rounded-full animate-pulse"></div>
-                <span className="text-sm font-mono">✓ Actually Works</span>
+                <span className="text-sm font-mono">✓ Results In 21 Days</span>
               </div>
             </motion.div>
           </motion.div>
@@ -411,6 +619,7 @@ export default function DemoPage() {
           </motion.div>
         </div>
       </main>
+
     </div>
   );
 }

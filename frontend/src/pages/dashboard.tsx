@@ -32,6 +32,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ActivityFeed } from '@/components/activity-feed';
+import { WelcomeOnboarding } from '@/components/welcome-onboarding';
 
 // Icons
 import { 
@@ -47,10 +48,7 @@ import {
   FileText, 
   MessageSquare, 
   CalendarDays, 
-  FileSearch,
-  Rocket,
-  Target,
-  Sparkles
+  FileSearch
 } from 'lucide-react';
 
 
@@ -259,39 +257,9 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* Empty State */}
+      {/* Welcome Onboarding - Show when no data */}
       {!hasData && (
-        <Card className="border-2 border-dashed border-muted-foreground/25 bg-gradient-to-br from-card to-card/50">
-          <CardContent className="flex flex-col items-center justify-center py-16 px-6">
-            <div className="rounded-full bg-primary/10 p-6 mb-4">
-              <Rocket className="h-12 w-12 text-primary" />
-            </div>
-            <h3 className="text-2xl font-black mb-2">Get Started with Unhireable</h3>
-            <p className="text-muted-foreground text-center mb-6 max-w-md">
-              Start your job search journey by scraping jobs, creating applications, and tracking your progress.
-            </p>
-            <div className="flex flex-wrap gap-3 justify-center">
-              <Button asChild className="shadow-lg">
-                <Link to="/jobs">
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Scrape Jobs
-                </Link>
-              </Button>
-              <Button variant="outline" asChild>
-                <Link to="/applications/new">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Application
-                </Link>
-              </Button>
-              <Button variant="outline" asChild>
-                <Link to="/settings">
-                  <Target className="mr-2 h-4 w-4" />
-                  Set Up Profile
-                </Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <WelcomeOnboarding />
       )}
 
       {/* Stats Cards */}
