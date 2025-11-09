@@ -123,6 +123,39 @@ impl Database {
                 tx.execute_batch(&migration4_sql)?;
             }
             
+            let migration5_path = std::path::Path::new(crate_root).join("migrations/0005_add_match_score.sql");
+            if migration5_path.exists() {
+                let migration5_sql = std::fs::read_to_string(&migration5_path)?;
+                // Check if match_score column exists before adding
+                let match_score_exists = {
+                    let mut stmt = tx.prepare("PRAGMA table_info(jobs)")?;
+                    let mut rows = stmt.query_map([], |row| {
+                        let name: String = row.get(1)?;
+                        Ok(name)
+                    })?;
+                    rows.any(|r| r.map(|name| name == "match_score").unwrap_or(false))
+                };
+                if !match_score_exists {
+                    tx.execute_batch(&migration5_sql)?;
+                }
+            }
+            
+            let migration6_path = std::path::Path::new(crate_root).join("migrations/0006_add_user_profile.sql");
+            if migration6_path.exists() {
+                let migration6_sql = std::fs::read_to_string(&migration6_path)?;
+                // Check if user_profile table exists before adding
+                let user_profile_exists = {
+                    let mut stmt = tx.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='user_profile'")?;
+                    stmt.query_row([], |row| {
+                        let _: String = row.get(0)?;
+                        Ok(())
+                    }).is_ok()
+                };
+                if !user_profile_exists {
+                    tx.execute_batch(&migration6_sql)?;
+                }
+            }
+            
             tx.commit()?;
         }
         

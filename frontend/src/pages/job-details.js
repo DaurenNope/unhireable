@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
-import { jobApi } from '@/api/client';
+import { jobApi, profileApi } from '@/api/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DocumentGenerator } from '@/components/document-generator';
 export function JobDetails() {
@@ -19,16 +19,42 @@ export function JobDetails() {
     const [userProfile, setUserProfile] = useState(null);
     const jobId = id ? parseInt(id) : null;
     useEffect(() => {
-        // Load user profile from localStorage
-        const savedProfile = localStorage.getItem('userProfile');
-        if (savedProfile) {
+        // Load user profile from database
+        const loadProfile = async () => {
             try {
-                setUserProfile(JSON.parse(savedProfile));
+                const profile = await profileApi.get();
+                if (profile) {
+                    setUserProfile(profile);
+                    localStorage.setItem('userProfile', JSON.stringify(profile));
+                }
+                else {
+                    // Fallback to localStorage
+                    const savedProfile = localStorage.getItem('userProfile');
+                    if (savedProfile) {
+                        try {
+                            setUserProfile(JSON.parse(savedProfile));
+                        }
+                        catch (e) {
+                            console.error('Failed to parse user profile:', e);
+                        }
+                    }
+                }
             }
-            catch (e) {
-                console.error('Failed to parse user profile:', e);
+            catch (error) {
+                console.error('Failed to load user profile:', error);
+                // Fallback to localStorage
+                const savedProfile = localStorage.getItem('userProfile');
+                if (savedProfile) {
+                    try {
+                        setUserProfile(JSON.parse(savedProfile));
+                    }
+                    catch (e) {
+                        console.error('Failed to parse user profile:', e);
+                    }
+                }
             }
-        }
+        };
+        loadProfile();
     }, []);
     const { data: job, isLoading, error: queryError } = useQuery({
         queryKey: ['job', jobId],

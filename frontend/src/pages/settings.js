@@ -12,7 +12,7 @@ import { Separator } from "../components/ui/separator";
 import { Badge } from "../components/ui/badge";
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { Sun, Moon, Monitor, Key, Trash2, Plus, Save, AlertCircle, CheckCircle2, Mail, Send } from "lucide-react";
-import { credentialApi, schedulerApi } from "@/api/client";
+import { credentialApi, schedulerApi, profileApi } from "@/api/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { UserProfileForm } from "@/components/user-profile-form";
 import { invoke } from "@tauri-apps/api/core";
@@ -254,29 +254,67 @@ function ProfileSettings() {
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState(null);
     useEffect(() => {
-        // Load profile from localStorage
-        const savedProfile = localStorage.getItem('userProfile');
-        if (savedProfile) {
+        // Load profile from database
+        const loadProfile = async () => {
             try {
-                setProfile(JSON.parse(savedProfile));
+                setIsLoading(true);
+                const savedProfile = await profileApi.get();
+                if (savedProfile) {
+                    setProfile(savedProfile);
+                    // Also save to localStorage as backup
+                    localStorage.setItem('userProfile', JSON.stringify(savedProfile));
+                }
+                else {
+                    // Try loading from localStorage as fallback
+                    const localProfile = localStorage.getItem('userProfile');
+                    if (localProfile) {
+                        try {
+                            const parsed = JSON.parse(localProfile);
+                            setProfile(parsed);
+                            // Migrate to database
+                            await profileApi.save(parsed);
+                        }
+                        catch (e) {
+                            console.error('Failed to parse local profile:', e);
+                        }
+                    }
+                }
             }
-            catch (e) {
-                console.error('Failed to parse saved profile:', e);
+            catch (error) {
+                console.error('Failed to load profile:', error);
+                // Try loading from localStorage as fallback
+                const localProfile = localStorage.getItem('userProfile');
+                if (localProfile) {
+                    try {
+                        const parsed = JSON.parse(localProfile);
+                        setProfile(parsed);
+                    }
+                    catch (e) {
+                        console.error('Failed to parse local profile:', e);
+                    }
+                }
             }
-        }
+            finally {
+                setIsLoading(false);
+            }
+        };
+        loadProfile();
     }, []);
     const handleSave = async (newProfile) => {
         setIsLoading(true);
         setMessage(null);
         try {
-            // Save to localStorage (in a real app, this would be saved to backend)
+            // Save to database
+            await profileApi.save(newProfile);
+            // Also save to localStorage as backup
             localStorage.setItem('userProfile', JSON.stringify(newProfile));
             setProfile(newProfile);
-            setMessage({ type: 'success', text: 'Profile saved successfully' });
+            setMessage({ type: 'success', text: 'Profile saved successfully!' });
             setTimeout(() => setMessage(null), 3000);
         }
         catch (error) {
-            setMessage({ type: 'error', text: error.message || 'Failed to save profile' });
+            console.error('Failed to save profile:', error);
+            setMessage({ type: 'error', text: `Failed to save profile: ${error.message || 'Unknown error'}` });
             setTimeout(() => setMessage(null), 3000);
         }
         finally {

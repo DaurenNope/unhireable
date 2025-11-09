@@ -20,10 +20,10 @@ const steps = [
     {
         id: 'scrape',
         title: 'Find Jobs',
-        description: 'Scrape jobs from multiple sources (hh.kz, Wellfound, LinkedIn) or add them manually',
+        description: 'Click "Scrape Jobs" to see sample jobs (demo mode). Real scraping may not work due to website changes.',
         icon: Search,
         action: {
-            label: 'Scrape Jobs',
+            label: 'Scrape Jobs (Demo)',
             href: '/jobs',
         },
     },

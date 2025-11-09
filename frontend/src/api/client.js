@@ -98,6 +98,11 @@ export const credentialApi = {
     list: (activeOnly = false) => apiCall('list_credentials', { active_only: activeOnly }),
     delete: (platform) => apiCall('delete_credential', { platform }),
 };
+// User Profile API
+export const profileApi = {
+    get: () => apiCall('get_user_profile'),
+    save: (profile) => apiCall('save_user_profile', { profile }),
+};
 // Document Generation API
 export const generatorApi = {
     generateResume: (profile, jobId, templateName, improveWithAI) => apiCall('generate_resume', {

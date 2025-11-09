@@ -376,10 +376,11 @@ async def get_learning_resources(
             if difficulty and resource["difficulty"] != difficulty:
                 continue
             
-            all_resources.append({
+            resource_dict = {
                 "skill": skill_name,
-                ...resource
-            })
+                **resource
+            }
+            all_resources.append(resource_dict)
     
     return {"resources": all_resources, "total": len(all_resources)}
 
