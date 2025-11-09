@@ -15,7 +15,7 @@ interface Particle {
 
 export function ParticleField() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [particles, setParticles] = useState<Particle[]>([]);
+  const [, setParticles] = useState<Particle[]>([]);
   const animationRef = useRef<number | undefined>(undefined);
   const mouseRef = useRef({ x: 0, y: 0 });
 

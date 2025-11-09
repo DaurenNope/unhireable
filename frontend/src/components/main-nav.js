@@ -70,17 +70,21 @@ const NavItem = ({ item }) => {
         e.stopPropagation();
         setIsClicked(!isClicked);
     };
+    // Unhireable design: Bold styling with cyan/purple accents that works with theme
+    const baseClass = 'flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-150 w-full';
+    const iconClass = 'h-4 w-4 mr-3 flex-shrink-0';
+    const textClass = 'text-sm font-medium leading-normal';
     if (!hasSubItems) {
-        return (_jsxs(NavLink, { to: item.href, className: ({ isActive: active }) => cn('flex items-center px-3 py-2 text-sm font-medium rounded-md', active
-                ? 'bg-accent text-accent-foreground'
-                : 'text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground', 'transition-colors mb-1 w-full text-left'), children: [_jsx(Icon, { className: "h-5 w-5 mr-3" }), item.name] }));
+        return (_jsxs(NavLink, { to: item.href, className: ({ isActive: active }) => cn(baseClass, active
+                ? 'bg-primary text-primary-foreground shadow-md'
+                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground hover:shadow-sm'), children: [_jsx(Icon, { className: iconClass }), _jsx("span", { className: textClass, children: item.name })] }));
     }
-    return (_jsxs("div", { ref: menuRef, className: "relative mb-1", onMouseEnter: () => setIsHovered(true), onMouseLeave: () => setIsHovered(false), children: [_jsxs("div", { onClick: toggleMenu, className: cn('flex items-center justify-between px-3 py-2 text-sm font-medium rounded-md cursor-pointer', (isActive || isOpen)
-                    ? 'bg-accent text-accent-foreground'
-                    : 'text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground', 'transition-colors w-full'), children: [_jsxs("div", { className: "flex items-center", children: [_jsx(Icon, { className: "h-5 w-5 mr-3" }), _jsx("span", { children: item.name })] }), _jsx(ChevronDown, { className: cn('h-4 w-4 transition-transform', isOpen ? 'rotate-180' : '') })] }), isOpen && (_jsx("div", { className: "absolute left-0 mt-1 w-56 rounded-md shadow-lg bg-popover border z-50", style: { minWidth: '14rem' }, children: _jsx("div", { className: "py-1", children: item.subItems?.map((subItem) => (_jsx(NavLink, { to: subItem.href, className: ({ isActive: active }) => cn('block px-4 py-2 text-sm', 'transition-colors', active
-                            ? 'bg-accent text-accent-foreground'
-                            : 'text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground'), children: subItem.name }, subItem.href))) }) }))] }));
+    return (_jsxs("div", { ref: menuRef, className: "relative", onMouseEnter: () => setIsHovered(true), onMouseLeave: () => setIsHovered(false), children: [_jsxs("button", { type: "button", onClick: toggleMenu, className: cn(baseClass, 'justify-between text-left', (isActive || isOpen)
+                    ? 'bg-primary text-primary-foreground shadow-md'
+                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground hover:shadow-sm'), children: [_jsxs("div", { className: "flex items-center min-w-0 flex-1", children: [_jsx(Icon, { className: iconClass }), _jsx("span", { className: textClass, children: item.name })] }), _jsx(ChevronDown, { className: cn('h-3.5 w-3.5 transition-transform duration-150 flex-shrink-0 ml-2', isOpen ? 'rotate-180' : '') })] }), isOpen && (_jsx("div", { className: "absolute left-0 top-full mt-1 w-full rounded-md shadow-lg bg-popover border border-border z-50 ml-3", children: _jsx("div", { className: "py-1", children: item.subItems?.map((subItem) => (_jsx(NavLink, { to: subItem.href, className: ({ isActive: active }) => cn('block px-3 py-2 text-sm font-medium transition-colors', active
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-popover-foreground hover:bg-accent hover:text-accent-foreground'), children: subItem.name }, subItem.href))) }) }))] }));
 };
 export function MainNav() {
-    return (_jsx("nav", { className: "space-y-1 px-2 py-3", children: navigation.map((item) => (_jsx(NavItem, { item: item }, item.href))) }));
+    return (_jsx("nav", { className: "space-y-1", children: navigation.map((item) => (_jsx(NavItem, { item: item }, item.href))) }));
 }

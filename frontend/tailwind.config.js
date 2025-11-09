@@ -54,6 +54,14 @@ module.exports = {
   				'3': 'hsl(var(--chart-3))',
   				'4': 'hsl(var(--chart-4))',
   				'5': 'hsl(var(--chart-5))'
+  			},
+  			// Unhireable brand colors
+  			cyan: {
+  				400: '#06b6d4',
+  			},
+  			purple: {
+  				400: '#a855f7',
+  				500: '#9333ea',
   			}
   		},
   		borderRadius: {

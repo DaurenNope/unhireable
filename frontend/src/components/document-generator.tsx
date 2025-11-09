@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { FileText, Download, Sparkles, Loader2, AlertCircle } from 'lucide-react';
+import { Download, Sparkles, Loader2, AlertCircle } from 'lucide-react';
 import { generatorApi } from '@/api/client';
 import type { UserProfile, GeneratedDocument, Job } from '@/types/models';
 import { useQuery } from '@tanstack/react-query';
@@ -39,7 +39,7 @@ export function DocumentGenerator({ job, userProfile, onDocumentGenerated }: Doc
 
   // Auto-select first template when templates are loaded or document type changes
   useEffect(() => {
-    if (templates.length > 0) {
+    if (templates.length > 0 && templates[0]) {
       setTemplate(templates[0]);
     } else {
       setTemplate('');
@@ -161,7 +161,7 @@ export function DocumentGenerator({ job, userProfile, onDocumentGenerated }: Doc
               {templates.length > 0 ? (
                 <div className="space-y-2">
                   <Label htmlFor="template">Template</Label>
-                  <Select value={template || templates[0]} onValueChange={setTemplate}>
+                  <Select value={template || templates[0] || ''} onValueChange={(value) => setTemplate(value)}>
                     <SelectTrigger id="template">
                       <SelectValue placeholder="Select a template" />
                     </SelectTrigger>

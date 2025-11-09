@@ -80,7 +80,7 @@ export function MagneticButton({ children, className, onClick, disabled = false 
     >
       {/* Magnetic glow effect */}
       <motion.div
-        className="absolute inset-0 opacity-0 bg-gradient-to-r from-cyan-400 to-purple-400 blur-lg"
+        className="absolute inset-0 opacity-0 bg-gradient-to-r from-primary to-accent blur-lg"
         animate={{
           opacity: isHovered ? 0.3 : 0,
         }}

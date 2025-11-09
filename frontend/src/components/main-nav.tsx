@@ -75,8 +75,8 @@ const NavItem = ({ item }: { item: NavItem }) => {
       }
     }
     
-    document.addEventListener('mousemove', handleClickOutside);
-    return () => document.removeEventListener('mousemove', handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   // Close menu when navigating
@@ -90,8 +90,8 @@ const NavItem = ({ item }: { item: NavItem }) => {
     setIsClicked(!isClicked);
   };
 
-  // Unhireable design: Bold, edgy styling with cyan/purple accents
-  const baseClass = 'flex items-center px-3 py-2 text-sm font-medium rounded-md transition-all duration-150 w-full border-2';
+  // Unhireable design: Bold styling with cyan/purple accents that works with theme
+  const baseClass = 'flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-150 w-full';
   const iconClass = 'h-4 w-4 mr-3 flex-shrink-0';
   const textClass = 'text-sm font-medium leading-normal';
   
@@ -103,8 +103,8 @@ const NavItem = ({ item }: { item: NavItem }) => {
           cn(
             baseClass,
             active 
-              ? 'bg-black text-white border-black dark:bg-white dark:text-black dark:border-white' 
-              : 'bg-white text-black border-black hover:bg-cyan-400 hover:text-black dark:bg-black dark:text-white dark:border-white dark:hover:bg-purple-500 dark:hover:text-white'
+              ? 'bg-primary text-primary-foreground shadow-md' 
+              : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground hover:shadow-sm'
           )
         }
       >
@@ -128,8 +128,8 @@ const NavItem = ({ item }: { item: NavItem }) => {
           baseClass,
           'justify-between text-left',
           (isActive || isOpen) 
-            ? 'bg-black text-white border-black dark:bg-white dark:text-black dark:border-white' 
-            : 'bg-white text-black border-black hover:bg-cyan-400 hover:text-black dark:bg-black dark:text-white dark:border-white dark:hover:bg-purple-500 dark:hover:text-white'
+            ? 'bg-primary text-primary-foreground shadow-md' 
+            : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground hover:shadow-sm'
         )}
       >
         <div className="flex items-center min-w-0 flex-1">
@@ -146,7 +146,7 @@ const NavItem = ({ item }: { item: NavItem }) => {
       
       {isOpen && (
         <div 
-          className="absolute left-0 top-full mt-1 w-full rounded-md shadow-lg bg-white border-2 border-black z-50 ml-3 dark:bg-black dark:border-white"
+          className="absolute left-0 top-full mt-1 w-full rounded-md shadow-lg bg-popover border border-border z-50 ml-3"
         >
           <div className="py-1">
             {item.subItems?.map((subItem) => (
@@ -155,10 +155,10 @@ const NavItem = ({ item }: { item: NavItem }) => {
                 to={subItem.href}
                 className={({ isActive: active }) =>
                   cn(
-                    'block px-3 py-2 text-sm font-medium transition-colors border-b-2 border-transparent hover:border-cyan-400 dark:hover:border-purple-500',
+                    'block px-3 py-2 text-sm font-medium transition-colors',
                     active 
-                      ? 'bg-cyan-400 text-black dark:bg-purple-500 dark:text-white' 
-                      : 'text-black hover:bg-cyan-400/20 dark:text-white dark:hover:bg-purple-500/20'
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'text-popover-foreground hover:bg-accent hover:text-accent-foreground'
                   )
                 }
               >
@@ -174,7 +174,7 @@ const NavItem = ({ item }: { item: NavItem }) => {
 
 export function MainNav() {
   return (
-    <nav className="space-y-2">
+    <nav className="space-y-1">
       {navigation.map((item) => (
         <NavItem key={item.href} item={item} />
       ))}
