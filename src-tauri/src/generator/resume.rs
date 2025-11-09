@@ -184,6 +184,7 @@ mod tests {
             salary: Some("$120,000-$150,000".to_string()),
             source: "linkedin".to_string(),
             status: crate::db::models::JobStatus::Saved,
+            match_score: None,
             created_at: Some(chrono::Utc::now()),
             updated_at: Some(chrono::Utc::now()),
         }

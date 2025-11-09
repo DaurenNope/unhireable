@@ -46,6 +46,7 @@ export interface Job extends BaseModel {
   salary?: string;
   source: string;
   status: JobStatus;
+  match_score?: number | null; // Match score from 0.0 to 100.0, null if not calculated
 }
 
 // Contact model
@@ -192,4 +193,61 @@ export interface JobAnalysis {
   match_score: number;
   job_title: string;
   company: string;
+}
+
+// Job Match Result (from matching system)
+export interface JobMatchResult {
+  job_id: number | null;
+  job: Job;
+  match_score: number; // 0.0 to 100.0
+  skills_match: number; // 0.0 to 100.0
+  experience_match: number; // 0.0 to 100.0
+  location_match: number; // 0.0 to 100.0
+  matched_skills: string[];
+  missing_skills: string[];
+  match_reasons: string[];
+  experience_level: string; // "entry", "mid", "senior", "lead"
+}
+
+export type MatchQuality = 'Excellent' | 'Good' | 'Fair' | 'Poor';
+
+// Email Configuration Types
+export interface EmailConfig {
+  smtp_server: string;
+  smtp_port: number;
+  username: string;
+  password: string;
+  from_email: string;
+  from_name: string;
+  use_tls: boolean;
+  use_ssl: boolean;
+}
+
+export interface NotificationConfig {
+  email_enabled: boolean;
+  email_config: EmailConfig;
+  notify_on_new_jobs: boolean;
+  notify_on_matches: boolean;
+  min_match_score_for_notification: number;
+  notify_daily_summary: boolean;
+}
+
+// Scheduler Configuration Types
+export interface SchedulerConfig {
+  enabled: boolean;
+  schedule: string; // Cron expression, e.g., "0 9 * * *" for 9 AM daily
+  query: string; // Default search query
+  sources: string[]; // Sources to scrape, empty for all
+  min_match_score: number | null; // Minimum match score to notify
+  send_notifications: boolean;
+}
+
+export interface SchedulerStatus {
+  enabled: boolean;
+  running: boolean;
+  schedule: string;
+  query: string;
+  sources: string[];
+  min_match_score: number | null;
+  send_notifications: boolean;
 }

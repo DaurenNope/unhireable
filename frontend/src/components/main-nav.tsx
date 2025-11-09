@@ -75,8 +75,8 @@ const NavItem = ({ item }: { item: NavItem }) => {
       }
     }
     
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('mousemove', handleClickOutside);
+    return () => document.removeEventListener('mousemove', handleClickOutside);
   }, []);
 
   // Close menu when navigating
@@ -90,22 +90,26 @@ const NavItem = ({ item }: { item: NavItem }) => {
     setIsClicked(!isClicked);
   };
 
+  // Unhireable design: Bold, edgy styling with cyan/purple accents
+  const baseClass = 'flex items-center px-3 py-2 text-sm font-medium rounded-md transition-all duration-150 w-full border-2';
+  const iconClass = 'h-4 w-4 mr-3 flex-shrink-0';
+  const textClass = 'text-sm font-medium leading-normal';
+  
   if (!hasSubItems) {
     return (
       <NavLink
         to={item.href}
         className={({ isActive: active }) =>
           cn(
-            'flex items-center px-3 py-2 text-sm font-medium rounded-md',
+            baseClass,
             active 
-              ? 'bg-accent text-accent-foreground' 
-              : 'text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground',
-            'transition-colors mb-1 w-full text-left'
+              ? 'bg-black text-white border-black dark:bg-white dark:text-black dark:border-white' 
+              : 'bg-white text-black border-black hover:bg-cyan-400 hover:text-black dark:bg-black dark:text-white dark:border-white dark:hover:bg-purple-500 dark:hover:text-white'
           )
         }
       >
-        <Icon className="h-5 w-5 mr-3" />
-        {item.name}
+        <Icon className={iconClass} />
+        <span className={textClass}>{item.name}</span>
       </NavLink>
     );
   }
@@ -113,36 +117,36 @@ const NavItem = ({ item }: { item: NavItem }) => {
   return (
     <div 
       ref={menuRef}
-      className="relative mb-1"
+      className="relative"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div
+      <button
+        type="button"
         onClick={toggleMenu}
         className={cn(
-          'flex items-center justify-between px-3 py-2 text-sm font-medium rounded-md cursor-pointer',
+          baseClass,
+          'justify-between text-left',
           (isActive || isOpen) 
-            ? 'bg-accent text-accent-foreground' 
-            : 'text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground',
-          'transition-colors w-full'
+            ? 'bg-black text-white border-black dark:bg-white dark:text-black dark:border-white' 
+            : 'bg-white text-black border-black hover:bg-cyan-400 hover:text-black dark:bg-black dark:text-white dark:border-white dark:hover:bg-purple-500 dark:hover:text-white'
         )}
       >
-        <div className="flex items-center">
-          <Icon className="h-5 w-5 mr-3" />
-          <span>{item.name}</span>
+        <div className="flex items-center min-w-0 flex-1">
+          <Icon className={iconClass} />
+          <span className={textClass}>{item.name}</span>
         </div>
         <ChevronDown 
           className={cn(
-            'h-4 w-4 transition-transform',
+            'h-3.5 w-3.5 transition-transform duration-150 flex-shrink-0 ml-2',
             isOpen ? 'rotate-180' : ''
           )} 
         />
-      </div>
+      </button>
       
       {isOpen && (
         <div 
-          className="absolute left-0 mt-1 w-56 rounded-md shadow-lg bg-popover border z-50"
-          style={{ minWidth: '14rem' }}
+          className="absolute left-0 top-full mt-1 w-full rounded-md shadow-lg bg-white border-2 border-black z-50 ml-3 dark:bg-black dark:border-white"
         >
           <div className="py-1">
             {item.subItems?.map((subItem) => (
@@ -151,11 +155,10 @@ const NavItem = ({ item }: { item: NavItem }) => {
                 to={subItem.href}
                 className={({ isActive: active }) =>
                   cn(
-                    'block px-4 py-2 text-sm',
-                    'transition-colors',
+                    'block px-3 py-2 text-sm font-medium transition-colors border-b-2 border-transparent hover:border-cyan-400 dark:hover:border-purple-500',
                     active 
-                      ? 'bg-accent text-accent-foreground' 
-                      : 'text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground'
+                      ? 'bg-cyan-400 text-black dark:bg-purple-500 dark:text-white' 
+                      : 'text-black hover:bg-cyan-400/20 dark:text-white dark:hover:bg-purple-500/20'
                   )
                 }
               >
@@ -171,7 +174,7 @@ const NavItem = ({ item }: { item: NavItem }) => {
 
 export function MainNav() {
   return (
-    <nav className="space-y-1 px-2 py-3">
+    <nav className="space-y-2">
       {navigation.map((item) => (
         <NavItem key={item.href} item={item} />
       ))}

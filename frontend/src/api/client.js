@@ -28,6 +28,10 @@ export const jobApi = {
     delete: (id) => apiCall('delete_job', { id }),
     scrape: (query) => apiCall('scrape_jobs', { query }),
     scrapeSelected: (sources, query) => apiCall('scrape_jobs_selected', { sources, query }),
+    // Match score methods
+    calculateMatchScore: (jobId, profile) => apiCall('calculate_job_match_score', { job_id: jobId, profile }),
+    matchJobs: (profile, minScore) => apiCall('match_jobs_for_profile', { profile, min_score: minScore }),
+    updateMatchScores: (profile) => apiCall('update_job_match_scores', { profile }),
 };
 // Application API
 export const applicationApi = {
@@ -119,6 +123,23 @@ export const generatorApi = {
     getCoverLetterTemplates: () => apiCall('get_available_cover_letter_templates'),
     analyzeJob: (jobId) => apiCall('analyze_job_for_profile', { job_id: jobId }),
 };
+// Email Notification API
+export const emailApi = {
+    testConnection: (config) => apiCall('test_email_connection', { config }),
+    sendTestEmail: (config, to) => apiCall('send_test_email', { config, to }),
+    sendJobMatchEmail: (config, to, job, matchResult) => apiCall('send_job_match_email_with_result', { config, to, job, match_result: matchResult }),
+    sendNewJobsNotification: (config, to, jobs, matchResults) => apiCall('send_new_jobs_notification_email', { config, to, jobs, match_results: matchResults }),
+    extractEmailsFromJobs: (jobs) => apiCall('extract_emails_from_jobs', { jobs }),
+    createContactsFromJobs: (jobs) => apiCall('create_contacts_from_jobs', { jobs }),
+};
+// Scheduler API
+export const schedulerApi = {
+    getConfig: () => apiCall('get_scheduler_config'),
+    updateConfig: (config) => apiCall('update_scheduler_config', { config }),
+    start: () => apiCall('start_scheduler'),
+    stop: () => apiCall('stop_scheduler'),
+    getStatus: () => apiCall('get_scheduler_status'),
+};
 // Export all APIs
 export const api = {
     jobs: jobApi,
@@ -129,5 +150,7 @@ export const api = {
     activities: activityApi,
     credentials: credentialApi,
     generator: generatorApi,
+    email: emailApi,
+    scheduler: schedulerApi,
 };
 export default api;

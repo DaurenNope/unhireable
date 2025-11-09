@@ -35,10 +35,10 @@ export default function ChecklistPage() {
       const newChecklist = [...prevChecklist];
       const task = newChecklist[index];
       if (task) {
-        newChecklist[index] = {
+      newChecklist[index] = {
           ...task,
           completed: !task.completed
-        };
+      };
       }
       return newChecklist;
     });

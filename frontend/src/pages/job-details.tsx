@@ -42,7 +42,7 @@ export function JobDetails() {
   useEffect(() => {
     if (job) {
       setEditedJob(job);
-    }
+        }
   }, [job]);
 
   const error = queryError ? 'Failed to load job details' : (!job && !isLoading ? 'Job not found' : null);
@@ -77,11 +77,11 @@ export function JobDetails() {
 
   const handleDelete = async () => {
     if (!jobId || !window.confirm('Are you sure you want to delete this job?')) return;
-    try {
+      try {
       await jobApi.delete(jobId);
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
-      navigate('/jobs');
-    } catch (err) {
+        navigate('/jobs');
+      } catch (err) {
       console.error('Failed to delete job:', err);
       alert('Failed to delete job. Please try again.');
     }
@@ -163,7 +163,7 @@ export function JobDetails() {
         </TabsList>
 
         <TabsContent value="details" className="space-y-6">
-          <div className="bg-card rounded-lg border shadow-sm">
+      <div className="bg-card rounded-lg border shadow-sm">
         <div className="p-6">
           <div className="flex flex-col space-y-4">
             <div className="flex flex-col space-y-2">
@@ -209,19 +209,19 @@ export function JobDetails() {
             <div className="flex flex-wrap gap-2">
               {isEditing ? (
                 (['saved', 'applied', 'interviewing', 'offer', 'rejected', 'archived'] as JobStatus[]).map((status) => (
-                  <button
-                    key={status}
-                    type="button"
+                <button
+                  key={status}
+                  type="button"
                     onClick={() => handleStatusChange(status)}
-                    className={cn(
-                      'px-3 py-1 rounded-full text-sm font-medium transition-colors',
+                  className={cn(
+                    'px-3 py-1 rounded-full text-sm font-medium transition-colors',
                       editedJob.status === status
-                        ? statusVariant[status]
+                      ? statusVariant[status]
                         : 'bg-muted hover:bg-muted/80 cursor-pointer'
-                    )}
-                  >
-                    {status}
-                  </button>
+                  )}
+                >
+                  {status}
+                </button>
                 ))
               ) : job.status && (
                 <Badge className={statusVariant[job.status]}>
@@ -312,8 +312,8 @@ export function JobDetails() {
             )}
           </div>
 
-          </div>
         </div>
+      </div>
         </TabsContent>
 
         {userProfile && (

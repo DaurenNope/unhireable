@@ -67,8 +67,8 @@ impl JobQueries for MutexGuard<'_, rusqlite::Connection> {
             r#"
             INSERT INTO jobs (
                 title, company, url, description, requirements, 
-                location, salary, source, status, created_at, updated_at
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
+                location, salary, source, status, match_score, created_at, updated_at
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
             RETURNING id
             "#,
             params![
@@ -81,6 +81,7 @@ impl JobQueries for MutexGuard<'_, rusqlite::Connection> {
                 &job.salary,
                 &job.source,
                 job.status.to_string(),
+                &job.match_score,
                 now,
                 now,
             ],
@@ -113,8 +114,9 @@ impl JobQueries for MutexGuard<'_, rusqlite::Connection> {
                     salary: row.get(7)?,
                     source: row.get(8)?,
                     status,
-                    created_at: row.get(10)?,
-                    updated_at: row.get(11)?,
+                    match_score: row.get(10)?,
+                    created_at: row.get(11)?,
+                    updated_at: row.get(12)?,
                 })
             },
         )
@@ -141,8 +143,9 @@ impl JobQueries for MutexGuard<'_, rusqlite::Connection> {
                     salary: row.get(7)?,
                     source: row.get(8)?,
                     status,
-                    created_at: row.get(10)?,
-                    updated_at: row.get(11)?,
+                    match_score: row.get(10)?,
+                    created_at: row.get(11)?,
+                    updated_at: row.get(12)?,
                 })
             },
         )
@@ -165,7 +168,8 @@ impl JobQueries for MutexGuard<'_, rusqlite::Connection> {
                 salary = ?8,
                 source = ?9,
                 status = ?10,
-                updated_at = ?11
+                match_score = ?11,
+                updated_at = ?12
             WHERE id = ?1
             "#,
             params![
@@ -179,6 +183,7 @@ impl JobQueries for MutexGuard<'_, rusqlite::Connection> {
                 job.salary,
                 job.source,
                 job.status.to_string(),
+                &job.match_score,
                 now,
             ],
         )?;
@@ -214,8 +219,9 @@ impl JobQueries for MutexGuard<'_, rusqlite::Connection> {
                     salary: row.get(7)?,
                     source: row.get(8)?,
                     status,
-                    created_at: row.get(10)?,
-                    updated_at: row.get(11)?,
+                    match_score: row.get(10)?,
+                    created_at: row.get(11)?,
+                    updated_at: row.get(12)?,
                 })
             })?
             .collect::<Result<Vec<_>, _>>()?;

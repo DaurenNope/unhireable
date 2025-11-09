@@ -89,8 +89,8 @@ export function ApplicationDetails() {
     
     try {
       await applicationApi.update({
-        ...application,
-        notes: editedNotes
+          ...application,
+          notes: editedNotes
       });
       queryClient.invalidateQueries({ queryKey: ['application', applicationId] });
       queryClient.invalidateQueries({ queryKey: ['applications'] });
@@ -107,8 +107,8 @@ export function ApplicationDetails() {
     
     try {
       await applicationApi.update({
-        ...application,
-        status: newStatus
+          ...application,
+          status: newStatus
       });
       queryClient.invalidateQueries({ queryKey: ['application', applicationId] });
       queryClient.invalidateQueries({ queryKey: ['applications'] });

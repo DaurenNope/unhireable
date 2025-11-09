@@ -1,20 +1,47 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Filter, ArrowUpDown, RefreshCw } from 'lucide-react';
+import { Plus, Search, Filter, RefreshCw, Sparkles, Briefcase, MapPin, Building2, ExternalLink, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Job, JobStatus } from '@/types/models';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Job, JobStatus, MatchQuality, UserProfile } from '@/types/models';
 import { jobApi } from '@/api/client';
+import { cn } from '@/lib/utils';
 
 const statusVariant: Record<JobStatus, string> = {
-  'saved': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-  'applied': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-  'interviewing': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-  'offer': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200', // Note: backend uses 'offer', not 'offer_received'
-  'rejected': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-  'archived': 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200',
+  'saved': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200',
+  'applied': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200',
+  'interviewing': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200',
+  'offer': 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-200',
+  'rejected': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200',
+  'archived': 'bg-gray-100 text-gray-800 dark:bg-gray-800/50 dark:text-gray-200',
 };
+
+// Helper function to get match quality from score
+function getMatchQuality(score: number | null | undefined): MatchQuality | null {
+  if (score === null || score === undefined) return null;
+  if (score >= 80) return 'Excellent';
+  if (score >= 60) return 'Good';
+  if (score >= 40) return 'Fair';
+  return 'Poor';
+}
+
+// Helper function to get match quality badge variant
+function getMatchQualityVariant(quality: MatchQuality | null): string {
+  if (!quality) return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
+  switch (quality) {
+    case 'Excellent':
+      return 'bg-gradient-to-r from-green-500 to-emerald-500 text-white border-0';
+    case 'Good':
+      return 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-0';
+    case 'Fair':
+      return 'bg-gradient-to-r from-yellow-500 to-amber-500 text-white border-0';
+    case 'Poor':
+      return 'bg-gradient-to-r from-red-500 to-rose-500 text-white border-0';
+  }
+}
 
 export function Jobs() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -27,35 +54,57 @@ export function Jobs() {
   const [isLoading, setIsLoading] = useState(true);
   const [isScraping, setIsScraping] = useState(false);
   const [scrapeError, setScrapeError] = useState<string | null>(null);
+  const [isCalculatingScores, setIsCalculatingScores] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     loadJobs();
+    loadUserProfile();
   }, []);
+
+  const loadUserProfile = () => {
+    try {
+      const profileJson = localStorage.getItem('userProfile');
+      if (profileJson) {
+        const profile = JSON.parse(profileJson) as UserProfile;
+        setUserProfile(profile);
+      }
+    } catch (error) {
+      console.error('Failed to load user profile:', error);
+    }
+  };
+
+  const handleCalculateMatchScores = async () => {
+    if (!userProfile) {
+      alert('Please create a user profile first in Settings to calculate match scores.');
+      return;
+    }
+
+    setIsCalculatingScores(true);
+    try {
+      const updatedCount = await jobApi.updateMatchScores(userProfile);
+      alert(`Successfully calculated match scores for ${updatedCount} job(s)!`);
+      await loadJobs();
+    } catch (error: any) {
+      console.error('Failed to calculate match scores:', error);
+      alert(`Failed to calculate match scores: ${error.message}`);
+    } finally {
+      setIsCalculatingScores(false);
+    }
+  };
 
   const loadJobs = async () => {
     try {
       setIsLoading(true);
-      console.log('🔄 Loading jobs from API...');
       const jobsData = await jobApi.list();
-      console.log('✅ Jobs API returned:', jobsData);
-      console.log('📊 Number of jobs:', jobsData?.length || 0);
+      
       if (jobsData && Array.isArray(jobsData)) {
         setJobs(jobsData as Job[]);
-        console.log('✅ Successfully loaded', jobsData.length, 'jobs into state');
-        if (jobsData.length === 0) {
-          console.warn('⚠️ No jobs returned from API. Database might be empty or there was an issue.');
-        }
       } else {
-        console.error('❌ Jobs API returned unexpected data:', jobsData);
         setJobs([]);
       }
     } catch (error: any) {
-      console.error('❌ Failed to load jobs:', error);
-      console.error('Error details:', {
-        message: error?.message,
-        stack: error?.stack,
-        fullError: error
-      });
+      console.error('Failed to load jobs:', error);
       setJobs([]);
     } finally {
       setIsLoading(false);
@@ -67,42 +116,50 @@ export function Jobs() {
     setScrapeError(null);
     try {
       const query = searchTerm || 'developer';
-      console.log('Starting scrape with query:', query);
       const scrapedJobs = await jobApi.scrape(query);
-      console.log('Scraped jobs:', scrapedJobs);
+      
       if (scrapedJobs && scrapedJobs.length > 0) {
-        // Success - reload jobs
         await loadJobs();
-        // Show success message briefly
         setScrapeError(null);
       } else {
-        setScrapeError('No new jobs found. Try a different search term or check if jobs already exist.');
+        setScrapeError('No jobs found. Try a different search term.');
       }
     } catch (error: any) {
       console.error('Failed to scrape jobs:', error);
       const errorMessage = error?.message || error?.toString() || 'Unknown error occurred';
-      setScrapeError(`Failed to scrape: ${errorMessage}`);
-      // Also show alert for critical errors
-      if (errorMessage.includes('failed') || errorMessage.includes('error')) {
-        alert(`Scraping failed: ${errorMessage}\n\nCheck the console for more details.`);
-      }
+      setScrapeError(`Scraping failed: ${errorMessage}`);
     } finally {
       setIsScraping(false);
     }
   };
 
-  const filteredJobs = jobs.filter((job) => {
-    const matchesSearch =
-      job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (job.description && job.description.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredJobs = useMemo(() => {
+    const filtered = jobs.filter((job) => {
+      const matchesSearch =
+        !searchTerm ||
+        job.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        job.company?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (job.description && job.description.toLowerCase().includes(searchTerm.toLowerCase()));
 
-    const matchesStatus = statusFilter === 'all' || job.status === statusFilter;
+      const matchesStatus = statusFilter === 'all' || job.status === statusFilter;
 
-    return matchesSearch && matchesStatus;
-  });
+      return matchesSearch && matchesStatus;
+    });
+    
+    return filtered;
+  }, [jobs, statusFilter, searchTerm]);
 
   const sortedJobs = [...filteredJobs].sort((a, b) => {
+    if (sortBy.field === 'match_score') {
+      const aScore = a.match_score ?? -1;
+      const bScore = b.match_score ?? -1;
+      if (sortBy.direction === 'asc') {
+        return aScore - bScore;
+      } else {
+        return bScore - aScore;
+      }
+    }
+
     const aValue = a[sortBy.field] || '';
     const bValue = b[sortBy.field] || '';
 
@@ -122,46 +179,64 @@ export function Jobs() {
     }));
   };
 
+  if (isLoading) {
+    return (
+      <div className="space-y-6 p-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <Skeleton className="h-9 w-48 mb-2" />
+            <Skeleton className="h-5 w-64" />
+          </div>
+          <Skeleton className="h-10 w-32" />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Skeleton key={i} className="h-48 rounded-xl" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col justify-between space-y-4 sm:flex-row sm:items-center sm:space-y-0">
-        <h2 className="text-3xl font-bold tracking-tight">Jobs</h2>
+    <div className="space-y-6 p-6 bg-gradient-to-b from-background to-muted/20 min-h-screen">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+            Jobs
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            {jobs.length > 0 
+              ? `${jobs.length} total job${jobs.length === 1 ? '' : 's'}${filteredJobs.length !== jobs.length ? `, ${filteredJobs.length} shown` : ''}`
+              : 'No jobs in database. Start by scraping jobs!'}
+          </p>
+        </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={handleScrape} disabled={isScraping}>
+          <Button variant="outline" onClick={loadJobs} disabled={isLoading} className="shadow-sm">
+            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={handleCalculateMatchScores} 
+            disabled={isCalculatingScores || !userProfile}
+            title={!userProfile ? 'Create a user profile in Settings first' : 'Calculate match scores for all jobs'}
+            className="shadow-sm"
+          >
+            <Sparkles className={`mr-2 h-4 w-4 ${isCalculatingScores ? 'animate-spin' : ''}`} />
+            {isCalculatingScores ? 'Calculating...' : 'Match Scores'}
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={handleScrape} 
+            disabled={isScraping}
+            className="shadow-sm"
+          >
             <RefreshCw className={`mr-2 h-4 w-4 ${isScraping ? 'animate-spin' : ''}`} />
             {isScraping ? 'Scraping...' : 'Scrape Jobs'}
           </Button>
-          {scrapeError && (
-            <span className="text-sm text-destructive flex items-center px-2">{scrapeError}</span>
-          )}
-          <Button 
-            variant="outline" 
-            onClick={async () => {
-              try {
-                const sampleJob: Omit<Job, 'id' | 'created_at' | 'updated_at'> = {
-                  title: "Senior Frontend Developer",
-                  company: "TechStart Inc.",
-                  url: "https://example.com/job/senior-frontend-developer",
-                  description: "We are looking for an experienced Frontend Developer to join our team. You will be responsible for developing and maintaining our web applications using React and TypeScript. The ideal candidate should have strong experience with modern frontend frameworks and a passion for creating user-friendly interfaces.\n\nResponsibilities:\n- Develop and maintain web applications using React and TypeScript\n- Collaborate with designers and backend developers\n- Write clean, maintainable code\n- Participate in code reviews\n- Mentor junior developers",
-                  requirements: "Requirements:\n- 5+ years of experience in frontend development\n- Strong proficiency in React and TypeScript\n- Experience with modern CSS frameworks\n- Knowledge of REST APIs and GraphQL\n- Experience with testing frameworks (Jest, React Testing Library)\n- Strong problem-solving skills\n- Excellent communication skills",
-                  location: "San Francisco, CA (Remote)",
-                  salary: "$120,000 - $150,000",
-                  source: "Manual",
-                  status: "saved" as JobStatus,
-                };
-                await jobApi.create(sampleJob);
-                await loadJobs();
-                alert('Sample job created! Click on it to test resume generation.');
-              } catch (error: any) {
-                console.error('Failed to create sample job:', error);
-                alert(`Failed to create sample job: ${error.message}`);
-              }
-            }}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Add Sample Job
-          </Button>
-          <Button asChild>
+          <Button asChild className="shadow-lg">
             <Link to="/jobs/new">
               <Plus className="mr-2 h-4 w-4" />
               Add Job
@@ -170,127 +245,191 @@ export function Jobs() {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="rounded-lg border bg-card p-4 shadow-sm">
-        <div className="grid gap-4 md:grid-cols-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="Search jobs..."
-              className="pl-9"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          
-          <div className="relative">
-            <Filter className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <select
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 pl-9 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as JobStatus | 'all')}
-            >
-              <option value="all">All Statuses</option>
-              <option value="saved">Saved</option>
-              <option value="applied">Applied</option>
-              <option value="interviewing">Interviewing</option>
-              <option value="offer">Offer</option>
-              <option value="rejected">Rejected</option>
-              <option value="archived">Archived</option>
-            </select>
-          </div>
+      {scrapeError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 dark:bg-red-900/20 p-4">
+          <p className="text-sm text-red-800 dark:text-red-200">{scrapeError}</p>
         </div>
-      </div>
+      )}
 
-      {/* Jobs Table */}
-      <div className="rounded-lg border shadow-sm">
-        <div className="relative w-full overflow-auto">
-          <table className="w-full caption-bottom text-sm">
-            <thead className="[&_tr]:border-b">
-              <tr className="border-b transition-colors hover:bg-muted/50">
-                <th
-                  className="h-12 px-4 text-left align-middle font-medium text-muted-foreground cursor-pointer"
-                  onClick={() => handleSort('title')}
-                >
-                  <div className="flex items-center">
-                    Job Title
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </div>
-                </th>
-                <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
-                  Company
-                </th>
-                <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
-                  Location
-                </th>
-                <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
-                  Source
-                </th>
-                <th
-                  className="h-12 px-4 text-left align-middle font-medium text-muted-foreground cursor-pointer"
-                  onClick={() => handleSort('status')}
-                >
-                  <div className="flex items-center">
-                    Status
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </div>
-                </th>
-                <th
-                  className="h-12 px-4 text-left align-middle font-medium text-muted-foreground cursor-pointer"
-                  onClick={() => handleSort('created_at')}
-                >
-                  <div className="flex items-center">
-                    Date Added
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </div>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="[&_tr:last-child]:border-0">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={6} className="p-8 text-center">
-                    <div className="flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
-                      <span className="ml-2">Loading jobs...</span>
+      {/* Filters */}
+      <Card className="border-border/40 shadow-md">
+        <CardContent className="p-4">
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search jobs..."
+                className="pl-9 bg-background/50 backdrop-blur-sm"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            
+            <div className="relative">
+              <Filter className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <select
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 pl-9 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as JobStatus | 'all')}
+              >
+                <option value="all">All Statuses</option>
+                <option value="saved">Saved</option>
+                <option value="applied">Applied</option>
+                <option value="interviewing">Interviewing</option>
+                <option value="offer">Offer</option>
+                <option value="rejected">Rejected</option>
+                <option value="archived">Archived</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleSort('match_score')}
+                className="flex-1"
+              >
+                <TrendingUp className="mr-2 h-4 w-4" />
+                Sort by Match
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Empty State */}
+      {!isLoading && jobs.length === 0 && (
+        <Card className="border-2 border-dashed border-muted-foreground/25 bg-gradient-to-br from-card to-card/50">
+          <CardContent className="flex flex-col items-center justify-center py-16 px-6">
+            <div className="rounded-full bg-primary/10 p-6 mb-4">
+              <Briefcase className="h-12 w-12 text-primary" />
+            </div>
+            <h3 className="text-2xl font-bold mb-2">No Jobs Yet</h3>
+            <p className="text-muted-foreground text-center mb-6 max-w-md">
+              Start by scraping jobs from various sources or manually adding job listings.
+            </p>
+            <div className="flex flex-wrap gap-3 justify-center">
+              <Button onClick={handleScrape} disabled={isScraping} className="shadow-lg">
+                <RefreshCw className={`mr-2 h-4 w-4 ${isScraping ? 'animate-spin' : ''}`} />
+                Scrape Jobs
+              </Button>
+              <Button variant="outline" asChild>
+                <Link to="/jobs/new">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Job Manually
+                </Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Jobs Grid */}
+      {sortedJobs.length > 0 ? (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {sortedJobs.map((job, index) => {
+            const matchQuality = getMatchQuality(job.match_score);
+            return (
+              <Card 
+                key={job.id || `job-${index}`} 
+                className="group hover:shadow-lg transition-all duration-200 border-border/40 hover:border-primary/50 bg-gradient-to-br from-card to-card/80"
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-lg font-bold line-clamp-2 mb-1">
+                        <Link 
+                          to={`/jobs/${job.id}`} 
+                          className="hover:text-primary transition-colors"
+                        >
+                          {job.title}
+                        </Link>
+                      </CardTitle>
+                      <CardDescription className="flex items-center gap-1.5 mt-1">
+                        <Building2 className="h-3.5 w-3.5 flex-shrink-0" />
+                        <span className="line-clamp-1">{job.company}</span>
+                      </CardDescription>
                     </div>
-                  </td>
-                </tr>
-              ) : sortedJobs.length > 0 ? (
-                sortedJobs.map((job) => (
-                  <tr key={job.id} className="border-b transition-colors hover:bg-muted/50">
-                    <td className="p-4 align-middle">
-                      <Link to={`/jobs/${job.id}`} className="font-medium hover:underline">
-                        {job.title}
-                      </Link>
-                    </td>
-                    <td className="p-4 align-middle">{job.company}</td>
-                    <td className="p-4 align-middle">{job.location || 'Not specified'}</td>
-                    <td className="p-4 align-middle">
-                      <Badge variant="outline">{job.source}</Badge>
-                    </td>
-                    <td className="p-4 align-middle">
-                      <Badge className={statusVariant[job.status]}>
-                        {job.status}
+                    {job.url && (
+                      <a
+                        href={job.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-shrink-0 text-muted-foreground hover:text-primary transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {job.location && (
+                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                      <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+                      <span className="line-clamp-1">{job.location}</span>
+                    </div>
+                  )}
+                  
+                  {job.salary && (
+                    <div className="text-sm font-medium text-foreground">
+                      💰 {job.salary}
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge className={statusVariant[job.status]}>
+                      {job.status}
+                    </Badge>
+                    {job.match_score !== null && job.match_score !== undefined && (
+                      <Badge className={cn("font-semibold", getMatchQualityVariant(matchQuality))}>
+                        {matchQuality} {job.match_score.toFixed(0)}%
                       </Badge>
-                    </td>
-                    <td className="p-4 align-middle">
-                      {job.created_at ? new Date(job.created_at).toLocaleDateString() : 'Unknown'}
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={6} className="p-8 text-center text-muted-foreground">
-                    No jobs found. Try adjusting your search or scrape new jobs.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                    )}
+                    <Badge variant="outline" className="text-xs">
+                      {job.source}
+                    </Badge>
+                  </div>
+
+                  {job.description && (
+                    <p className="text-sm text-muted-foreground line-clamp-3">
+                      {job.description}
+                    </p>
+                  )}
+
+                  <div className="flex items-center justify-between pt-2 border-t">
+                    <span className="text-xs text-muted-foreground">
+                      {job.created_at ? new Date(job.created_at).toLocaleDateString() : 'Unknown date'}
+                    </span>
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link to={`/jobs/${job.id}`}>
+                        View Details
+                      </Link>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
-      </div>
+      ) : !isLoading && jobs.length > 0 ? (
+        <Card className="border-border/40">
+          <CardContent className="flex flex-col items-center justify-center py-16 px-6">
+            <Search className="h-12 w-12 text-muted-foreground/50 mb-4" />
+            <h3 className="text-xl font-bold mb-2">No Jobs Match Your Filters</h3>
+            <p className="text-muted-foreground text-center mb-4">
+              Try adjusting your search term or status filter.
+            </p>
+            <Button variant="outline" onClick={() => {
+              setSearchTerm('');
+              setStatusFilter('all');
+            }}>
+              Clear Filters
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   );
 }

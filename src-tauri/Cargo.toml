@@ -44,6 +44,7 @@ scraper = "0.13"
 urlencoding = "2.1"
 rand = "0.8"
 uuid = { version = "1.0", features = ["v4"] }
+regex = "1.10"
 
 # Browser automation (optional - for headless Chrome)
 # headless_chrome = { version = "0.9", optional = true }
@@ -70,6 +71,9 @@ printpdf = "0.7"
 
 # AI Integration (tokio already included above)
 
+# Email Notifications
+lettre = { version = "0.11", features = ["smtp-transport", "native-tls"] }
+
 [dev-dependencies]
-tempfile = "3.3"
+tempfile = "3.8"
 mockito = "0.31"

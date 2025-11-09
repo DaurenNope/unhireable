@@ -15,6 +15,7 @@ pub struct Job {
     pub salary: Option<String>,
     pub source: String,
     pub status: JobStatus,
+    pub match_score: Option<f64>, // Match score from 0.0 to 100.0, None if not calculated
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
 }

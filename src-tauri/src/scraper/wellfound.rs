@@ -38,8 +38,8 @@ fn parse_wellfound_html(html: &str) -> Result<Vec<Job>> {
         ("div[data-test='JobListing']", "h3", "div[data-test='CompanyName']", "div[data-test='JobLocation']"),
         ("li[data-test='JobCard']", "h3", "div", "span"),
     ];
-    
-    let mut jobs = Vec::new();
+        
+        let mut jobs = Vec::new();
     
     for (job_sel, title_sel, company_sel, location_sel) in &selectors {
         let job_selector = match Selector::parse(job_sel) {
@@ -101,6 +101,7 @@ fn parse_wellfound_html(html: &str) -> Result<Vec<Job>> {
                     salary: None,
                     source: "Wellfound".to_string(),
                     status: crate::db::models::JobStatus::Saved,
+                    match_score: None,
                     created_at: None,
                     updated_at: None,
                 };
@@ -111,10 +112,10 @@ fn parse_wellfound_html(html: &str) -> Result<Vec<Job>> {
         
         if !jobs.is_empty() {
             break; // Found jobs with this selector pattern
+            }
         }
-    }
-    
-    Ok(jobs)
+        
+        Ok(jobs)
 }
 
 impl JobScraper for WellfoundScraper {

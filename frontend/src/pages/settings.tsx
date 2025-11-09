@@ -10,11 +10,13 @@ import { Switch } from "../components/ui/switch"
 import { Separator } from "../components/ui/separator"
 import { Badge } from "../components/ui/badge"
 import { Alert, AlertDescription } from "../components/ui/alert"
-import { Sun, Moon, Monitor, Key, Trash2, Plus, Save, AlertCircle, CheckCircle2 } from "lucide-react"
-import { credentialApi } from "@/api/client"
+import { Sun, Moon, Monitor, Key, Trash2, Plus, Save, AlertCircle, CheckCircle2, Mail, Send } from "lucide-react"
+import { credentialApi, schedulerApi } from "@/api/client"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { UserProfileForm } from "@/components/user-profile-form"
-import type { UserProfile } from "@/types/models"
+import type { UserProfile, SchedulerConfig } from "@/types/models"
+import { invoke } from "@tauri-apps/api/core"
+import { Clock, Play, Square, RefreshCw } from "lucide-react"
 
 export function Settings() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -41,6 +43,8 @@ export function Settings() {
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="scraper">Scraper Config</TabsTrigger>
           <TabsTrigger value="credentials">Credentials</TabsTrigger>
+          <TabsTrigger value="email">Email Notifications</TabsTrigger>
+          <TabsTrigger value="scheduler">Scheduler</TabsTrigger>
           <TabsTrigger value="job-prefs">Job Preferences</TabsTrigger>
         </TabsList>
         
@@ -58,6 +62,14 @@ export function Settings() {
         
         <TabsContent value="credentials" className="space-y-4">
           <CredentialsSettings />
+        </TabsContent>
+
+        <TabsContent value="email" className="space-y-4">
+          <EmailNotificationSettings />
+        </TabsContent>
+
+        <TabsContent value="scheduler" className="space-y-4">
+          <SchedulerSettings />
         </TabsContent>
 
         <TabsContent value="job-prefs" className="space-y-4">
@@ -85,7 +97,7 @@ function AppearanceSettings() {
       <CardHeader>
         <CardTitle>Theme</CardTitle>
         <CardDescription>
-          Customize how JobEz looks on your device.
+          Customize how Unhireable looks on your device.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -373,6 +385,387 @@ function CredentialsSettings() {
   )
 }
 
+function EmailNotificationSettings() {
+  const [smtpServer, setSmtpServer] = useState("smtp.gmail.com")
+  const [smtpPort, setSmtpPort] = useState("587")
+  const [username, setUsername] = useState("")
+  const [password, setPassword] = useState("")
+  const [fromEmail, setFromEmail] = useState("")
+  const [fromName, setFromName] = useState("Unhireable")
+  const [testEmailTo, setTestEmailTo] = useState("")
+  const [emailEnabled, setEmailEnabled] = useState(false)
+  const [notifyOnNewJobs, setNotifyOnNewJobs] = useState(true)
+  const [notifyOnMatches, setNotifyOnMatches] = useState(true)
+  const [minMatchScore, setMinMatchScore] = useState("60")
+  const [notifyDailySummary, setNotifyDailySummary] = useState(true)
+  const [isTesting, setIsTesting] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+
+  useEffect(() => {
+    // Load email settings from localStorage
+    const savedConfig = localStorage.getItem('emailConfig')
+    if (savedConfig) {
+      try {
+        const config = JSON.parse(savedConfig)
+        setSmtpServer(config.smtp_server || "smtp.gmail.com")
+        setSmtpPort(config.smtp_port?.toString() || "587")
+        setUsername(config.username || "")
+        setPassword(config.password || "")
+        setFromEmail(config.from_email || "")
+        setFromName(config.from_name || "Unhireable")
+        setEmailEnabled(config.email_enabled || false)
+        setNotifyOnNewJobs(config.notify_on_new_jobs !== false)
+        setNotifyOnMatches(config.notify_on_matches !== false)
+        setMinMatchScore(config.min_match_score_for_notification?.toString() || "60")
+        setNotifyDailySummary(config.notify_daily_summary !== false)
+      } catch (e) {
+        console.error('Failed to load email config:', e)
+      }
+    }
+  }, [])
+
+  const saveEmailConfig = async () => {
+    setIsSaving(true)
+    setMessage(null)
+    try {
+      const config = {
+        smtp_server: smtpServer,
+        smtp_port: parseInt(smtpPort) || 587,
+        username: username,
+        password: password,
+        from_email: fromEmail || username,
+        from_name: fromName,
+        use_tls: smtpPort === "587",
+        use_ssl: smtpPort === "465",
+        email_enabled: emailEnabled,
+        notify_on_new_jobs: notifyOnNewJobs,
+        notify_on_matches: notifyOnMatches,
+        min_match_score_for_notification: parseFloat(minMatchScore) || 60,
+        notify_daily_summary: notifyDailySummary,
+      }
+      localStorage.setItem('emailConfig', JSON.stringify(config))
+      setMessage({ type: 'success', text: 'Email configuration saved successfully' })
+      setTimeout(() => setMessage(null), 3000)
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.message || 'Failed to save email configuration' })
+      setTimeout(() => setMessage(null), 3000)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const testEmailConnection = async () => {
+    if (!username || !password) {
+      setMessage({ type: 'error', text: 'Please enter username and password first' })
+      setTimeout(() => setMessage(null), 3000)
+      return
+    }
+
+    setIsTesting(true)
+    setMessage(null)
+    try {
+      const config = {
+        smtp_server: smtpServer,
+        smtp_port: parseInt(smtpPort) || 587,
+        username: username,
+        password: password,
+        from_email: fromEmail || username,
+        from_name: fromName,
+        use_tls: smtpPort === "587",
+        use_ssl: smtpPort === "465",
+      }
+      await invoke<string>('test_email_connection', { config })
+      setMessage({ type: 'success', text: 'Email connection test successful!' })
+      setTimeout(() => setMessage(null), 3000)
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.message || 'Email connection test failed' })
+      setTimeout(() => setMessage(null), 3000)
+    } finally {
+      setIsTesting(false)
+    }
+  }
+
+  const sendTestEmail = async () => {
+    if (!testEmailTo) {
+      setMessage({ type: 'error', text: 'Please enter a test email address' })
+      setTimeout(() => setMessage(null), 3000)
+      return
+    }
+
+    if (!username || !password) {
+      setMessage({ type: 'error', text: 'Please enter username and password first' })
+      setTimeout(() => setMessage(null), 3000)
+      return
+    }
+
+    setIsTesting(true)
+    setMessage(null)
+    try {
+      const config = {
+        smtp_server: smtpServer,
+        smtp_port: parseInt(smtpPort) || 587,
+        username: username,
+        password: password,
+        from_email: fromEmail || username,
+        from_name: fromName,
+        use_tls: smtpPort === "587",
+        use_ssl: smtpPort === "465",
+      }
+      await invoke<string>('send_test_email', { config, to: testEmailTo })
+      setMessage({ type: 'success', text: `Test email sent successfully to ${testEmailTo}!` })
+      setTimeout(() => setMessage(null), 5000)
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.message || 'Failed to send test email' })
+      setTimeout(() => setMessage(null), 3000)
+    } finally {
+      setIsTesting(false)
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Email Notifications</CardTitle>
+          <CardDescription>
+            Configure email notifications for job matches and updates. Many jobs only provide email contacts, so email functionality is crucial.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Enable Email Notifications</Label>
+              <p className="text-sm text-muted-foreground">
+                Send email notifications for job matches and updates
+              </p>
+            </div>
+            <Switch
+              checked={emailEnabled}
+              onCheckedChange={setEmailEnabled}
+                  />
+                </div>
+
+          <Separator />
+
+          <div className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="smtp-server">SMTP Server</Label>
+                <Input
+                  id="smtp-server"
+                  type="text"
+                  placeholder="smtp.gmail.com"
+                  value={smtpServer}
+                  onChange={(e) => setSmtpServer(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Gmail: smtp.gmail.com, Outlook: smtp-mail.outlook.com
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="smtp-port">SMTP Port</Label>
+                <Input
+                  id="smtp-port"
+                  type="number"
+                  placeholder="587"
+                  value={smtpPort}
+                  onChange={(e) => setSmtpPort(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  587 (TLS) or 465 (SSL)
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email-username">Email Address / Username</Label>
+              <Input
+                id="email-username"
+                type="email"
+                placeholder="your.email@gmail.com"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Your email address (used as username for SMTP)
+              </p>
+              </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email-password">Password / App Password</Label>
+              <Input
+                id="email-password"
+                type="password"
+                placeholder="Enter password or app password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                For Gmail, use an App Password (not your regular password). 
+                <a href="https://support.google.com/accounts/answer/185833" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline ml-1">
+                  Learn more
+                </a>
+              </p>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="from-email">From Email</Label>
+                <Input
+                  id="from-email"
+                  type="email"
+                  placeholder="your.email@gmail.com"
+                  value={fromEmail}
+                  onChange={(e) => setFromEmail(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Defaults to username if empty
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="from-name">From Name</Label>
+                <Input
+                  id="from-name"
+                  type="text"
+                  placeholder="Unhireable"
+                  value={fromName}
+                  onChange={(e) => setFromName(e.target.value)}
+                />
+            </div>
+          </div>
+
+            <Separator />
+
+            <div className="space-y-4">
+              <h3 className="font-semibold">Notification Preferences</h3>
+              
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Notify on New Jobs</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Send email when new jobs are found
+                  </p>
+                </div>
+                <Switch
+                  checked={notifyOnNewJobs}
+                  onCheckedChange={setNotifyOnNewJobs}
+                  disabled={!emailEnabled}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Notify on Job Matches</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Send email when high-match jobs are found
+                  </p>
+                </div>
+                <Switch
+                  checked={notifyOnMatches}
+                  onCheckedChange={setNotifyOnMatches}
+                  disabled={!emailEnabled}
+                />
+              </div>
+
+              {notifyOnMatches && (
+                <div className="space-y-2">
+                  <Label htmlFor="min-match-score">Minimum Match Score</Label>
+                  <Input
+                    id="min-match-score"
+                    type="number"
+                    min="0"
+                    max="100"
+                    placeholder="60"
+                    value={minMatchScore}
+                    onChange={(e) => setMinMatchScore(e.target.value)}
+                    disabled={!emailEnabled}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Only notify for jobs with match score &gt;= this value (0-100)
+                  </p>
+              </div>
+              )}
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Daily Summary</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Send daily summary of job search activity
+                  </p>
+                </div>
+                <Switch
+                  checked={notifyDailySummary}
+                  onCheckedChange={setNotifyDailySummary}
+                  disabled={!emailEnabled}
+                />
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-4">
+              <h3 className="font-semibold">Test Email Configuration</h3>
+              
+              <div className="space-y-2">
+                <Label htmlFor="test-email">Test Email Address</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="test-email"
+                    type="email"
+                    placeholder="test@example.com"
+                    value={testEmailTo}
+                    onChange={(e) => setTestEmailTo(e.target.value)}
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={testEmailConnection}
+                    disabled={isTesting || !username || !password}
+                  >
+                    <Mail className="mr-2 h-4 w-4" />
+                    Test Connection
+                  </Button>
+                  <Button
+                    onClick={sendTestEmail}
+                    disabled={isTesting || !testEmailTo || !username || !password}
+                  >
+                    <Send className="mr-2 h-4 w-4" />
+                    {isTesting ? 'Sending...' : 'Send Test Email'}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Test your email configuration by sending a test email
+                </p>
+              </div>
+            </div>
+
+            {message && (
+              <Alert variant={message.type === 'error' ? 'destructive' : 'default'}>
+                {message.type === 'success' ? (
+                  <CheckCircle2 className="h-4 w-4" />
+                ) : (
+                  <AlertCircle className="h-4 w-4" />
+                )}
+                <AlertDescription>{message.text}</AlertDescription>
+              </Alert>
+            )}
+
+            <div className="flex justify-end gap-2">
+              <Button
+                onClick={saveEmailConfig}
+                disabled={isSaving}
+              >
+                <Save className="mr-2 h-4 w-4" />
+                {isSaving ? 'Saving...' : 'Save Configuration'}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
 function ProfileSettings() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -610,32 +1003,32 @@ function JobPreferences() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="keywords">Keywords</Label>
             <Input
               id="keywords"
-              type="text"
-              placeholder="e.g. Rust, React, TypeScript"
-              value={keywords}
-              onChange={(e) => setKeywords(e.target.value)}
-            />
-          </div>
+            type="text"
+            placeholder="e.g. Rust, React, TypeScript"
+            value={keywords}
+            onChange={(e) => setKeywords(e.target.value)}
+          />
+        </div>
           <div className="space-y-2">
             <Label htmlFor="location">Location</Label>
             <Input
               id="location"
-              type="text"
-              placeholder="e.g. Remote, Almaty"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-            />
-          </div>
+            type="text"
+            placeholder="e.g. Remote, Almaty"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+          />
         </div>
+      </div>
         <div className="space-y-2">
           <Label>Sources</Label>
           <div className="grid gap-2 md:grid-cols-3">
-            {['hhkz', 'linkedin', 'wellfound'].map(src => (
+          {['hhkz', 'linkedin', 'wellfound'].map(src => (
               <div key={src} className="flex items-center space-x-2">
                 <input
                   type="checkbox"
@@ -648,11 +1041,11 @@ function JobPreferences() {
                   {src}
                 </Label>
               </div>
-            ))}
-          </div>
+          ))}
         </div>
+      </div>
         <Separator />
-        <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2">
           <Button variant="outline" onClick={savePrefs} disabled={isRunning}>
             <Save className="mr-2 h-4 w-4" />
             Save Preferences
@@ -663,8 +1056,307 @@ function JobPreferences() {
           {message && (
             <span className="text-sm text-muted-foreground">{message}</span>
           )}
-        </div>
+      </div>
       </CardContent>
     </Card>
+  )
+}
+function SchedulerSettings() {
+  const [enabled, setEnabled] = useState(false)
+  const [schedule, setSchedule] = useState("0 9 * * *")
+  const [query, setQuery] = useState("developer")
+  const [sources, setSources] = useState<string[]>([])
+  const [minMatchScore, setMinMatchScore] = useState("60")
+  const [sendNotifications, setSendNotifications] = useState(true)
+  const [isRunning, setIsRunning] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [message, setMessage] = useState<{ type: "success" | "error", text: string } | null>(null)
+
+  const { data: status, refetch: refetchStatus } = useQuery({
+    queryKey: ["scheduler-status"],
+    queryFn: () => schedulerApi.getStatus(),
+    refetchInterval: 5000,
+  })
+
+  useEffect(() => {
+    const savedConfig = localStorage.getItem("schedulerConfig")
+    if (savedConfig) {
+      try {
+        const config = JSON.parse(savedConfig) as SchedulerConfig
+        setEnabled(config.enabled)
+        setSchedule(config.schedule)
+        setQuery(config.query)
+        setSources(config.sources)
+        setMinMatchScore(config.min_match_score?.toString() || "60")
+        setSendNotifications(config.send_notifications)
+      } catch (e) {
+        console.error("Failed to load scheduler config:", e)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (status) {
+      setIsRunning(status.running)
+      setEnabled(status.enabled)
+      setSchedule(status.schedule)
+      setQuery(status.query)
+      setSources(status.sources)
+      setMinMatchScore(status.min_match_score?.toString() || "60")
+      setSendNotifications(status.send_notifications)
+    }
+  }, [status])
+
+  const saveSchedulerConfig = async () => {
+    setIsLoading(true)
+    setMessage(null)
+    try {
+      const config: SchedulerConfig = {
+        enabled,
+        schedule,
+        query,
+        sources,
+        min_match_score: parseFloat(minMatchScore) || null,
+        send_notifications: sendNotifications,
+      }
+      localStorage.setItem("schedulerConfig", JSON.stringify(config))
+      await schedulerApi.updateConfig(config)
+      await refetchStatus()
+      setMessage({ type: "success", text: "Scheduler configuration saved successfully" })
+      setTimeout(() => setMessage(null), 3000)
+    } catch (error: any) {
+      setMessage({ type: "error", text: error.message || "Failed to save scheduler configuration" })
+      setTimeout(() => setMessage(null), 3000)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleStart = async () => {
+    setIsLoading(true)
+    setMessage(null)
+    try {
+      await schedulerApi.start()
+      await refetchStatus()
+      setMessage({ type: "success", text: "Scheduler started successfully" })
+      setTimeout(() => setMessage(null), 3000)
+    } catch (error: any) {
+      setMessage({ type: "error", text: error.message || "Failed to start scheduler" })
+      setTimeout(() => setMessage(null), 3000)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleStop = async () => {
+    setIsLoading(true)
+    setMessage(null)
+    try {
+      await schedulerApi.stop()
+      await refetchStatus()
+      setMessage({ type: "success", text: "Scheduler stopped successfully" })
+      setTimeout(() => setMessage(null), 3000)
+    } catch (error: any) {
+      setMessage({ type: "error", text: error.message || "Failed to stop scheduler" })
+      setTimeout(() => setMessage(null), 3000)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const toggleSource = (src: string) => {
+    setSources(prev => prev.includes(src) ? prev.filter(s => s !== src) : [...prev, src])
+  }
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Automated Job Scraping</CardTitle>
+          <CardDescription>
+            Schedule automatic job scraping at regular intervals. Jobs will be scraped and saved automatically.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Enable Scheduler</Label>
+              <p className="text-sm text-muted-foreground">
+                Automatically scrape jobs on a schedule
+              </p>
+            </div>
+            <Switch
+              checked={enabled}
+              onCheckedChange={setEnabled}
+              disabled={isLoading}
+            />
+          </div>
+
+          {status && (
+            <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+              <Clock className="h-4 w-4" />
+              <div className="flex-1">
+                <p className="text-sm font-medium">
+                  Status: {isRunning ? "Running" : "Stopped"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Schedule: {schedule} | Query: {query}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                {!isRunning ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleStart}
+                    disabled={isLoading || !enabled}
+                  >
+                    <Play className="mr-2 h-4 w-4" />
+                    Start
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleStop}
+                    disabled={isLoading}
+                  >
+                    <Square className="mr-2 h-4 w-4" />
+                    Stop
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+
+          <Separator />
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="schedule">Schedule (Cron Expression)</Label>
+              <Input
+                id="schedule"
+                type="text"
+                placeholder="0 9 * * *"
+                value={schedule}
+                onChange={(e) => setSchedule(e.target.value)}
+                disabled={isLoading}
+              />
+              <p className="text-xs text-muted-foreground">
+                Cron format: "minute hour day month weekday". Example: "0 9 * * *" = Daily at 9 AM
+              </p>
+              <div className="text-xs text-muted-foreground space-y-1">
+                <p><strong>Common schedules:</strong></p>
+                <ul className="list-disc list-inside space-y-1 ml-2">
+                  <li>"0 9 * * *" - Daily at 9 AM</li>
+                  <li>"0 */6 * * *" - Every 6 hours</li>
+                  <li>"0 */12 * * *" - Every 12 hours</li>
+                  <li>"0 9 * * 1" - Every Monday at 9 AM</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="scheduler-query">Default Search Query</Label>
+              <Input
+                id="scheduler-query"
+                type="text"
+                placeholder="developer"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                disabled={isLoading}
+              />
+              <p className="text-xs text-muted-foreground">
+                Default search query to use when scraping jobs
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Sources</Label>
+              <p className="text-xs text-muted-foreground mb-2">
+                Select sources to scrape. Leave empty to scrape all sources.
+              </p>
+              <div className="grid gap-2 md:grid-cols-3">
+                {["hhkz", "linkedin", "wellfound"].map(src => (
+                  <div key={src} className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id={`scheduler-source-${src}`}
+                      checked={sources.includes(src)}
+                      onChange={() => toggleSource(src)}
+                      disabled={isLoading}
+                      className="rounded border-gray-300"
+                    />
+                    <Label htmlFor={`scheduler-source-${src}`} className="capitalize cursor-pointer">
+                      {src}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="scheduler-min-match">Minimum Match Score</Label>
+              <Input
+                id="scheduler-min-match"
+                type="number"
+                min="0"
+                max="100"
+                placeholder="60"
+                value={minMatchScore}
+                onChange={(e) => setMinMatchScore(e.target.value)}
+                disabled={isLoading}
+              />
+              <p className="text-xs text-muted-foreground">
+                Only notify for jobs with match score &gt;= this value (0-100). Leave empty for no minimum.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>Send Notifications</Label>
+                <p className="text-sm text-muted-foreground">
+                  Send email notifications when new jobs are found
+                </p>
+              </div>
+              <Switch
+                checked={sendNotifications}
+                onCheckedChange={setSendNotifications}
+                disabled={isLoading}
+              />
+            </div>
+          </div>
+
+          {message && (
+            <Alert variant={message.type === "error" ? "destructive" : "default"}>
+              {message.type === "success" ? (
+                <CheckCircle2 className="h-4 w-4" />
+              ) : (
+                <AlertCircle className="h-4 w-4" />
+              )}
+              <AlertDescription>{message.text}</AlertDescription>
+            </Alert>
+          )}
+
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => refetchStatus()}
+              disabled={isLoading}
+            >
+              <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+              Refresh Status
+            </Button>
+            <Button
+              onClick={saveSchedulerConfig}
+              disabled={isLoading}
+            >
+              <Save className="mr-2 h-4 w-4" />
+              {isLoading ? "Saving..." : "Save Configuration"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   )
 }

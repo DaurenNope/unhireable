@@ -11,6 +11,9 @@ pub mod db;
 pub mod error;
 pub mod scraper;
 pub mod generator;
+pub mod matching;
+pub mod scheduler;
+pub mod notifications;
 
 use crate::db::Database;
 use crate::error::Result;
@@ -19,6 +22,7 @@ use crate::error::Result;
 #[derive(Default)]
 pub struct AppState {
     db: Arc<Mutex<Option<Database>>>,
+    scheduler: Arc<Mutex<Option<scheduler::JobScheduler>>>,
 }
 
 // Initialize the application state
@@ -271,11 +275,13 @@ async fn scrape_jobs(
     
     println!("Scraped {} jobs, saving to database...", jobs.len());
     
-    // Save scraped jobs to database
+    // Save scraped jobs to database and extract emails
     let db = state.db.lock().await;
     if let Some(db) = &*db {
         let conn = db.get_connection();
         let mut saved_count = 0;
+        let mut new_saved_jobs = Vec::new(); // Track newly saved jobs for email extraction
+        
         for job in &mut jobs {
             // Skip if job with same URL already exists
             match conn.get_job_by_url(&job.url) {
@@ -292,6 +298,9 @@ async fn scrape_jobs(
                             if let Some(job_id) = job.id {
                                 let description = format!("Job '{}' at {} was scraped from {}", job.title, job.company, job.source);
                                 let _ = log_activity(&conn, "job", job_id, "created", Some(description), Some(format!(r#"{{"source": "scraped", "source_name": "{}"}}"#, job.source)));
+                                
+                                // Store newly saved job for email extraction
+                                new_saved_jobs.push(job.clone());
                             }
                         }
                         Err(e) => {
@@ -305,6 +314,53 @@ async fn scrape_jobs(
             }
         }
         println!("Saved {} new jobs to database", saved_count);
+        
+        // Automatically extract emails from newly saved jobs and create contacts
+        if !new_saved_jobs.is_empty() {
+            let mut contacts_created = 0;
+            let mut jobs_with_emails = 0;
+            
+            for job in &new_saved_jobs {
+                if let Some(job_id) = job.id {
+                    // Extract emails from job description/requirements
+                    let emails = notifications::extract_job_emails(&job.description, &job.requirements);
+                    
+                    if !emails.is_empty() {
+                        jobs_with_emails += 1;
+                        println!("📧 Found {} email(s) in job: {} at {}", emails.len(), job.title, job.company);
+                        
+                        // Create contact for each email found
+                        for email in emails {
+                            // Check if contact already exists
+                            if let Ok(existing_contacts) = conn.list_contacts(Some(job_id)) {
+                                if !existing_contacts.iter().any(|c| c.email.as_deref() == Some(&email)) {
+                                    let mut contact = db::models::Contact {
+                                        id: None,
+                                        job_id,
+                                        name: format!("Contact at {}", job.company),
+                                        email: Some(email.clone()),
+                                        phone: None,
+                                        position: None,
+                                        notes: Some(format!("Extracted from job description/requirements")),
+                                        created_at: None,
+                                        updated_at: None,
+                                    };
+                                    
+                                    if conn.create_contact(&mut contact).is_ok() {
+                                        contacts_created += 1;
+                                        println!("  ✓ Created contact: {} for job {}", email, job_id);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            if contacts_created > 0 {
+                println!("📧 Created {} contact(s) from {} job(s) with emails", contacts_created, jobs_with_emails);
+            }
+        }
     }
     
     println!("Returning {} jobs", jobs.len());
@@ -358,6 +414,8 @@ async fn scrape_jobs_selected(
     if let Some(db) = &*db {
         let conn = db.get_connection();
         let mut saved_count = 0;
+        let mut new_saved_jobs = Vec::new(); // Track newly saved jobs for email extraction
+        
         for job in &mut jobs {
             match conn.get_job_by_url(&job.url) {
                 Ok(Some(_)) => {
@@ -373,6 +431,9 @@ async fn scrape_jobs_selected(
                             if let Some(job_id) = job.id {
                                 let description = format!("Job '{}' at {} was scraped from {}", job.title, job.company, job.source);
                                 let _ = log_activity(&conn, "job", job_id, "created", Some(description), Some(format!(r#"{{"source": "scraped", "source_name": "{}"}}"#, job.source)));
+                                
+                                // Store newly saved job for email extraction
+                                new_saved_jobs.push(job.clone());
                             }
                         }
                         Err(e) => {
@@ -386,6 +447,53 @@ async fn scrape_jobs_selected(
             }
         }
         println!("Saved {} new jobs to database", saved_count);
+        
+        // Automatically extract emails from newly saved jobs and create contacts
+        if !new_saved_jobs.is_empty() {
+            let mut contacts_created = 0;
+            let mut jobs_with_emails = 0;
+            
+            for job in &new_saved_jobs {
+                if let Some(job_id) = job.id {
+                    // Extract emails from job description/requirements
+                    let emails = notifications::extract_job_emails(&job.description, &job.requirements);
+                    
+                    if !emails.is_empty() {
+                        jobs_with_emails += 1;
+                        println!("📧 Found {} email(s) in job: {} at {}", emails.len(), job.title, job.company);
+                        
+                        // Create contact for each email found
+                        for email in emails {
+                            // Check if contact already exists
+                            if let Ok(existing_contacts) = conn.list_contacts(Some(job_id)) {
+                                if !existing_contacts.iter().any(|c| c.email.as_deref() == Some(&email)) {
+                                    let mut contact = db::models::Contact {
+                                        id: None,
+                                        job_id,
+                                        name: format!("Contact at {}", job.company),
+                                        email: Some(email.clone()),
+                                        phone: None,
+                                        position: None,
+                                        notes: Some(format!("Extracted from job description/requirements")),
+                                        created_at: None,
+                                        updated_at: None,
+                                    };
+                                    
+                                    if conn.create_contact(&mut contact).is_ok() {
+                                        contacts_created += 1;
+                                        println!("  ✓ Created contact: {} for job {}", email, job_id);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            if contacts_created > 0 {
+                println!("📧 Created {} contact(s) from {} job(s) with emails", contacts_created, jobs_with_emails);
+            }
+        }
     }
     
     println!("Returning {} jobs", jobs.len());
@@ -905,6 +1013,320 @@ async fn analyze_job_for_profile(
     ai_integration.analyze_job(&job).await.map_err(Into::into)
 }
 
+// Job Matching Commands
+#[tauri::command]
+async fn calculate_job_match_score(
+    state: State<'_, AppState>,
+    job_id: i64,
+    profile: generator::UserProfile,
+) -> Result<matching::JobMatchResult> {
+    let job = {
+        let db = state.db.lock().await;
+        if let Some(db) = &*db {
+            let conn = db.get_connection();
+            conn.get_job(job_id)?
+                .ok_or_else(|| anyhow::anyhow!("Job not found"))?
+        } else {
+            return Err(anyhow::anyhow!("Database not initialized").into());
+        }
+    };
+    
+    let matcher = matching::JobMatcher::new();
+    let match_result = matcher.calculate_match(&job, &profile);
+    Ok(match_result)
+}
+
+#[tauri::command]
+async fn match_jobs_for_profile(
+    state: State<'_, AppState>,
+    profile: generator::UserProfile,
+    min_score: Option<f64>,
+) -> Result<Vec<matching::JobMatchResult>> {
+    let jobs = {
+        let db = state.db.lock().await;
+        if let Some(db) = &*db {
+            let conn = db.get_connection();
+            conn.list_jobs(None)?
+        } else {
+            return Err(anyhow::anyhow!("Database not initialized").into());
+        }
+    };
+    
+    let matcher = matching::JobMatcher::new();
+    let results = matcher.match_jobs(&jobs, &profile);
+    
+    let filtered = if let Some(min) = min_score {
+        matcher.filter_by_score(&results, min)
+    } else {
+        results
+    };
+    
+    Ok(filtered)
+}
+
+#[tauri::command]
+async fn update_job_match_scores(
+    state: State<'_, AppState>,
+    profile: generator::UserProfile,
+) -> Result<usize> {
+    let (jobs, mut updated_count) = {
+        let db = state.db.lock().await;
+        if let Some(db) = &*db {
+            let conn = db.get_connection();
+            let jobs = conn.list_jobs(None)?;
+            (jobs, 0)
+        } else {
+            return Err(anyhow::anyhow!("Database not initialized").into());
+        }
+    };
+
+    let matcher = matching::JobMatcher::new();
+    
+    // Calculate match scores for all jobs
+    for job in &jobs {
+        let match_result = matcher.calculate_match(job, &profile);
+        
+        // Update job with match score
+        let mut updated_job = job.clone();
+        updated_job.match_score = Some(match_result.match_score);
+        
+        {
+            let db = state.db.lock().await;
+            if let Some(db) = &*db {
+                let conn = db.get_connection();
+                if conn.update_job(&updated_job).is_ok() {
+                    updated_count += 1;
+                }
+            }
+        }
+    }
+    
+    Ok(updated_count)
+}
+
+// Email Notification Commands
+#[tauri::command]
+async fn test_email_connection(
+    config: notifications::EmailConfig,
+) -> Result<String> {
+    let mut email_service = notifications::EmailService::new(config);
+    email_service.initialize()?;
+    Ok("Email connection test successful!".to_string())
+}
+
+#[tauri::command]
+async fn send_test_email(
+    config: notifications::EmailConfig,
+    to: String,
+) -> Result<String> {
+    let mut email_service = notifications::EmailService::new(config);
+    email_service.initialize()?;
+    email_service.send_test_email(&to)?;
+    Ok(format!("Test email sent successfully to {}", to))
+}
+
+#[tauri::command]
+async fn send_job_match_email_with_result(
+    config: notifications::EmailConfig,
+    to: String,
+    job: db::models::Job,
+    match_result: matching::JobMatchResult,
+) -> Result<String> {
+    let mut email_service = notifications::EmailService::new(config);
+    email_service.initialize()?;
+    email_service.send_job_match_notification(&to, &job, &match_result)?;
+    Ok(format!("Job match notification sent to {}", to))
+}
+
+#[tauri::command]
+async fn send_new_jobs_notification_email(
+    config: notifications::EmailConfig,
+    to: String,
+    jobs: Vec<db::models::Job>,
+    match_results: Option<Vec<matching::JobMatchResult>>,
+) -> Result<String> {
+    let mut email_service = notifications::EmailService::new(config);
+    email_service.initialize()?;
+    
+    let match_results_ref = match_results.as_ref().map(|v| v.as_slice());
+    email_service.send_new_jobs_notification(&to, &jobs, match_results_ref)?;
+    
+    Ok(format!("New jobs notification sent to {} for {} job(s)", to, jobs.len()))
+}
+
+#[tauri::command]
+async fn extract_emails_from_jobs(
+    jobs: Vec<db::models::Job>,
+) -> Result<Vec<(i64, Vec<String>)>> {
+    // Extract emails from each job and return job_id -> emails mapping
+    let mut result = Vec::new();
+    
+    for job in jobs {
+        if let Some(job_id) = job.id {
+            let emails = notifications::extract_job_emails(&job.description, &job.requirements);
+            if !emails.is_empty() {
+                result.push((job_id, emails));
+            }
+        }
+    }
+    
+    Ok(result)
+}
+
+#[tauri::command]
+async fn create_contacts_from_jobs(
+    state: State<'_, AppState>,
+    jobs: Vec<db::models::Job>,
+) -> Result<usize> {
+    let db = state.db.lock().await;
+    if let Some(db) = &*db {
+        let conn = db.get_connection();
+        let mut contacts_created = 0;
+        
+        for job in jobs {
+            if let Some(job_id) = job.id {
+                // Extract emails from job
+                let emails = notifications::extract_job_emails(&job.description, &job.requirements);
+                
+                // Create contact for each email found
+                for email in emails {
+                    // Check if contact already exists
+                    let existing_contacts = conn.list_contacts(Some(job_id))?;
+                    if !existing_contacts.iter().any(|c| c.email.as_deref() == Some(&email)) {
+                        let mut contact = db::models::Contact {
+                            id: None,
+                            job_id,
+                            name: format!("Contact at {}", job.company),
+                            email: Some(email.clone()),
+                            phone: None,
+                            position: None,
+                            notes: Some(format!("Extracted from job description/requirements")),
+                            created_at: None,
+                            updated_at: None,
+                        };
+                        
+                        if conn.create_contact(&mut contact).is_ok() {
+                            contacts_created += 1;
+                            println!("📧 Created contact: {} for job {}", email, job_id);
+                        }
+                    }
+                }
+            }
+        }
+        
+        Ok(contacts_created)
+    } else {
+        Err(anyhow::anyhow!("Database not initialized").into())
+    }
+}
+
+// Scheduler Commands
+#[tauri::command]
+async fn get_scheduler_config() -> Result<scheduler::SchedulerConfig> {
+    // Load config from localStorage (managed by frontend)
+    // For now, return default config
+    Ok(scheduler::SchedulerConfig::default())
+}
+
+#[tauri::command]
+async fn update_scheduler_config(
+    state: State<'_, AppState>,
+    config: scheduler::SchedulerConfig,
+) -> Result<String> {
+    let mut scheduler_guard = state.scheduler.lock().await;
+    
+    // Stop existing scheduler if running
+    if let Some(scheduler) = scheduler_guard.as_ref() {
+        let _ = scheduler.stop().await;
+    }
+    
+    // Create new scheduler with updated config
+    let db = Arc::clone(&state.db);
+    let scheduler = scheduler::JobScheduler::new(config.clone(), db);
+    
+    // Start scheduler if enabled
+    if config.enabled {
+        scheduler.start().await?;
+        Ok("Scheduler configuration updated and started".to_string())
+    } else {
+        *scheduler_guard = Some(scheduler);
+        Ok("Scheduler configuration updated (disabled)".to_string())
+    }
+}
+
+#[tauri::command]
+async fn start_scheduler(
+    state: State<'_, AppState>,
+) -> Result<String> {
+    let mut scheduler_guard = state.scheduler.lock().await;
+    
+    if let Some(scheduler) = scheduler_guard.as_ref() {
+        // Check if already running
+        if scheduler.is_running().await {
+            return Ok("Scheduler is already running".to_string());
+        }
+        scheduler.start().await?;
+        Ok("Scheduler started successfully".to_string())
+    } else {
+        // Create scheduler with default config if it doesn't exist
+        let db = Arc::clone(&state.db);
+        let mut config = scheduler::SchedulerConfig::default();
+        config.enabled = true;
+        let scheduler = scheduler::JobScheduler::new(config, db);
+        scheduler.start().await?;
+        
+        *scheduler_guard = Some(scheduler);
+        Ok("Scheduler created and started".to_string())
+    }
+}
+
+#[tauri::command]
+async fn stop_scheduler(
+    state: State<'_, AppState>,
+) -> Result<String> {
+    let scheduler_guard = state.scheduler.lock().await;
+    
+    if let Some(scheduler) = scheduler_guard.as_ref() {
+        scheduler.stop().await?;
+        Ok("Scheduler stopped successfully".to_string())
+    } else {
+        Ok("Scheduler is not running".to_string())
+    }
+}
+
+#[tauri::command]
+async fn get_scheduler_status(
+    state: State<'_, AppState>,
+) -> Result<serde_json::Value> {
+    let scheduler_guard = state.scheduler.lock().await;
+    
+    if let Some(scheduler) = scheduler_guard.as_ref() {
+        let config = scheduler.get_config().await;
+        let is_running = scheduler.is_running().await;
+        
+        Ok(serde_json::json!({
+            "enabled": config.enabled,
+            "running": is_running,
+            "schedule": config.schedule,
+            "query": config.query,
+            "sources": config.sources,
+            "min_match_score": config.min_match_score,
+            "send_notifications": config.send_notifications,
+        }))
+    } else {
+        // Return default status if scheduler doesn't exist
+        Ok(serde_json::json!({
+            "enabled": false,
+            "running": false,
+            "schedule": "0 9 * * *",
+            "query": "developer",
+            "sources": [],
+            "min_match_score": 60.0,
+            "send_notifications": true,
+        }))
+    }
+}
+
 #[tauri::command]
 async fn create_credential(
     state: State<'_, AppState>,
@@ -1039,6 +1461,19 @@ pub fn run() {
             get_available_resume_templates,
             get_available_cover_letter_templates,
             analyze_job_for_profile,
+            
+            // Job Matching commands
+            calculate_job_match_score,
+            match_jobs_for_profile,
+            update_job_match_scores,
+            
+            // Email Notification commands
+            test_email_connection,
+            send_test_email,
+            send_job_match_email_with_result,
+            send_new_jobs_notification_email,
+            extract_emails_from_jobs,
+            create_contacts_from_jobs,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

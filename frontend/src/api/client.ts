@@ -7,10 +7,14 @@ import type {
   Credential,
   Document, 
   DocumentType, 
+  EmailConfig,
   GeneratedDocument,
   Interview, 
   Job,
   JobAnalysis,
+  JobMatchResult,
+  SchedulerConfig,
+  SchedulerStatus,
   UserProfile,
 } from '@/types/models';
 
@@ -46,6 +50,13 @@ export const jobApi = {
   scrape: (query: string) => apiCall<Job[]>('scrape_jobs', { query }),
   scrapeSelected: (sources: string[], query?: string) => 
     apiCall<Job[]>('scrape_jobs_selected', { sources, query }),
+  // Match score methods
+  calculateMatchScore: (jobId: number, profile: UserProfile) =>
+    apiCall<JobMatchResult>('calculate_job_match_score', { job_id: jobId, profile }),
+  matchJobs: (profile: UserProfile, minScore?: number) =>
+    apiCall<JobMatchResult[]>('match_jobs_for_profile', { profile, min_score: minScore }),
+  updateMatchScores: (profile: UserProfile) =>
+    apiCall<number>('update_job_match_scores', { profile }),
 };
 
 // Application API
@@ -180,6 +191,36 @@ export const generatorApi = {
   analyzeJob: (jobId: number) => apiCall<JobAnalysis>('analyze_job_for_profile', { job_id: jobId }),
 };
 
+// Email Notification API
+export const emailApi = {
+  testConnection: (config: EmailConfig) =>
+    apiCall<string>('test_email_connection', { config }),
+  sendTestEmail: (config: EmailConfig, to: string) =>
+    apiCall<string>('send_test_email', { config, to }),
+  sendJobMatchEmail: (config: EmailConfig, to: string, job: Job, matchResult: JobMatchResult) =>
+    apiCall<string>('send_job_match_email_with_result', { config, to, job, match_result: matchResult }),
+  sendNewJobsNotification: (config: EmailConfig, to: string, jobs: Job[], matchResults?: JobMatchResult[]) =>
+    apiCall<string>('send_new_jobs_notification_email', { config, to, jobs, match_results: matchResults }),
+  extractEmailsFromJobs: (jobs: Job[]) =>
+    apiCall<Array<[number, string[]]>>('extract_emails_from_jobs', { jobs }),
+  createContactsFromJobs: (jobs: Job[]) =>
+    apiCall<number>('create_contacts_from_jobs', { jobs }),
+};
+
+// Scheduler API
+export const schedulerApi = {
+  getConfig: () =>
+    apiCall<SchedulerConfig>('get_scheduler_config'),
+  updateConfig: (config: SchedulerConfig) =>
+    apiCall<string>('update_scheduler_config', { config }),
+  start: () =>
+    apiCall<string>('start_scheduler'),
+  stop: () =>
+    apiCall<string>('stop_scheduler'),
+  getStatus: () =>
+    apiCall<SchedulerStatus>('get_scheduler_status'),
+};
+
 // Export all APIs
 export const api = {
   jobs: jobApi,
@@ -190,6 +231,8 @@ export const api = {
   activities: activityApi,
   credentials: credentialApi,
   generator: generatorApi,
+  email: emailApi,
+  scheduler: schedulerApi,
 };
 
 export default api;

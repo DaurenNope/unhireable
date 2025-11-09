@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "jobez",
+  "productName": "Unhireable",
   "version": "0.1.0",
-  "identifier": "com.mac.jobez",
+  "identifier": "com.unhireable.app",
   "build": {
     "beforeDevCommand": "npm --prefix ../frontend run dev -- --port 3003",
     "devUrl": "http://localhost:3003",
@@ -12,7 +12,7 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "jobez",
+        "title": "Unhireable",
         "width": 800,
         "height": 600
       }

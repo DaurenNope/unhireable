@@ -52,56 +52,150 @@ impl JobScraper for HhKzScraper {
                     .context("Failed to read response from hh.kz")?;
                     
                 let document = Html::parse_document(&response);
-                let job_selector = Selector::parse("div.vacancy-serp-item").unwrap();
-                let title_selector = Selector::parse("a.serp-item__title").unwrap();
-                let company_selector = Selector::parse("a.bloko-link_kind-tertiary").unwrap();
-                let salary_selector = Selector::parse("span.bloko-header-section-2").unwrap();
-
+                
+                // Try multiple selector patterns (hh.kz may have changed structure)
+                let job_selectors = [
+                    "div.vacancy-serp-item",
+                    "div[data-qa='vacancy-serp__vacancy']",
+                    "div.serp-item",
+                    "div[data-qa='vacancy-serp__vacancy-employer']",
+                ];
+                
+                let title_selectors = [
+                    "a.serp-item__title",
+                    "a[data-qa='vacancy-serp__vacancy-title']",
+                    "a.bloko-link",
+                    "h3 a",
+                ];
+                
+                let company_selectors = [
+                    "a.bloko-link_kind-tertiary",
+                    "a[data-qa='vacancy-serp__vacancy-employer']",
+                    "span[data-qa='vacancy-serp__vacancy-employer']",
+                    "a.bloko-link_secondary",
+                ];
+                
+                let salary_selectors = [
+                    "span.bloko-header-section-2",
+                    "span[data-qa='vacancy-serp__vacancy-compensation']",
+                    "div.vacancy-serp-item__compensation",
+                ];
+                
                 let mut jobs = Vec::new();
-
-                for element in document.select(&job_selector) {
-                    let title_elem = element.select(&title_selector).next();
-                    let company_elem = element.select(&company_selector).next();
-
-                    if let (Some(title_elem), Some(company_elem)) = (title_elem, company_elem) {
-                        let title = title_elem.text().collect::<String>().trim().to_string();
-                        if title.is_empty() {
-                            continue;
-                        }
-                        
-                        let mut job_url = title_elem.value().attr("href").unwrap_or("").to_string();
-                        if !job_url.starts_with("http") {
-                            job_url = format!("https://hh.kz{}", job_url);
-                        }
-                        
-                        let company = company_elem.text().collect::<String>().trim().to_string();
-
-                        let salary = element.select(&salary_selector)
-                            .next()
-                            .map(|e| e.text().collect::<String>().trim().to_string())
-                            .unwrap_or_default();
-
-                        let job = Job {
-                            id: None,
-                            title,
-                            company,
-                            url: job_url,
-                            description: None,
-                            requirements: None,
-                            location: None,
-                            salary: if salary.is_empty() { None } else { Some(salary) },
-                            source: "hh.kz".to_string(),
-                            status: crate::db::models::JobStatus::Saved,
-                            created_at: None,
-                            updated_at: None,
+                let mut found_pattern = false;
+                
+                // Try each selector pattern
+                for job_sel in &job_selectors {
+                    if found_pattern {
+                        break;
+                    }
+                    
+                    let job_selector = match Selector::parse(job_sel) {
+                        Ok(s) => s,
+                        Err(_) => continue,
+                    };
+                    
+                    let job_elements: Vec<_> = document.select(&job_selector).collect();
+                    if job_elements.is_empty() {
+                        continue;
+                    }
+                    
+                    println!("Found {} job elements with selector: {}", job_elements.len(), job_sel);
+                    
+                    // Try each title selector
+                    for title_sel in &title_selectors {
+                        let title_selector = match Selector::parse(title_sel) {
+                            Ok(s) => s,
+                            Err(_) => continue,
                         };
-
-                        jobs.push(job);
+                        
+                        // Try each company selector
+                        for company_sel in &company_selectors {
+                            let company_selector = match Selector::parse(company_sel) {
+                                Ok(s) => s,
+                                Err(_) => continue,
+                            };
+                            
+                            // Try each salary selector
+                            for salary_sel in &salary_selectors {
+                                let salary_selector = match Selector::parse(salary_sel) {
+                                    Ok(s) => s,
+                                    Err(_) => continue,
+                                };
+                                
+                                // Try to parse jobs with this combination
+                                let mut parsed_jobs = Vec::new();
+                                for element in &job_elements {
+                                    let title_elem = element.select(&title_selector).next();
+                                    let company_elem = element.select(&company_selector).next();
+                                    
+                                    if let (Some(title_elem), Some(company_elem)) = (title_elem, company_elem) {
+                                        let title = title_elem.text().collect::<String>().trim().to_string();
+                                        if title.is_empty() {
+                                            continue;
+                                        }
+                                        
+                                        let mut job_url = title_elem.value().attr("href").unwrap_or("").to_string();
+                                        if !job_url.starts_with("http") {
+                                            job_url = format!("https://hh.kz{}", job_url);
+                                        }
+                                        
+                                        let company = company_elem.text().collect::<String>().trim().to_string();
+                                        if company.is_empty() {
+                                            continue;
+                                        }
+                                        
+                                        let salary = element.select(&salary_selector)
+                                            .next()
+                                            .map(|e| e.text().collect::<String>().trim().to_string())
+                                            .unwrap_or_default();
+                                        
+                                        let job = Job {
+                                            id: None,
+                                            title: title.clone(),
+                                            company: company.clone(),
+                                            url: job_url,
+                                            description: None,
+                                            requirements: None,
+                                            location: None,
+                                            salary: if salary.is_empty() { None } else { Some(salary) },
+                                            source: "hh.kz".to_string(),
+                                            status: crate::db::models::JobStatus::Saved,
+                                            match_score: None,
+                                            created_at: None,
+                                            updated_at: None,
+                                        };
+                                        
+                                        parsed_jobs.push(job);
+                                    }
+                                }
+                                
+                                if !parsed_jobs.is_empty() {
+                                    println!("Successfully parsed {} jobs with pattern: job={}, title={}, company={}, salary={}", 
+                                        parsed_jobs.len(), job_sel, title_sel, company_sel, salary_sel);
+                                    jobs = parsed_jobs;
+                                    found_pattern = true;
+                                    break;
+                                }
+                            }
+                            if found_pattern {
+                                break;
+                            }
+                        }
+                        if found_pattern {
+                            break;
+                        }
                     }
                 }
                 
+                // Debug: Log response size and sample HTML if no jobs found
                 if jobs.is_empty() {
-                    return Err(anyhow::anyhow!("No jobs found in hh.kz response"));
+                    eprintln!("No jobs found in hh.kz response");
+                    eprintln!("Response length: {} bytes", response.len());
+                    if response.len() < 10000 {
+                        eprintln!("Response sample (first 1000 chars): {}", &response.chars().take(1000).collect::<String>());
+                    }
+                    return Err(anyhow::anyhow!("No jobs found in hh.kz response. The website structure may have changed, or there are no jobs matching your query."));
                 }
                 
                 Ok(jobs)

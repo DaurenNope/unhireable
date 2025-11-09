@@ -251,6 +251,7 @@ mod tests {
             salary: Some("$80,000-$100,000".to_string()),
             source: "wellfound".to_string(),
             status: crate::db::models::JobStatus::Saved,
+            match_score: None,
             created_at: Some(chrono::Utc::now()),
             updated_at: Some(chrono::Utc::now()),
         }

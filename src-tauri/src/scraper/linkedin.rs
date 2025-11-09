@@ -107,6 +107,7 @@ fn parse_linkedin_html(html: &str) -> Result<Vec<Job>> {
                     salary: None,
                     source: "LinkedIn".to_string(),
                     status: crate::db::models::JobStatus::Saved,
+                    match_score: None,
                     created_at: None,
                     updated_at: None,
                 };

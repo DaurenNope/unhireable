@@ -41,14 +41,43 @@ impl Database {
                 
             migration_files.sort_by_key(|entry| entry.file_name());
             
-            let tx = conn.transaction()?;
+            // Check if match_score column exists (for migration 0005)
+            let match_score_exists = {
+                let mut stmt = conn.prepare("PRAGMA table_info(jobs)")?;
+                let mut rows = stmt.query_map([], |row| {
+                    let name: String = row.get(1)?;
+                    Ok(name)
+                })?;
+                rows.any(|r| r.map(|name| name == "match_score").unwrap_or(false))
+            };
             
             for entry in migration_files {
                 let migration_sql = std::fs::read_to_string(entry.path())?;
-                tx.execute_batch(&migration_sql)?;
+                let file_name = entry.file_name().to_string_lossy().to_string();
+                
+                // Skip migration 0005 if match_score column already exists
+                if file_name.contains("0005_add_match_score") && match_score_exists {
+                    println!("Skipping migration {} - column already exists", file_name);
+                    continue;
+                }
+                
+                // Execute migration with error handling for duplicate column errors
+                match conn.execute_batch(&migration_sql) {
+                    Ok(_) => {
+                        println!("Applied migration: {}", file_name);
+                    }
+                    Err(e) => {
+                        // If it's a duplicate column error and we're adding match_score, skip it
+                        if file_name.contains("0005_add_match_score") 
+                            && e.to_string().contains("duplicate column name: match_score") {
+                            println!("Skipping migration {} - column already exists", file_name);
+                            continue;
+                        }
+                        // For other errors, return them
+                        return Err(anyhow::anyhow!("Migration {} failed: {}", file_name, e));
+                    }
+                }
             }
-            
-            tx.commit()?;
         } else {
             // If migrations directory doesn't exist, create tables directly
             // This is a fallback for development

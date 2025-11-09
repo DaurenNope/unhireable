@@ -50,7 +50,7 @@ const NavItem = ({ item }) => {
     const hasSubItems = item.subItems && item.subItems.length > 0;
     const isActive = location.pathname === item.href ||
         (item.subItems?.some(subItem => location.pathname === subItem.href) ?? false);
-    const isOpen = isHovered || isClicked;
+    const isOpen = isClicked || (isHovered && !isClicked);
     // Close when clicking outside
     useEffect(() => {
         function handleClickOutside(event) {
@@ -77,7 +77,7 @@ const NavItem = ({ item }) => {
     }
     return (_jsxs("div", { ref: menuRef, className: "relative mb-1", onMouseEnter: () => setIsHovered(true), onMouseLeave: () => setIsHovered(false), children: [_jsxs("div", { onClick: toggleMenu, className: cn('flex items-center justify-between px-3 py-2 text-sm font-medium rounded-md cursor-pointer', (isActive || isOpen)
                     ? 'bg-accent text-accent-foreground'
-                    : 'text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground', 'transition-colors w-full'), children: [_jsxs("div", { className: "flex items-center", children: [_jsx(Icon, { className: "h-5 w-5 mr-3" }), _jsx("span", { children: item.name })] }), _jsx(ChevronDown, { className: cn('h-4 w-4 transition-transform', isOpen ? 'rotate-180' : '') })] }), isOpen && (_jsx("div", { className: "absolute left-0 mt-1 w-56 rounded-md shadow-lg bg-popover z-50", children: _jsx("div", { className: "py-1", children: item.subItems?.map((subItem) => (_jsx(NavLink, { to: subItem.href, className: ({ isActive: active }) => cn('block px-4 py-2 text-sm', 'transition-colors', active
+                    : 'text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground', 'transition-colors w-full'), children: [_jsxs("div", { className: "flex items-center", children: [_jsx(Icon, { className: "h-5 w-5 mr-3" }), _jsx("span", { children: item.name })] }), _jsx(ChevronDown, { className: cn('h-4 w-4 transition-transform', isOpen ? 'rotate-180' : '') })] }), isOpen && (_jsx("div", { className: "absolute left-0 mt-1 w-56 rounded-md shadow-lg bg-popover border z-50", style: { minWidth: '14rem' }, children: _jsx("div", { className: "py-1", children: item.subItems?.map((subItem) => (_jsx(NavLink, { to: subItem.href, className: ({ isActive: active }) => cn('block px-4 py-2 text-sm', 'transition-colors', active
                             ? 'bg-accent text-accent-foreground'
                             : 'text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground'), children: subItem.name }, subItem.href))) }) }))] }));
 };
