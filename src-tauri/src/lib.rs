@@ -17,6 +17,7 @@ pub mod notifications;
 
 use crate::db::Database;
 use crate::error::Result;
+use rusqlite::params;
 
 // Application state structure
 #[derive(Default)]
@@ -1146,16 +1147,74 @@ async fn match_jobs_for_profile(
     Ok(filtered)
 }
 
+// User Profile Commands
+#[tauri::command]
+async fn save_user_profile(
+    state: State<'_, AppState>,
+    profile: generator::UserProfile,
+) -> Result<()> {
+    let db = state.db.lock().await;
+    if let Some(db) = &*db {
+        let conn = db.get_connection();
+        let profile_json = serde_json::to_string(&profile)?;
+        
+        // Update or insert profile (id = 1)
+        conn.execute(
+            "INSERT OR REPLACE INTO user_profile (id, profile_data, updated_at) VALUES (1, ?1, ?2)",
+            params![profile_json, chrono::Utc::now()],
+        )?;
+        
+        println!("✅ User profile saved to database");
+        Ok(())
+    } else {
+        Err(anyhow::anyhow!("Database not initialized").into())
+    }
+}
+
+#[tauri::command]
+async fn get_user_profile(
+    state: State<'_, AppState>,
+) -> Result<Option<generator::UserProfile>> {
+    let db = state.db.lock().await;
+    if let Some(db) = &*db {
+        let conn = db.get_connection();
+        
+        match conn.query_row(
+            "SELECT profile_data FROM user_profile WHERE id = 1",
+            [],
+            |row| {
+                let profile_json: String = row.get(0)?;
+                Ok(profile_json)
+            },
+        ) {
+            Ok(profile_json) => {
+                let profile: generator::UserProfile = serde_json::from_str(&profile_json)
+                    .map_err(|e| anyhow::anyhow!("Failed to parse profile: {}", e))?;
+                Ok(Some(profile))
+            }
+            Err(rusqlite::Error::QueryReturnedNoRows) => {
+                println!("No user profile found in database");
+                Ok(None)
+            }
+            Err(e) => Err(anyhow::anyhow!("Failed to get user profile: {}", e).into()),
+        }
+    } else {
+        Err(anyhow::anyhow!("Database not initialized").into())
+    }
+}
+
 #[tauri::command]
 async fn update_job_match_scores(
     state: State<'_, AppState>,
     profile: generator::UserProfile,
 ) -> Result<usize> {
+    println!("update_job_match_scores called with profile: {:?}", profile.personal_info.name);
     let (jobs, mut updated_count) = {
         let db = state.db.lock().await;
         if let Some(db) = &*db {
             let conn = db.get_connection();
             let jobs = conn.list_jobs(None)?;
+            println!("Found {} jobs to calculate match scores for", jobs.len());
             (jobs, 0)
         } else {
             return Err(anyhow::anyhow!("Database not initialized").into());

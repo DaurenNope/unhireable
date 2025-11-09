@@ -51,6 +51,15 @@ impl Database {
                 rows.any(|r| r.map(|name| name == "match_score").unwrap_or(false))
             };
             
+            // Check if user_profile table exists (for migration 0006)
+            let user_profile_exists = {
+                let mut stmt = conn.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='user_profile'")?;
+                stmt.query_row([], |row| {
+                    let _: String = row.get(0)?;
+                    Ok(())
+                }).is_ok()
+            };
+            
             for entry in migration_files {
                 let migration_sql = std::fs::read_to_string(entry.path())?;
                 let file_name = entry.file_name().to_string_lossy().to_string();
@@ -61,16 +70,25 @@ impl Database {
                     continue;
                 }
                 
-                // Execute migration with error handling for duplicate column errors
+                // Skip migration 0006 if user_profile table already exists
+                if file_name.contains("0006_add_user_profile") && user_profile_exists {
+                    println!("Skipping migration {} - table already exists", file_name);
+                    continue;
+                }
+                
+                // Execute migration with error handling for duplicate column/table errors
                 match conn.execute_batch(&migration_sql) {
                     Ok(_) => {
                         println!("Applied migration: {}", file_name);
                     }
                     Err(e) => {
-                        // If it's a duplicate column error and we're adding match_score, skip it
-                        if file_name.contains("0005_add_match_score") 
-                            && e.to_string().contains("duplicate column name: match_score") {
-                            println!("Skipping migration {} - column already exists", file_name);
+                        let error_msg = e.to_string();
+                        // If it's a duplicate column/table error, skip it
+                        if (file_name.contains("0005_add_match_score") 
+                            && error_msg.contains("duplicate column name: match_score"))
+                            || (file_name.contains("0006_add_user_profile")
+                            && error_msg.contains("table user_profile already exists")) {
+                            println!("Skipping migration {} - already exists", file_name);
                             continue;
                         }
                         // For other errors, return them

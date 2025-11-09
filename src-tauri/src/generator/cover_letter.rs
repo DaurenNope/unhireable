@@ -30,17 +30,29 @@ impl CoverLetterGenerator {
         template_name: Option<&str>,
         improve_with_ai: bool,
     ) -> GenerationResult {
-        // Analyze the job first
-        let job_analysis = self.ai_integration.analyze_job(job).await?;
+        // Analyze the job first (with fallback to basic analysis)
+        let job_analysis = match self.ai_integration.analyze_job(job).await {
+            Ok(analysis) => analysis,
+            Err(e) => {
+                eprintln!("AI job analysis failed: {}, using basic analysis", e);
+                self.ai_integration.basic_job_analysis(job)
+            }
+        };
 
-        // Improve profile with AI if requested
-        let final_profile = if improve_with_ai {
-            self.ai_integration.improve_profile(profile, &job_analysis).await?
+        // Improve profile with AI if requested and API key is available
+        let final_profile = if improve_with_ai && self.ai_integration.has_api_key() {
+            match self.ai_integration.improve_profile(profile, &job_analysis).await {
+                Ok(improved) => improved,
+                Err(e) => {
+                    eprintln!("AI profile improvement failed: {}, using original profile", e);
+                    profile.clone()
+                }
+            }
         } else {
             profile.clone()
         };
 
-        // Generate cover letter content
+        // Generate cover letter content (always works, uses templates)
         let template_name = template_name.unwrap_or("cover_letter_professional");
         let content = self.template_manager.render_cover_letter(&final_profile, &job_analysis, template_name)?;
 

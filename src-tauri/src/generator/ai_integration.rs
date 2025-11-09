@@ -32,6 +32,10 @@ impl AIIntegration {
         self
     }
 
+    pub fn has_api_key(&self) -> bool {
+        self.api_key.is_some()
+    }
+
     pub async fn analyze_job(&self, job: &Job) -> Result<JobAnalysis> {
         if self.api_key.is_none() {
             // Fallback to basic analysis without AI

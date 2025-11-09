@@ -33,92 +33,36 @@ interface LearningPath {
   completionDate?: string;
 }
 
-const mockLearningPaths: LearningPath[] = [
-  {
-    id: 1,
-    targetJob: "Senior Frontend Developer",
-    targetCompany: "TechCorp",
-    skillGaps: ["GraphQL", "AWS"],
-    resources: [
-      {
-        id: 1,
-        title: "GraphQL - The Complete Guide",
-        provider: "Udemy",
-        type: "course",
-        duration: 20,
-        cost: 89.99,
-        difficulty: "intermediate",
-        rating: 4.8,
-        url: "#",
-        completed: false,
-        progress: 0
-      },
-      {
-        id: 2,
-        title: "AWS for Frontend Developers",
-        provider: "Coursera",
-        type: "course",
-        duration: 15,
-        cost: 79.99,
-        difficulty: "intermediate",
-        rating: 4.6,
-        url: "#",
-        completed: false,
-        progress: 0
-      }
-    ],
-    totalHours: 35,
-    estimatedWeeks: 1,
-    hoursPerDay: 5,
-    status: "not_started",
-    progress: 0
-  },
-  {
-    id: 2,
-    targetJob: "Full Stack Engineer",
-    targetCompany: "StartupXYZ",
-    skillGaps: ["Docker", "PostgreSQL"],
-    resources: [
-      {
-        id: 3,
-        title: "Docker Mastery",
-        provider: "freeCodeCamp",
-        type: "tutorial",
-        duration: 10,
-        cost: 0,
-        difficulty: "beginner",
-        rating: 4.7,
-        url: "#",
-        completed: true,
-        progress: 100
-      },
-      {
-        id: 4,
-        title: "PostgreSQL Deep Dive",
-        provider: "Pluralsight",
-        type: "course",
-        duration: 25,
-        cost: 99.99,
-        difficulty: "intermediate",
-        rating: 4.5,
-        url: "#",
-        completed: false,
-        progress: 30
-      }
-    ],
-    totalHours: 35,
-    estimatedWeeks: 1,
-    hoursPerDay: 5,
-    status: "in_progress",
-    progress: 50,
-    startDate: "2024-01-15"
-  }
-];
-
 export default function LearningPathsPage() {
-  const [learningPaths, setLearningPaths] = useState<LearningPath[]>(mockLearningPaths);
+  const [paths, setPaths] = useState<LearningPath[]>([]);
   const [selectedPath, setSelectedPath] = useState<LearningPath | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [insights, setInsights] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'paths' | 'resources'>('paths');
+
+  useEffect(() => {
+    // Load learning paths from API
+    const loadLearningPaths = async () => {
+      try {
+        setLoading(true);
+        const userId = localStorage.getItem('user_id') || 'demo_user';
+        
+        const response = await fetch(`/api/learning/paths/${userId}`);
+        const data = await response.json();
+        
+        if (data.paths) {
+          setPaths(data.paths);
+        }
+      } catch (error) {
+        console.error('Failed to load learning paths:', error);
+        // Fallback to empty paths for now
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadLearningPaths();
+  }, []);
 
   const getResourceIcon = (type: string) => {
     switch (type) {
@@ -271,12 +215,12 @@ export default function LearningPathsPage() {
               onClick={(e: any) => {
                 e.stopPropagation();
                 // Start learning path
-                const updatedPaths = learningPaths.map(p => 
+                const updatedPaths = paths.map((p: LearningPath) => 
                   p.id === path.id 
                     ? { ...p, status: "in_progress" as const, startDate: new Date().toISOString() }
                     : p
                 );
-                setLearningPaths(updatedPaths);
+                setPaths(updatedPaths);
               }}
               variant="primary"
               size="sm"
@@ -329,131 +273,145 @@ export default function LearningPathsPage() {
             </div>
           </div>
           <div className="font-mono text-sm">
-            {learningPaths.length} paths created
+            {paths.length} paths created
           </div>
         </div>
       </motion.div>
 
       {/* Main Content */}
       <main className="max-w-6xl mx-auto p-6">
-        {/* Stats */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-          className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8"
-        >
-          <div className="bg-black text-white p-4 rotate-1 border-4 border-cyan-400">
-            <div className="text-2xl font-black text-cyan-400">{learningPaths.length}</div>
-            <div className="text-sm font-mono">ACTIVE PATHS</div>
-          </div>
-          <div className="bg-cyan-400 text-black p-4 -rotate-2 border-4 border-black">
-            <div className="text-2xl font-black">
-              {learningPaths.filter(p => p.status === 'in_progress').length}
-            </div>
-            <div className="text-sm font-mono">IN PROGRESS</div>
-          </div>
-          <div className="bg-purple-400 text-black p-4 rotate-1 border-4 border-black">
-            <div className="text-2xl font-black">
-              {learningPaths.filter(p => p.status === 'completed').length}
-            </div>
-            <div className="text-sm font-mono">COMPLETED</div>
-          </div>
-          <div className="bg-green-400 text-black p-4 -rotate-2 border-4 border-black">
-            <div className="text-2xl font-black">
-              {Math.round(learningPaths.reduce((acc, path) => acc + path.progress, 0) / learningPaths.length)}%
-            </div>
-            <div className="text-sm font-mono">AVG PROGRESS</div>
-          </div>
-        </motion.div>
-
-        {/* Tab Navigation */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.4 }}
-          className="bg-black text-cyan-400 p-1 border-4 border-cyan-400 mb-8"
-        >
-          <div className="flex gap-2">
-            <button
-              onClick={() => setActiveTab('paths')}
-              className={`px-6 py-3 font-black text-sm transition-all ${
-                activeTab === 'paths'
-                  ? 'bg-cyan-400 text-black'
-                  : 'hover:bg-white text-cyan-400'
-              }`}
-            >
-              LEARNING PATHS
-            </button>
-            <button
-              onClick={() => setActiveTab('resources')}
-              className={`px-6 py-3 font-black text-sm transition-all ${
-                activeTab === 'resources'
-                  ? 'bg-cyan-400 text-black'
-                  : 'hover:bg-white text-cyan-400'
-              }`}
-            >
-              RESOURCE LIBRARY
-            </button>
-          </div>
-        </motion.div>
-
-        {/* Tab Content */}
-        <AnimatePresence mode="wait">
-          {activeTab === 'paths' && (
+        {loading ? (
+          <div className="text-center py-16">
             <motion.div
-              key="paths"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ duration: 0.3 }}
-              className="space-y-6"
-            >
-              {learningPaths.map((path, index) => (
-                <LearningPathCard key={path.id} path={path} index={index} />
-              ))}
-
-              {learningPaths.length === 0 && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="text-center py-16 border-4 border-dashed border-gray-300"
-                >
-                  <BookOpen className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                  <h3 className="font-black text-2xl mb-2">NO LEARNING PATHS YET</h3>
-                  <p className="font-mono text-gray-500 mb-4">
-                    Complete your assessment to get personalized learning paths
-                  </p>
-                  <BrutalistButton
-                    onClick={() => window.location.href = "/demo"}
-                    icon={<Zap className="w-4 h-4" />}
-                  >
-                    START ASSESSMENT
-                  </BrutalistButton>
-                </motion.div>
-              )}
-            </motion.div>
-          )}
-
-          {activeTab === 'resources' && (
+              animate={{ rotate: 360 }}
+              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              className="w-16 h-16 border-4 border-cyan-400 border-t-transparent rounded-full mx-auto mb-4"
+            />
+            <h3 className="font-black text-2xl mb-2">LOADING YOUR LEARNING PATHS...</h3>
+            <p className="font-mono text-gray-500">Analyzing skill gaps and generating personalized paths</p>
+          </div>
+        ) : (
+          <>
+            {/* Stats */}
             <motion.div
-              key="resources"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ duration: 0.3 }}
-              className="space-y-6"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8"
             >
-              <div className="text-center py-16 border-4 border-dashed border-gray-300">
-                <BookOpen className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                <h3 className="font-black text-2xl mb-2">RESOURCE LIBRARY</h3>
-                <p className="font-mono text-gray-500">
-                  Browse all available learning resources
-                </p>
+              <div className="bg-black text-white p-4 rotate-1 border-4 border-cyan-400">
+                <div className="text-2xl font-black text-cyan-400">{paths.length}</div>
+                <div className="text-sm font-mono">ACTIVE PATHS</div>
+              </div>
+              <div className="bg-cyan-400 text-black p-4 -rotate-2 border-4 border-black">
+                <div className="text-2xl font-black">
+                  {paths.filter((p: LearningPath) => p.status === 'in_progress').length}
+                </div>
+                <div className="text-sm font-mono">IN PROGRESS</div>
+              </div>
+              <div className="bg-purple-400 text-black p-4 rotate-1 border-4 border-black">
+                <div className="text-2xl font-black">
+                  {paths.filter((p: LearningPath) => p.status === 'completed').length}
+                </div>
+                <div className="text-sm font-mono">COMPLETED</div>
+              </div>
+              <div className="bg-green-400 text-black p-4 -rotate-2 border-4 border-black">
+                <div className="text-2xl font-black">
+                  {Math.round(paths.reduce((acc: number, path: LearningPath) => acc + path.progress, 0) / paths.length)}%
+                </div>
+                <div className="text-sm font-mono">AVG PROGRESS</div>
               </div>
             </motion.div>
-          )}
-        </AnimatePresence>
+
+            {/* Tab Navigation */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.4 }}
+              className="bg-black text-cyan-400 p-1 border-4 border-cyan-400 mb-8"
+            >
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setActiveTab('paths')}
+                  className={`px-6 py-3 font-black text-sm transition-all ${
+                    activeTab === 'paths'
+                      ? 'bg-cyan-400 text-black'
+                      : 'hover:bg-white text-cyan-400'
+                  }`}
+                >
+                  LEARNING PATHS
+                </button>
+                <button
+                  onClick={() => setActiveTab('resources')}
+                  className={`px-6 py-3 font-black text-sm transition-all ${
+                    activeTab === 'resources'
+                      ? 'bg-cyan-400 text-black'
+                      : 'hover:bg-white text-cyan-400'
+                  }`}
+                >
+                  RESOURCE LIBRARY
+                </button>
+              </div>
+            </motion.div>
+
+            {/* Tab Content */}
+            <AnimatePresence mode="wait">
+              {activeTab === 'paths' && (
+                <motion.div
+                  key="paths"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.3 }}
+                  className="space-y-6"
+                >
+                  {paths.map((path, index) => (
+                    <LearningPathCard key={path.id} path={path} index={index} />
+                  ))}
+
+                  {paths.length === 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="text-center py-16 border-4 border-dashed border-gray-300"
+                    >
+                      <BookOpen className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                      <h3 className="font-black text-2xl mb-2">NO LEARNING PATHS YET</h3>
+                      <p className="font-mono text-gray-500 mb-4">
+                        Complete your assessment to get personalized learning paths
+                      </p>
+                      <BrutalistButton
+                        onClick={() => window.location.href = "/demo"}
+                        icon={<Zap className="w-4 h-4" />}
+                      >
+                        START ASSESSMENT
+                      </BrutalistButton>
+                    </motion.div>
+                  )}
+                </motion.div>
+              )}
+
+              {activeTab === 'resources' && (
+                <motion.div
+                  key="resources"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.3 }}
+                  className="space-y-6"
+                >
+                  <div className="text-center py-16 border-4 border-dashed border-gray-300">
+                    <BookOpen className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                    <h3 className="font-black text-2xl mb-2">RESOURCE LIBRARY</h3>
+                    <p className="font-mono text-gray-500">
+                      Browse all available learning resources
+                    </p>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </>
+        )}
       </main>
 
       {/* Learning Path Details Modal */}
@@ -610,12 +568,12 @@ export default function LearningPathsPage() {
                   {selectedPath.status === "not_started" && (
                     <BrutalistButton
                       onClick={() => {
-                        const updatedPaths = learningPaths.map(p => 
+                        const updatedPaths = paths.map((p: LearningPath) => 
                           p.id === selectedPath.id 
                             ? { ...p, status: "in_progress" as const, startDate: new Date().toISOString() }
                             : p
                         );
-                        setLearningPaths(updatedPaths);
+                        setPaths(updatedPaths);
                         setSelectedPath({ ...selectedPath, status: "in_progress" as const });
                       }}
                       variant="primary"

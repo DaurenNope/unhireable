@@ -149,6 +149,12 @@ export const credentialApi = {
     apiCall<void>('delete_credential', { platform }),
 };
 
+// User Profile API
+export const profileApi = {
+  get: () => apiCall<UserProfile | null>('get_user_profile'),
+  save: (profile: UserProfile) => apiCall<void>('save_user_profile', { profile }),
+};
+
 // Document Generation API
 export const generatorApi = {
   generateResume: (

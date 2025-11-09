@@ -16,6 +16,23 @@ interface JobMatch {
   postedDate: string;
   type: "remote" | "hybrid" | "onsite";
   difficulty: "beginner" | "intermediate" | "advanced";
+  market_intelligence?: {
+    salary_comparison: {
+      position: string;
+      industry_average: number;
+      job_max: number;
+    };
+    competition_level: string;
+    success_probability: number;
+    time_to_hire: string;
+  };
+  culture_analysis?: {
+    [key: string]: string;
+  };
+  required_skills_matched?: number;
+  total_required_skills?: number;
+  preferred_skills_matched?: number;
+  total_preferred_skills?: number;
 }
 
 const mockJobMatches: JobMatch[] = [
@@ -74,13 +91,42 @@ const mockJobMatches: JobMatch[] = [
 ];
 
 export default function JobMatchesPage() {
-  const [jobs, setJobs] = useState<JobMatch[]>(mockJobMatches);
-  const [filteredJobs, setFilteredJobs] = useState<JobMatch[]>(mockJobMatches);
+  const [jobs, setJobs] = useState<JobMatch[]>([]);
+  const [filteredJobs, setFilteredJobs] = useState<JobMatch[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>("all");
   const [selectedType, setSelectedType] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"match" | "salary" | "date">("match");
   const [selectedJob, setSelectedJob] = useState<JobMatch | null>(null);
+
+  useEffect(() => {
+    // Load job matches from API
+    const loadJobMatches = async () => {
+      try {
+        setLoading(true);
+        // Get user ID from localStorage or context
+        const userId = localStorage.getItem('user_id') || 'demo_user';
+        
+        const response = await fetch(`/api/jobs/matches/${userId}`);
+        const data = await response.json();
+        
+        if (data.matches) {
+          setJobs(data.matches);
+          setFilteredJobs(data.matches);
+        }
+      } catch (error) {
+        console.error('Failed to load job matches:', error);
+        // Fallback to mock data
+        setJobs(mockJobMatches);
+        setFilteredJobs(mockJobMatches);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadJobMatches();
+  }, []); // Only run once on mount
 
   useEffect(() => {
     let filtered = jobs;
@@ -403,11 +449,23 @@ export default function JobMatchesPage() {
 
         {/* Job Matches */}
         <div className="space-y-6">
-          <AnimatePresence>
-            {filteredJobs.map((job, index) => (
-              <JobMatchCard key={job.id} job={job} index={index} />
-            ))}
-          </AnimatePresence>
+          {loading ? (
+            <div className="text-center py-16">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                className="w-16 h-16 border-4 border-cyan-400 border-t-transparent rounded-full mx-auto mb-4"
+              />
+              <h3 className="font-black text-2xl mb-2">FINDING YOUR PERFECT MATCHES...</h3>
+              <p className="font-mono text-gray-500">Analyzing skills and opportunities</p>
+            </div>
+          ) : (
+            <AnimatePresence>
+              {filteredJobs.map((job, index) => (
+                <JobMatchCard key={job.id} job={job} index={index} />
+              ))}
+            </AnimatePresence>
+          )}
 
           {filteredJobs.length === 0 && (
             <motion.div
