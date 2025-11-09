@@ -1,0 +1,68 @@
+{{profile.personal_info.name}}
+{{profile.personal_info.email}}
+{{#if profile.personal_info.phone}}{{profile.personal_info.phone}}{{/if}}
+{{#if profile.personal_info.location}}{{profile.personal_info.location}}{{/if}}
+
+================================================================================
+
+PROFESSIONAL SUMMARY
+--------------------------------------------------------------------------------
+{{profile.summary}}
+
+================================================================================
+
+SKILLS
+================================================================================
+{{#each profile.skills.technical_skills}}
+• {{this}}
+{{/each}}
+
+{{#if profile.skills.soft_skills}}
+Soft Skills:
+{{#each profile.skills.soft_skills}}
+• {{this}}
+{{/each}}
+{{/if}}
+
+================================================================================
+
+EXPERIENCE
+================================================================================
+{{#each profile.experience}}
+{{position}} - {{company}}
+{{duration}}
+{{#each description}}
+• {{this}}
+{{/each}}
+{{#if technologies}}
+Technologies: {{#each technologies}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
+{{/if}}
+
+{{/each}}
+
+================================================================================
+
+EDUCATION
+================================================================================
+{{#each education}}
+{{degree}} - {{institution}}
+{{year}}
+{{#if details}}
+{{details}}
+{{/if}}
+
+{{/each}}
+
+{{#if profile.projects}}
+================================================================================
+
+PROJECTS
+================================================================================
+{{#each profile.projects}}
+• {{this}}
+{{/each}}
+{{/if}}
+
+================================================================================
+
+*Resume generated for {{job.job_title}} position at {{job.company}} on {{current_date}}*

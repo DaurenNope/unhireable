@@ -1,0 +1,15 @@
+{
+  "name": "jobez-root",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "npm run dev:tauri",
+    "dev:web": "npm --prefix frontend run dev",
+    "dev:tauri": "cd frontend && npm run tauri:dev",
+    "tauri": "cd frontend && npm run tauri",
+    "build": "cd frontend && npm run tauri:build",
+    "build:web": "npm --prefix frontend run build",
+    "preview": "npm --prefix frontend run preview",
+    "lint": "npm --prefix frontend run lint"
+  }
+}
