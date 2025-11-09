@@ -148,59 +148,148 @@ export function ChatbotContainer({ userId, onAssessmentComplete }: ChatbotContai
     // Show typing indicator
     setIsTyping(true);
     
-    // Save answer to backend (mock)
-    await saveAnswer(questionId, answer);
-    
-    // Move to next question or complete
-    setTimeout(async () => {
-      const nextIndex = currentQuestionIndex + 1;
+    try {
+      // Use intelligent API endpoint
+      const response = await fetch('/api/assessments/intelligent-answer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          question_id: questionId,
+          answer: answer
+        })
+      });
       
-      if (nextIndex >= questions.length) {
-        // Complete assessment
-        await completeAssessment();
-      } else {
-        // Show next question
-        setCurrentQuestionIndex(nextIndex);
-        
-        // Add context message between questions
-        let contextMessage = "";
-        if (nextIndex === 1) {
-          contextMessage = "Solid choice. Now let's see how long you've been surviving this hellscape.";
-        } else if (nextIndex === 2) {
-          contextMessage = "Time to be honest about your tech skills... no lying, I can smell impostor syndrome.";
-        } else if (nextIndex === 3) {
-          contextMessage = "How much pain are you willing to endure to escape unemployment?";
-        } else if (nextIndex === 4) {
-          contextMessage = "Finally, tell me about your master plan for not being broke.";
-        }
-        
+      const result = await response.json();
+      
+      // Process intelligent response
+      setTimeout(() => {
         const messagesToAdd: Array<{
           id: string;
           type: "user" | "bot";
           content: string | AssessmentQuestion;
           timestamp: Date;
         }> = [];
-        if (contextMessage) {
-          messagesToAdd.push({
-            id: Date.now().toString(),
-            type: "bot" as const,
-            content: contextMessage,
-            timestamp: new Date()
+        
+        // Add skill insights if available
+        if (result.skill_insights && result.skill_insights.length > 0) {
+          result.skill_insights.forEach((insight: string, index: number) => {
+            setTimeout(() => {
+              setMessages(prev => [...prev, {
+                id: (Date.now() + index).toString(),
+                type: "bot" as const,
+                content: `💡 ${insight}`,
+                timestamp: new Date()
+              }]);
+            }, index * 500);
           });
         }
         
-        messagesToAdd.push({
-          id: (Date.now() + 1).toString(),
-          type: "bot" as const,
-          content: questions[nextIndex],
-          timestamp: new Date()
-        });
+        // Add trajectory analysis if available
+        if (result.trajectory_analysis) {
+          const analysis = result.trajectory_analysis;
+          const trajectoryMessage = `📊 CAREER TRAJECTORY ANALYSIS: ${analysis.trajectory_score}/100\n\n${analysis.insights.join('\n\n')}`;
+          
+          setTimeout(() => {
+            setMessages(prev => [...prev, {
+              id: (Date.now() + 100).toString(),
+              type: "bot" as const,
+              content: trajectoryMessage,
+              timestamp: new Date()
+            }]);
+          }, 1500);
+        }
         
-        setMessages(prev => [...prev, ...messagesToAdd]);
-      }
+        // Handle follow-up questions
+        if (result.followup_question) {
+          setTimeout(() => {
+            setMessages(prev => [...prev, {
+              id: (Date.now() + 200).toString(),
+              type: "bot" as const,
+              content: result.followup_question,
+              timestamp: new Date()
+            }]);
+            setIsTyping(false);
+          }, 2000);
+          return;
+        }
+        
+        // Handle standard next question
+        if (result.next_standard_question) {
+          // Add contextual message based on question progression
+          let contextMessage = "";
+          const nextQuestion = result.next_standard_question;
+          
+          if (nextQuestion.id === "experience_level") {
+            contextMessage = "Interesting choices! Now let's talk about your battle scars... I mean, experience.";
+          } else if (nextQuestion.id === "technical_skills") {
+            contextMessage = "Time for the moment of truth - show me your tech stack!";
+          } else if (nextQuestion.id === "soft_skills") {
+            contextMessage = "Tech skills are great, but can you talk to humans without starting a flame war?";
+          } else if (nextQuestion.id === "time_availability") {
+            contextMessage = "How much of your life are you willing to sacrifice for career glory?";
+          } else if (nextQuestion.id === "learning_preferences") {
+            contextMessage = "Everyone learns differently. What's your style?";
+          } else if (nextQuestion.id === "career_goals") {
+            contextMessage = "Tell me your master plan for world domination... or at least a promotion.";
+          } else if (nextQuestion.id === "location_preferences") {
+            contextMessage = "Final question - where do you want to sell your soul to capitalism?";
+          }
+          
+          if (contextMessage) {
+            messagesToAdd.push({
+              id: Date.now().toString(),
+              type: "bot" as const,
+              content: contextMessage,
+              timestamp: new Date()
+            });
+          }
+          
+          messagesToAdd.push({
+            id: (Date.now() + 1).toString(),
+            type: "bot" as const,
+            content: result.next_standard_question,
+            timestamp: new Date()
+          });
+          
+          setCurrentQuestionIndex(prev => prev + 1);
+          setMessages(prev => [...prev, ...messagesToAdd]);
+        }
+        
+        // Handle assessment completion
+        if (result.assessment_complete) {
+          setTimeout(async () => {
+            await completeAssessment();
+          }, 1000);
+          return;
+        }
+        
+        setIsTyping(false);
+      }, 1500);
       
-      setIsTyping(false);
-    }, 1000);
+    } catch (error) {
+      console.error('Failed to save intelligent answer:', error);
+      // Fallback to original logic
+      setTimeout(async () => {
+        const nextIndex = currentQuestionIndex + 1;
+        
+        if (nextIndex >= questions.length) {
+          await completeAssessment();
+        } else {
+          setCurrentQuestionIndex(nextIndex);
+          setMessages(prev => [...prev, {
+            id: (Date.now() + 1).toString(),
+            type: "bot" as const,
+            content: questions[nextIndex],
+            timestamp: new Date()
+          }]);
+        }
+        
+        setIsTyping(false);
+      }, 1000);
+    }
   };
 
   const saveAnswer = async (questionId: string, answer: AssessmentAnswer) => {

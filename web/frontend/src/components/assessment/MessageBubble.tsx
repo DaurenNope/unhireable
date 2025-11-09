@@ -16,6 +16,14 @@ interface MessageBubbleProps {
 export function MessageBubble({ message }: MessageBubbleProps) {
   const isUser = message.type === "user";
   const isQuestion = typeof message.content === "object" && "question" in message.content;
+  
+  // Check if this is an insight message
+  const isInsight = typeof message.content === "string" && 
+    (message.content.includes("💡") || message.content.includes("📊"));
+  
+  // Check if this is a trajectory analysis
+  const isTrajectory = typeof message.content === "string" && 
+    message.content.includes("CAREER TRAJECTORY ANALYSIS");
 
   return (
     <motion.div
@@ -51,6 +59,10 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           "rounded-2xl px-4 py-3 max-w-full relative group",
           isUser
             ? "bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg"
+            : isInsight
+            ? "bg-gradient-to-br from-yellow-100 to-amber-100 text-black border-2 border-yellow-400 shadow-lg"
+            : isTrajectory
+            ? "bg-gradient-to-br from-green-100 to-emerald-100 text-black border-2 border-green-500 shadow-lg"
             : "bg-white text-black border-2 border-black shadow-lg"
         )}
       >

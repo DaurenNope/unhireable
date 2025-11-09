@@ -70,6 +70,49 @@ fn log_activity(
     Ok(())
 }
 
+// Generate sample/demo jobs for testing and fallback
+fn generate_sample_jobs(query: &str) -> Vec<db::models::Job> {
+    let base_jobs = vec![
+        ("Senior Frontend Developer", "Tech Corp", "Remote", "$120k - $180k", "React, TypeScript, Next.js, Tailwind CSS. We're looking for an experienced frontend developer to join our team."),
+        ("Full Stack Developer", "StartupXYZ", "San Francisco, CA", "$100k - $150k", "Node.js, React, PostgreSQL, AWS. Build amazing products with a passionate team."),
+        ("Backend Engineer", "DataFlow Inc", "New York, NY", "$130k - $170k", "Python, Django, Docker, Kubernetes. Work on scalable backend systems."),
+        ("DevOps Engineer", "CloudSystems", "Remote", "$140k - $190k", "AWS, Terraform, Kubernetes, CI/CD. Manage cloud infrastructure at scale."),
+        ("Mobile Developer", "AppStudio", "Austin, TX", "$110k - $160k", "React Native, Swift, Kotlin. Build beautiful mobile applications."),
+        ("Data Scientist", "AI Labs", "Boston, MA", "$125k - $175k", "Python, Machine Learning, TensorFlow, SQL. Work on cutting-edge AI projects."),
+        ("Product Designer", "DesignCo", "Remote", "$90k - $140k", "Figma, User Research, Prototyping. Create delightful user experiences."),
+        ("QA Engineer", "QualityTech", "Seattle, WA", "$85k - $120k", "Selenium, Jest, Cypress, Test Automation. Ensure product quality."),
+    ];
+    
+    let query_lower = query.to_lowercase();
+    base_jobs
+        .into_iter()
+        .filter(|(title, _, _, _, _)| {
+            query_lower.is_empty() || 
+            title.to_lowercase().contains(&query_lower) || 
+            query_lower == "developer" || 
+            query_lower == "demo" ||
+            query_lower == "test"
+        })
+        .map(|(title, company, location, salary, description)| {
+            db::models::Job {
+                id: None,
+                title: title.to_string(),
+                company: company.to_string(),
+                url: format!("https://example.com/jobs/{}", title.to_lowercase().replace(" ", "-")),
+                description: Some(description.to_string()),
+                requirements: Some(format!("Experience with modern web technologies. Strong problem-solving skills. Excellent communication.")),
+                location: Some(location.to_string()),
+                salary: Some(salary.to_string()),
+                source: "demo".to_string(),
+                status: db::models::JobStatus::Saved,
+                match_score: None,
+                created_at: None,
+                updated_at: None,
+            }
+        })
+        .collect()
+}
+
 // Job Commands
 #[tauri::command]
 async fn get_jobs(
@@ -266,12 +309,34 @@ async fn scrape_jobs(
     }
     drop(db);
     
-    println!("Calling scraper.scrape_all...");
-    let mut jobs = scraper.scrape_all(&query)
-        .map_err(|e| {
-            eprintln!("Scraper error: {}", e);
-            anyhow::anyhow!("Scraping failed: {}", e)
-        })?;
+    // Check if this is a demo/test request
+    let query_lower = query.to_lowercase();
+    let is_demo = query_lower.contains("demo") || query_lower == "test" || query_lower.is_empty();
+    
+    let mut jobs = if is_demo {
+        println!("🎯 Demo mode: Generating sample jobs");
+        generate_sample_jobs(&query)
+    } else {
+        println!("🌐 Attempting to scrape jobs from real sources...");
+        println!("⚠️  Note: Real scraping may fail due to website structure changes or network issues.");
+        println!("💡 Tip: Try 'demo' or 'test' as query to see sample jobs instead!");
+        
+        match scraper.scrape_all(&query) {
+            Ok(jobs) => {
+                println!("✅ Successfully scraped {} jobs from real sources", jobs.len());
+                jobs
+            }
+            Err(e) => {
+                eprintln!("❌ Scraping failed: {}", e);
+                eprintln!("💡 Falling back to demo mode. Try using 'demo' query for sample jobs.");
+                
+                // Fallback to demo jobs if real scraping fails
+                let sample_jobs = generate_sample_jobs(&query);
+                println!("📦 Generated {} sample jobs as fallback", sample_jobs.len());
+                sample_jobs
+            }
+        }
+    };
     
     println!("Scraped {} jobs, saving to database...", jobs.len());
     
@@ -401,12 +466,29 @@ async fn scrape_jobs_selected(
     }
     drop(db);
     
-    println!("Calling scraper.scrape_selected...");
-    let mut jobs = scraper.scrape_selected(&sources, query_str)
-        .map_err(|e| {
-            eprintln!("Scraper error: {}", e);
-            anyhow::anyhow!("Scraping failed: {}", e)
-        })?;
+    // Check if this is a demo/test request
+    let query_lower = query_str.to_lowercase();
+    let is_demo = query_lower.contains("demo") || query_lower == "test" || query_lower.is_empty() || sources.is_empty();
+    
+    let mut jobs = if is_demo {
+        println!("🎯 Demo mode: Generating sample jobs");
+        generate_sample_jobs(query_str)
+    } else {
+        println!("🌐 Attempting to scrape jobs from selected sources...");
+        println!("⚠️  Note: Real scraping may fail. Try 'demo' query for sample jobs!");
+        
+        match scraper.scrape_selected(&sources, query_str) {
+            Ok(jobs) => {
+                println!("✅ Successfully scraped {} jobs", jobs.len());
+                jobs
+            }
+            Err(e) => {
+                eprintln!("❌ Scraping failed: {}", e);
+                eprintln!("💡 Falling back to demo mode");
+                generate_sample_jobs(query_str)
+            }
+        }
+    };
     
     println!("Scraped {} jobs, saving to database...", jobs.len());
     

@@ -115,19 +115,26 @@ export function Jobs() {
     setIsScraping(true);
     setScrapeError(null);
     try {
-      const query = searchTerm || 'developer';
+      // Use 'demo' as default query to show sample jobs
+      // Users can change this to try real scraping
+      const query = searchTerm || 'demo';
+      console.log('Scraping jobs with query:', query);
+      
       const scrapedJobs = await jobApi.scrape(query);
+      console.log('Scraped jobs:', scrapedJobs);
       
       if (scrapedJobs && scrapedJobs.length > 0) {
         await loadJobs();
         setScrapeError(null);
+        // Show success message
+        console.log(`✅ Successfully loaded ${scrapedJobs.length} jobs`);
       } else {
-        setScrapeError('No jobs found. Try a different search term.');
+        setScrapeError('No jobs found. Try "demo" to see sample jobs, or a different search term for real scraping.');
       }
     } catch (error: any) {
       console.error('Failed to scrape jobs:', error);
       const errorMessage = error?.message || error?.toString() || 'Unknown error occurred';
-      setScrapeError(`Scraping failed: ${errorMessage}`);
+      setScrapeError(`Scraping failed: ${errorMessage}. Try "demo" to see sample jobs!`);
     } finally {
       setIsScraping(false);
     }
@@ -310,7 +317,7 @@ export function Jobs() {
               Get started by scraping jobs from multiple sources or adding them manually.
             </p>
             <p className="text-sm text-muted-foreground text-center mb-6 max-w-md">
-              <strong>Tip:</strong> Create your profile in Settings first to enable AI-powered job matching!
+              <strong>💡 Try "demo" to see sample jobs!</strong> Real scraping may not work due to website changes. Create your profile in Settings first to enable AI-powered job matching!
             </p>
             <div className="flex flex-wrap gap-3 justify-center mb-4">
               <Button onClick={handleScrape} disabled={isScraping} className="shadow-lg">
@@ -329,11 +336,11 @@ export function Jobs() {
               <div className="grid grid-cols-1 gap-2 text-sm">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center font-semibold">1</span>
-                  <span>Go to <Link to="/settings?tab=profile" className="text-primary hover:underline">Settings → Profile</Link> and add your skills</span>
+                  <span>Click <strong>"Scrape Jobs"</strong> (uses "demo" by default) to see sample jobs</span>
                 </div>
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center font-semibold">2</span>
-                  <span>Click "Scrape Jobs" to find jobs from hh.kz, Wellfound, and LinkedIn</span>
+                  <span>Go to <Link to="/settings?tab=profile" className="text-primary hover:underline">Settings → Profile</Link> and add your skills</span>
                 </div>
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center font-semibold">3</span>
