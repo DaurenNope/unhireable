@@ -1594,6 +1594,10 @@ pub fn run() {
             list_credentials,
             delete_credential,
             
+            // User Profile commands
+            save_user_profile,
+            get_user_profile,
+            
             // Document Generation commands
             generate_resume,
             generate_cover_letter,
