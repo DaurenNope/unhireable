@@ -1156,7 +1156,8 @@ async fn save_user_profile(
     let db = state.db.lock().await;
     if let Some(db) = &*db {
         let conn = db.get_connection();
-        let profile_json = serde_json::to_string(&profile)?;
+        let profile_json = serde_json::to_string(&profile)
+            .map_err(|e| anyhow::anyhow!("Failed to serialize profile: {}", e))?;
         
         // Update or insert profile (id = 1)
         conn.execute(

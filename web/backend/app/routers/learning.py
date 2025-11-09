@@ -253,7 +253,8 @@ def select_best_resources(skill: str, learning_style: Dict, budget: float = 1000
         
         # Quality indicators
         score += resource["rating"]  # Rating bonus
-        score += (10 - resource["difficulty_level"]) if "difficulty_level" in resource else 0  # Difficulty bonus
+        difficulty_bonus = 5 if resource["difficulty"] == "advanced" else 3 if resource["difficulty"] == "intermediate" else 0
+        score += (10 - difficulty_bonus)  # Difficulty bonus
         
         scored_resources.append({
             **resource,
