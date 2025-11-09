@@ -252,7 +252,7 @@ Keep it professional and authentic - don't invent new experiences, just improve 
         }
     }
 
-    fn basic_job_analysis(&self, job: &Job) -> JobAnalysis {
+    pub fn basic_job_analysis(&self, job: &Job) -> JobAnalysis {
         let description = job.description.as_deref().unwrap_or("");
         let requirements = job.requirements.as_deref().unwrap_or("");
         let combined_text = format!("{} {}", description, requirements);

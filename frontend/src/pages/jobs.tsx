@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Job, JobStatus, MatchQuality, UserProfile } from '@/types/models';
-import { jobApi } from '@/api/client';
+import { jobApi, profileApi } from '@/api/client';
 import { cn } from '@/lib/utils';
 
 const statusVariant: Record<JobStatus, string> = {
@@ -59,18 +59,37 @@ export function Jobs() {
 
   useEffect(() => {
     loadJobs();
-    loadUserProfile();
+    loadUserProfile(); // This is now async
   }, []);
 
-  const loadUserProfile = () => {
+  const loadUserProfile = async () => {
     try {
-      const profileJson = localStorage.getItem('userProfile');
-      if (profileJson) {
-        const profile = JSON.parse(profileJson) as UserProfile;
+      // Try loading from database first
+      const profile = await profileApi.get();
+      if (profile) {
         setUserProfile(profile);
+        // Also save to localStorage as backup
+        localStorage.setItem('userProfile', JSON.stringify(profile));
+      } else {
+        // Fallback to localStorage
+        const profileJson = localStorage.getItem('userProfile');
+        if (profileJson) {
+          const parsed = JSON.parse(profileJson) as UserProfile;
+          setUserProfile(parsed);
+        }
       }
     } catch (error) {
       console.error('Failed to load user profile:', error);
+      // Fallback to localStorage
+      try {
+        const profileJson = localStorage.getItem('userProfile');
+        if (profileJson) {
+          const profile = JSON.parse(profileJson) as UserProfile;
+          setUserProfile(profile);
+        }
+      } catch (e) {
+        console.error('Failed to load profile from localStorage:', e);
+      }
     }
   };
 
