@@ -6,6 +6,7 @@
     "dev": "npm run dev:tauri",
     "dev:web": "npm --prefix frontend run dev",
     "dev:tauri": "cd frontend && npm run tauri:dev",
+    "tauri:dev": "cd frontend && npm run tauri:dev",
     "tauri": "cd frontend && npm run tauri",
     "build": "cd frontend && npm run tauri:build",
     "build:web": "npm --prefix frontend run build",
