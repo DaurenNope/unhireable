@@ -36,7 +36,7 @@ function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <ThemeProvider defaultTheme="system" storageKey="jobhunter-theme">
+        <ThemeProvider defaultTheme="system" storageKey="unhireable-theme">
           <Router>
           <div className="relative flex min-h-screen bg-background">
             {/* Sidebar Navigation */}

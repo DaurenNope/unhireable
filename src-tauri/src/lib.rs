@@ -27,7 +27,7 @@ pub struct AppState {
 
 // Initialize the application state
 async fn setup_app_state(app: &mut tauri::App) -> Result<()> {
-    // Get the app data directory
+    // Get the app data directory (using "unhireable" as the app name)
     let app_dir = app.path().app_data_dir().map_err(|_| {
         crate::error::Error::Custom("Could not find application data directory".to_string())
     })?;

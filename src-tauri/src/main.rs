@@ -5,9 +5,9 @@ use clap::{Arg, Command};
 use jobez_lib::{scraper::ScraperManager, db::{Database, queries::JobQueries}};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let matches = Command::new("jobez")
+    let matches = Command::new("unhireable")
         .version("0.1.0")
-        .about("Job hunting automation tool")
+        .about("Unhireable - Neural Career System")
         .arg(
             Arg::new("query")
                 .help("Job search query")
@@ -37,7 +37,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Initialize database
         let app_dir = dirs::data_dir()
             .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "Could not find data directory"))?
-            .join("jobez");
+            .join("unhireable");
         std::fs::create_dir_all(&app_dir)?;
         let db_path = app_dir.join("jobhunter.db");
         let db = Database::new(db_path)?;
@@ -73,7 +73,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Initialize database
         let app_dir = dirs::data_dir()
             .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "Could not find data directory"))?
-            .join("jobez");
+            .join("unhireable");
         std::fs::create_dir_all(&app_dir)?;
         let db_path = app_dir.join("jobhunter.db");
         let db = Database::new(db_path)?;
