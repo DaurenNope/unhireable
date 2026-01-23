@@ -1,0 +1,50 @@
+{{profile.personal_info.name}}
+{{profile.personal_info.email}}
+{{#if profile.personal_info.phone}}{{profile.personal_info.phone}}{{/if}}
+{{#if profile.personal_info.location}}{{profile.personal_info.location}}{{/if}}
+
+{{current_date}}
+
+Hiring Manager
+{{job.company}}
+
+Dear Hiring Manager,
+
+I am writing to formally express my interest in the {{job.job_title}} position at {{job.company}}, as advertised. With my extensive background and proven track record, I am confident that I possess the qualifications and expertise necessary to excel in this role.
+
+{{#if job.company_tone}}
+I have long admired {{job.company}}'s commitment to {{job.company_tone}} and your reputation for {{#if job.key_responsibilities}}{{#each job.key_responsibilities}}{{this}}{{#unless @last}} and {{/unless}}{{/each}}{{else}}excellence and innovation{{/if}}.
+{{/if}}
+
+My professional experience demonstrates a consistent record of success:
+
+{{#each profile.experience}}
+• As {{position}} at {{company}}, I {{#each description}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
+{{/each}}
+
+{{#if job.required_skills}}
+I have extensive experience with the following technologies and methodologies that are essential for this position:
+{{#each job.required_skills}}
+• {{this}}
+{{/each}}
+{{/if}}
+
+{{#if profile.skills.technical_skills}}
+My technical expertise includes {{#each profile.skills.technical_skills}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}, which aligns directly with the requirements of this position.
+{{/if}}
+
+I am particularly drawn to this opportunity because {{#if job.key_responsibilities}}it would allow me to leverage my experience in {{#each job.key_responsibilities}}{{this}}{{#unless @last}} and {{/unless}}{{/each}}{{else}}it represents an ideal match for my skills and career objectives{{/if}}.
+
+I would welcome the opportunity to discuss how my background, skills, and enthusiasm would contribute to {{job.company}}'s continued success. Thank you for your time and consideration.
+
+Respectfully yours,
+
+{{profile.personal_info.name}}
+
+{{#if profile.personal_info.linkedin}}
+LinkedIn: {{profile.personal_info.linkedin}}
+{{/if}}
+{{#if profile.personal_info.github}}
+GitHub: {{profile.personal_info.github}}
+{{/if}}
+

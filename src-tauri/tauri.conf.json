@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "identifier": "com.unhireable.app",
   "build": {
-    "beforeDevCommand": "npm --prefix ../frontend run dev -- --port 3003",
+    "beforeDevCommand": "npm --prefix frontend run dev -- --port 3003",
     "devUrl": "http://localhost:3003",
     "frontendDist": "../frontend/dist"
   },

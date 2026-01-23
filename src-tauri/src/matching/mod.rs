@@ -12,10 +12,10 @@ use serde::{Deserialize, Serialize};
 pub struct JobMatchResult {
     pub job_id: Option<i64>,
     pub job: Job,
-    pub match_score: f64, // 0.0 to 100.0
-    pub skills_match: f64, // 0.0 to 100.0
+    pub match_score: f64,      // 0.0 to 100.0
+    pub skills_match: f64,     // 0.0 to 100.0
     pub experience_match: f64, // 0.0 to 100.0
-    pub location_match: f64, // 0.0 to 100.0
+    pub location_match: f64,   // 0.0 to 100.0
     pub matched_skills: Vec<String>,
     pub missing_skills: Vec<String>,
     pub match_reasons: Vec<String>,
@@ -70,4 +70,3 @@ impl std::fmt::Display for MatchQuality {
         }
     }
 }
-

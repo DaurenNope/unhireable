@@ -48,6 +48,7 @@ src-tauri/Cargo.lock
 frontend/dist
 frontend/.vite
 frontend/build
+frontend/tsconfig.tsbuildinfo
 
 # OS
 .DS_Store
@@ -58,3 +59,14 @@ Thumbs.db
 *.swp
 *.swo
 *~
+
+# Coverage reports
+coverage/
+*.gcda
+*.gcno
+*.profdata
+tarpaulin-report.html
+cobertura.xml
+
+# Pre-commit
+.secrets.baseline

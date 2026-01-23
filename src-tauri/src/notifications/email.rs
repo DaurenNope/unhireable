@@ -12,14 +12,14 @@ use serde::{Deserialize, Serialize};
 /// Email configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EmailConfig {
-    pub smtp_server: String,      // e.g., "smtp.gmail.com"
-    pub smtp_port: u16,           // e.g., 587 for TLS, 465 for SSL
-    pub username: String,         // Email address
-    pub password: String,         // App password or regular password
-    pub from_email: String,       // From email address
-    pub from_name: String,        // From name
-    pub use_tls: bool,            // Use TLS (true for port 587)
-    pub use_ssl: bool,            // Use SSL (true for port 465)
+    pub smtp_server: String, // e.g., "smtp.gmail.com"
+    pub smtp_port: u16,      // e.g., 587 for TLS, 465 for SSL
+    pub username: String,    // Email address
+    pub password: String,    // App password or regular password
+    pub from_email: String,  // From email address
+    pub from_name: String,   // From name
+    pub use_tls: bool,       // Use TLS (true for port 587)
+    pub use_ssl: bool,       // Use SSL (true for port 465)
 }
 
 impl Default for EmailConfig {
@@ -58,10 +58,7 @@ impl EmailService {
             return Err(anyhow::anyhow!("Email credentials not configured"));
         }
 
-        let creds = Credentials::new(
-            self.config.username.clone(),
-            self.config.password.clone(),
-        );
+        let creds = Credentials::new(self.config.username.clone(), self.config.password.clone());
 
         // Build SMTP transport
         // For Gmail: use relay with port 587 (STARTTLS is automatic)
@@ -95,13 +92,12 @@ impl EmailService {
         body_html: &str,
         body_text: Option<&str>,
     ) -> Result<()> {
-        let transport = self
-            .transport
-            .as_ref()
-            .ok_or_else(|| anyhow::anyhow!("Email service not initialized. Call initialize() first."))?;
+        let transport = self.transport.as_ref().ok_or_else(|| {
+            anyhow::anyhow!("Email service not initialized. Call initialize() first.")
+        })?;
 
         let from_email = format!("{} <{}>", self.config.from_name, self.config.from_email);
-        
+
         // Create email message
         let email = if let Some(text_body) = body_text {
             // Multipart message with both HTML and plain text
@@ -114,13 +110,13 @@ impl EmailService {
                         .singlepart(
                             SinglePart::builder()
                                 .header(ContentType::TEXT_PLAIN)
-                                .body(text_body.to_string())
+                                .body(text_body.to_string()),
                         )
                         .singlepart(
                             SinglePart::builder()
                                 .header(ContentType::TEXT_HTML)
-                                .body(body_html.to_string())
-                        )
+                                .body(body_html.to_string()),
+                        ),
                 )?
         } else {
             // HTML only
@@ -134,7 +130,7 @@ impl EmailService {
 
         // Send email with timeout
         let result = transport.send(&email);
-        
+
         match result {
             Ok(_) => {
                 println!("✅ Email sent successfully to: {}", to);
@@ -155,9 +151,11 @@ impl EmailService {
         match_result: &JobMatchResult,
     ) -> Result<()> {
         let template = EmailTemplate::job_match_notification(job, match_result);
-        let subject = format!("🎯 Great Job Match: {} at {} ({:.0}% Match)", 
-                             job.title, job.company, match_result.match_score);
-        
+        let subject = format!(
+            "🎯 Great Job Match: {} at {} ({:.0}% Match)",
+            job.title, job.company, match_result.match_score
+        );
+
         self.send_email(to, &subject, &template.html, Some(&template.text))
     }
 
@@ -170,19 +168,18 @@ impl EmailService {
     ) -> Result<()> {
         let template = EmailTemplate::new_jobs_notification(jobs, match_results);
         let subject = format!("📧 {} New Job(s) Found", jobs.len());
-        
+
         self.send_email(to, &subject, &template.html, Some(&template.text))
     }
 
     /// Send daily summary notification
-    pub fn send_daily_summary(
-        &self,
-        to: &str,
-        stats: &DailySummaryStats,
-    ) -> Result<()> {
+    pub fn send_daily_summary(&self, to: &str, stats: &DailySummaryStats) -> Result<()> {
         let template = EmailTemplate::daily_summary(stats);
-        let subject = format!("📊 Daily Job Search Summary - {} New Jobs", stats.new_jobs_count);
-        
+        let subject = format!(
+            "📊 Daily Job Search Summary - {} New Jobs",
+            stats.new_jobs_count
+        );
+
         self.send_email(to, &subject, &template.html, Some(&template.text))
     }
 
@@ -194,10 +191,7 @@ impl EmailService {
         }
 
         // Build a test transport (same as initialize)
-        let creds = Credentials::new(
-            self.config.username.clone(),
-            self.config.password.clone(),
-        );
+        let creds = Credentials::new(self.config.username.clone(), self.config.password.clone());
 
         let _transport = if self.config.smtp_port == 465 {
             SmtpTransport::builder_dangerous(&self.config.smtp_server)
@@ -210,11 +204,11 @@ impl EmailService {
                 .credentials(creds)
                 .build()
         };
-        
+
         // Note: In lettre 0.11, we verify the config is valid by building the transport
         // The actual connection test happens when sending an email
         // For now, if we get here without errors, the config is valid
-        
+
         Ok(())
     }
 
@@ -364,4 +358,3 @@ mod tests {
         assert!(!config.use_tls);
     }
 }
-

@@ -28,11 +28,14 @@ A desktop application for automating job search, application tracking, and docum
 ## 📋 Setup
 
 ### Prerequisites
-- Rust (latest stable)
-- Node.js (v18 or higher)
-- Tauri CLI (`npm install -g @tauri-apps/cli`)
+- **Rust** (latest stable) - [Install Rust](https://rustup.rs)
+- **Node.js** (v18 or higher) - [Install Node.js](https://nodejs.org)
+- **Tauri CLI** - `npm install -g @tauri-apps/cli`
 
 ### Installation
+
+#### From Source
+
 ```bash
 # Clone the repository
 git clone https://github.com/DaurenNope/jobEz.git
@@ -43,7 +46,8 @@ npm install
 cd frontend && npm install
 ```
 
-### Development
+#### Development
+
 ```bash
 # From the root directory
 npm run dev:tauri
@@ -52,6 +56,41 @@ npm run dev:tauri
 cd frontend
 npm run dev:tauri
 ```
+
+#### Production Build
+
+```bash
+# Build for current platform
+npm run tauri build
+
+# Build for specific platform
+npm run tauri build -- --target x86_64-apple-darwin  # macOS
+npm run tauri build -- --target x86_64-pc-windows-msvc  # Windows
+npm run tauri build -- --target x86_64-unknown-linux-gnu  # Linux
+```
+
+### Quick Start
+
+1. **Launch the app** - Run `npm run dev:tauri`
+2. **Set up profile** - Go to Settings → Profile and fill in your information
+3. **Configure AI (optional)** - Add OpenAI/Anthropic API key in Settings → Credentials
+4. **Search for jobs** - Go to Jobs page and scrape jobs
+5. **Calculate matches** - Click "Calculate Match Scores" to see your best matches
+6. **Generate documents** - Select a job and generate tailored resume/cover letter
+7. **Apply** - Use manual or automated application
+
+See [Getting Started Guide](./docs/user/getting-started.md) for detailed instructions.
+Internal contributors can follow the consolidated [process handbook](./docs/process/getting-started.md) for environment setup and next steps.
+
+## 🧰 Tools & Scripts
+
+Reusable helper scripts now live under `tools/scripts/`:
+
+- `tools/scripts/start.sh` – launches the desktop app with the correct env vars.
+- `tools/scripts/quick-test.sh` – runs the smoke-test bundle.
+- `tools/scripts/test_document_generation.sh` (and friends) – focused verification helpers.
+
+Update docs to point to these paths instead of root-level scripts if you add new automation.
 
 ## 🔧 Scraper Configuration
 
@@ -78,66 +117,105 @@ LinkedIn scraping is **disabled by default** due to high risk of account/IP bann
 - **Borders**: Thick borders (2px, 4px) for emphasis
 - **Animations**: Framer Motion for smooth transitions
 
-## 📁 Project Structure
+## 📁 Repository Layout
 
-- `src-tauri/` - Rust backend (database, scrapers, API, document generation, job matching, scheduler, email notifications)
-- `frontend/` - React frontend (UI, components, pages)
-- `src-tauri/migrations/` - Database migrations
-- `src-tauri/src/scraper/` - Scraper implementations
-- `src-tauri/src/generator/` - Document generation (resume, cover letter)
-- `src-tauri/src/matching/` - Job matching algorithm
-- `src-tauri/src/scheduler/` - Background job scheduler
-- `src-tauri/src/notifications/` - Email notifications
-- `src-tauri/src/db/` - Database models and queries
+| Path | Purpose |
+| --- | --- |
+| `frontend/` | Vite + React desktop UI. TypeScript only (`allowJs: false`). |
+| `src-tauri/` | Rust shell, commands, SQLite migrations, and native assets. |
+| `docs/` | Structured documentation: `product/`, `tech/`, `process/`, `testing/`, `tickets/`. |
+| `tools/` | Helper scripts under `tools/scripts/` (start, test, verification helpers). |
+| `labs/` | Archived experiments (automation agents, research, prototypes). |
+
+See `docs/process/repo-structure.md` for the full set of guardrails before adding new files or directories.
 
 ## 🎯 Current Status
 
 ### ✅ Completed Features
-- Job scraping from multiple sources
-- AI-powered job matching with match scores
-- Application tracking with status management
-- Resume and cover letter generation
-- User profile management
-- Credential management
-- Activity feed
-- Dashboard with statistics and match scores
-- PDF export
-- Settings and configuration UI
-- Background job scheduler
-- Email notifications (SMTP)
-- Email extraction from job descriptions
-- Match score calculation and display
-- UI/UX improvements with modern design
+
+#### Core Functionality
+- ✅ **Job Scraping** - 15+ job sources (LinkedIn, Wellfound, hh.kz, RemoteOK, etc.)
+- ✅ **AI-Powered Job Matching** - Neural matching algorithm with 0-100% scores
+- ✅ **Application Tracking** - Full lifecycle tracking (pending → interviewing → offer/rejected)
+- ✅ **Document Generation** - AI-powered resume and cover letter generation
+- ✅ **User Profile Management** - Complete profile system for matching and generation
+- ✅ **Credential Management** - Secure, encrypted credential storage
+
+#### Advanced Features
+- ✅ **Browser Automation** - Auto-apply to jobs with workflow orchestration
+- ✅ **ATS Detection** - Detect and optimize for 20+ ATS systems
+- ✅ **Background Scheduler** - Automated job scraping at scheduled intervals
+- ✅ **Email Notifications** - SMTP email alerts for matches and updates
+- ✅ **Desktop Notifications** - Native desktop notifications
+- ✅ **Event-Driven Architecture** - Real-time updates via event bus
+- ✅ **Metrics & Monitoring** - Prometheus metrics for observability
+- ✅ **Intelligence Agent** - AI-powered job analysis and recommendations
+- ✅ **Resume Analysis** - Extract and analyze existing resumes
+
+#### UI/UX
+- ✅ **Modern Dashboard** - Statistics, activity feed, match scores
+- ✅ **Enhanced Error Handling** - User-friendly error messages with retry
+- ✅ **Offline Detection** - Graceful offline mode handling
+- ✅ **Loading States** - Consistent loading indicators
+- ✅ **Dark/Light Theme** - Full theme support
+- ✅ **Responsive Design** - Works on all screen sizes
+
+#### Testing & Quality
+- ✅ **Comprehensive Testing** - Unit, integration, and E2E tests
+- ✅ **CI/CD Pipeline** - Automated testing on multiple platforms
+- ✅ **Code Quality** - Linting, formatting, and style checks
+
+### 📊 Statistics
+
+- **92 Tauri Commands** - Complete API coverage
+- **15+ Job Sources** - Comprehensive job discovery
+- **20+ ATS Systems** - Supported for automation
+- **5+ Resume Templates** - Professional designs
+- **5+ Cover Letter Templates** - Various styles
+- **50+ Test Cases** - Comprehensive test coverage
 
 ### 🚧 In Progress
-- Enhanced UI/UX refinements
 - Additional job sources
-- Advanced analytics
+- Advanced analytics dashboard
+- Template marketplace
 
 ### 📝 Planned Features
-- Desktop notifications
 - Template editor
-- Bulk export
-- Advanced analytics dashboard
+- Bulk export enhancements
 - Learning path recommendations
-- Skill gap analysis
+- Enhanced skill gap analysis
 
 ## 🔍 Job Matching
 
-Unhireable uses a neural matching algorithm to calculate job match scores:
+Unhireable uses a neural matching algorithm to calculate job match scores (0-100%):
 
-- **Skills Matching**: Analyzes required skills vs. user skills
-- **Experience Level**: Matches experience requirements
-- **Location**: Supports remote work matching
-- **Job Title**: Semantic matching of job titles
-- **Match Score**: 0-100% score with quality categories (Excellent/Good/Fair/Poor)
+- **Skills Match (40%)**: Analyzes required skills vs. your skills
+- **Experience Level (30%)**: Matches years of experience requirements
+- **Location (15%)**: Supports remote work and location matching
+- **Job Title (15%)**: Semantic matching of job titles
 
-### Usage
-1. Create/update your user profile in Settings
-2. Scrape jobs from various sources
-3. Click "Calculate Match Scores" on the Jobs page
-4. View match scores and filter by quality
-5. Get matched with jobs that fit your profile
+### Match Quality Categories
+
+- **Excellent (80-100%)**: Perfect match, highly recommended
+- **Good (60-79%)**: Strong match, good fit
+- **Fair (40-59%)**: Moderate match, consider applying
+- **Poor (<40%)**: Weak match, may not be suitable
+
+### Usage Example
+
+```typescript
+// Calculate match score for a job
+const matchResult = await invoke('calculate_job_match_score', {
+  job_id: 123,
+  profile: userProfile
+});
+
+console.log(`Match Score: ${matchResult.match_score}%`);
+console.log(`Skills Match: ${matchResult.skills_match}%`);
+console.log(`Matched Skills: ${matchResult.matched_skills.join(', ')}`);
+```
+
+See [Features Guide](./docs/user/features.md) for more details.
 
 ## 📧 Email Notifications
 
@@ -147,6 +225,20 @@ Configure email notifications in Settings → Email Notifications:
 - **Job Match Notifications**: Get notified when high-scoring jobs are found
 - **New Jobs Notifications**: Daily summaries of new job postings
 - **Test Connection**: Test your email configuration before enabling
+
+### Example: Sending Job Match Email
+
+```typescript
+// Send email notification for a job match
+await invoke('send_job_match_email_with_result', {
+  job_id: 123,
+  match_result: {
+    match_score: 85.5,
+    skills_match: 90.0,
+    // ... other match details
+  }
+});
+```
 
 ## ⏰ Background Scheduler
 
@@ -158,22 +250,130 @@ Automate job scraping with the background scheduler:
 - **Match Score Threshold**: Only notify for jobs above a certain match score
 - **Start/Stop**: Control the scheduler from Settings
 
+## 💻 Usage Examples
+
+### Example 1: Complete Job Search Workflow
+
+```typescript
+// 1. Scrape jobs
+const jobs = await invoke('scrape_jobs', {
+  query: 'React developer',
+  sources: ['wellfound', 'remote_ok']
+});
+
+// 2. Calculate match scores
+const matches = await invoke('match_jobs_for_profile', {
+  profile: userProfile,
+  min_score: 70.0
+});
+
+// 3. Generate resume for top match
+const resume = await invoke('generate_resume', {
+  profile: userProfile,
+  job_id: matches[0].job_id,
+  template_name: 'resume_modern',
+  improve_with_ai: true
+});
+
+// 4. Create application
+const application = await invoke('create_application', {
+  application: {
+    job_id: matches[0].job_id,
+    status: 'pending',
+    resume_path: resume.file_path
+  }
+});
+```
+
+### Example 2: Automated Application
+
+```typescript
+// Auto-apply to multiple jobs
+const results = await invoke('auto_apply_to_jobs', {
+  job_ids: [123, 456, 789],
+  config: {
+    resume_path: '/path/to/resume.pdf',
+    cover_letter_path: '/path/to/cover_letter.pdf',
+    dry_run: false  // Set to true for testing
+  }
+});
+
+// Check results
+results.forEach(result => {
+  if (result.success) {
+    console.log(`Successfully applied to job ${result.job_id}`);
+  } else {
+    console.error(`Failed to apply to job ${result.job_id}: ${result.error}`);
+  }
+});
+```
+
+### Example 3: Get ATS Suggestions
+
+```typescript
+// Get ATS optimization suggestions
+const suggestions = await invoke('get_ats_suggestions', {
+  job_url: 'https://example.com/job/123'
+});
+
+console.log(`ATS Type: ${suggestions.ats_type}`);
+console.log(`Confidence: ${suggestions.confidence}`);
+console.log(`Tips:`, suggestions.tips);
+console.log(`Automation Support: ${suggestions.automation_support}`);
+```
+
+See [API Documentation](./docs/api/commands.md) for all available commands.
+
+## 📚 Documentation
+
+Comprehensive documentation is available in the `docs/` directory:
+
+- **[API Reference](./docs/api/commands.md)** - All 92 Tauri commands documented
+- **[User Guide](./docs/user/getting-started.md)** - Getting started and features
+- **[Troubleshooting](./docs/user/troubleshooting.md)** - Common issues and solutions
+- **[FAQ](./docs/user/faq.md)** - Frequently asked questions
+- **[Architecture](./docs/developer/architecture.md)** - System architecture overview
+- **[Module Documentation](./docs/developer/modules.md)** - Detailed module docs
+- **[Contributing Guide](./docs/developer/contributing.md)** - How to contribute
+- **[Code Style Guide](./docs/developer/code-style.md)** - Coding standards
+
 ## 🤝 Contributing
 
+We welcome contributions! Please see our [Contributing Guide](./docs/developer/contributing.md) for details.
+
+**Quick Start:**
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+3. Make your changes following the [Code Style Guide](./docs/developer/code-style.md)
+4. Add tests for new features
+5. Commit using [Conventional Commits](https://www.conventionalcommits.org/)
+6. Push to the branch (`git push origin feature/amazing-feature`)
+7. Open a Pull Request
+
+**Before submitting:**
+- Run tests: `cd src-tauri && cargo test`
+- Format code: `cargo fmt && npm run format`
+- Check linting: `cargo clippy && npm run lint`
+- Update documentation if needed
 
 ## 📝 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
+## 📖 Additional Resources
+
+- **API Documentation**: [docs/api/commands.md](./docs/api/commands.md) - All 92 commands
+- **User Documentation**: [docs/user/](./docs/user/) - User guides and FAQ
+- **Developer Documentation**: [docs/developer/](./docs/developer/) - Architecture and contributing
+- **Event System**: [docs/api/events.md](./docs/api/events.md) - Event types and usage
+- **Error Codes**: [docs/api/errors.md](./docs/api/errors.md) - Error reference
+
 ## 🔗 Links
 
 - **GitHub Repository**: https://github.com/DaurenNope/jobEz.git
 - **Website**: https://unhireable.com (coming soon)
+- **Issues**: [GitHub Issues](https://github.com/DaurenNope/jobEz/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/DaurenNope/jobEz/discussions)
 
 ## 🙏 Acknowledgments
 

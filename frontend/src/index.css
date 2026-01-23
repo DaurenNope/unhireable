@@ -95,6 +95,22 @@
 
   h1, h2, h3, h4, h5, h6 {
     @apply font-bold tracking-tight;
+    letter-spacing: -0.02em;
+  }
+
+  h1 {
+    @apply text-4xl md:text-5xl;
+    font-weight: 800;
+  }
+
+  h2 {
+    @apply text-3xl md:text-4xl;
+    font-weight: 700;
+  }
+
+  h3 {
+    @apply text-2xl md:text-3xl;
+    font-weight: 700;
   }
 
   /* Monospace font for code-like elements */
@@ -124,6 +140,262 @@
   .border-bold {
     border-width: 4px;
   }
+
+  /* Glassmorphism effects */
+  .glass {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .glass-dark {
+    background: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  /* Enhanced shadows */
+  .shadow-glow {
+    box-shadow: 0 0 20px rgba(6, 182, 212, 0.3);
+  }
+
+  .shadow-glow-purple {
+    box-shadow: 0 0 20px rgba(168, 85, 247, 0.3);
+  }
+
+  .shadow-soft {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 0, 0, 0.04);
+  }
+
+  .shadow-soft-lg {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 0 8px 32px rgba(0, 0, 0, 0.04);
+  }
+
+  /* Gradient backgrounds */
+  .bg-gradient-radial {
+    background: radial-gradient(circle at center, var(--tw-gradient-stops));
+  }
+
+  .bg-gradient-mesh {
+    background: 
+      radial-gradient(at 0% 0%, rgba(6, 182, 212, 0.15) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.15) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(6, 182, 212, 0.1) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, rgba(168, 85, 247, 0.1) 0px, transparent 50%);
+  }
+
+  /* Animated gradients */
+  .bg-gradient-animated {
+    background-size: 200% 200%;
+    animation: gradient-shift 8s ease infinite;
+  }
+
+  @keyframes gradient-shift {
+    0%, 100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  /* Enhanced card styles */
+  .card-elevated {
+    @apply bg-card border border-border/50 shadow-soft;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .card-elevated:hover {
+    @apply shadow-soft-lg border-primary/20;
+    transform: translateY(-2px);
+  }
+
+  .card-glow {
+    @apply bg-card border border-primary/20 shadow-glow;
+    transition: all 0.3s ease;
+  }
+
+  .card-glow:hover {
+    @apply shadow-glow-purple border-accent/30;
+    transform: translateY(-4px) scale(1.01);
+  }
+
+  /* Text gradients */
+  .text-gradient-primary {
+    @apply bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 bg-clip-text text-transparent;
+  }
+
+  .text-gradient-accent {
+    @apply bg-gradient-to-r from-purple-400 via-pink-500 to-rose-500 bg-clip-text text-transparent;
+  }
+
+  /* Shimmer effect */
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.1) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  /* Pulse glow */
+  .pulse-glow {
+    animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% {
+      opacity: 1;
+      box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.7);
+    }
+    50% {
+      opacity: 0.8;
+      box-shadow: 0 0 0 8px rgba(6, 182, 212, 0);
+    }
+  }
+
+  /* Smooth scale on hover */
+  .hover-lift {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+  }
+
+  /* Border gradient */
+  .border-gradient {
+    border-image: linear-gradient(135deg, #06b6d4, #a855f7) 1;
+  }
+
+  /* Job description content styling */
+  .job-description-content {
+    @apply text-foreground/90;
+    line-height: 1.75;
+  }
+
+  .job-description-content > * + * {
+    margin-top: 1.5rem;
+  }
+
+  .job-description-content h3,
+  .job-description-content .h3 {
+    @apply text-xl font-bold text-foreground mt-8 mb-4 first:mt-0;
+    line-height: 1.4;
+  }
+
+  .job-description-content h4,
+  .job-description-content .h4 {
+    @apply text-lg font-semibold text-foreground mt-6 mb-3;
+    line-height: 1.4;
+  }
+
+  .job-description-content h5,
+  .job-description-content .h5 {
+    @apply text-base font-semibold text-foreground mt-4 mb-2;
+    line-height: 1.4;
+  }
+
+  .job-description-content h6,
+  .job-description-content .h6 {
+    @apply text-sm font-semibold text-foreground mt-3 mb-2;
+    line-height: 1.4;
+  }
+
+  .job-description-content p {
+    @apply text-foreground/90 mb-4;
+    line-height: 1.75;
+  }
+
+  .job-description-content p:last-child {
+    @apply mb-0;
+  }
+
+  .job-description-content strong {
+    @apply font-semibold text-foreground;
+  }
+
+  .job-description-content em {
+    @apply italic text-foreground/85;
+  }
+
+  .job-description-content ul,
+  .job-description-content ol {
+    @apply my-4 ml-6 space-y-2;
+  }
+
+  .job-description-content ul {
+    @apply list-disc;
+  }
+
+  .job-description-content ol {
+    @apply list-decimal;
+  }
+
+  .job-description-content li {
+    @apply text-foreground/90 pl-2;
+    line-height: 1.7;
+  }
+
+  .job-description-content li::marker {
+    @apply text-primary;
+  }
+
+  .job-description-content li > ul,
+  .job-description-content li > ol {
+    @apply mt-2 mb-0;
+  }
+
+  .job-description-content a {
+    @apply text-primary hover:text-primary/80 underline underline-offset-2 transition-colors;
+  }
+
+  .job-description-content a:hover {
+    @apply text-primary/90;
+  }
+
+  .job-description-content div {
+    @apply my-3;
+  }
+
+  .job-description-content div:first-child {
+    @apply mt-0;
+  }
+
+  .job-description-content div:last-child {
+    @apply mb-0;
+  }
+
+  /* Content intro and conclusion sections */
+  .job-description-content .content-intro,
+  .job-description-content .content-conclusion {
+    @apply bg-muted/30 rounded-lg p-4 my-6 border-l-4 border-primary/50;
+  }
+
+  /* Dark mode adjustments */
+  .dark .job-description-content {
+    @apply text-foreground/95;
+  }
+
+  .dark .job-description-content .content-intro,
+  .dark .job-description-content .content-conclusion {
+    @apply bg-muted/20 border-primary/40;
+  }
 }
 
 /* Smooth transitions for theme switching */
@@ -138,13 +410,16 @@
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-muted;
+  @apply bg-muted/50;
+  border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-border rounded-full;
+  @apply bg-gradient-to-b from-cyan-400 to-purple-500 rounded-full;
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-muted-foreground/50;
+  @apply from-cyan-500 to-purple-600;
 }

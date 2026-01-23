@@ -6,45 +6,50 @@ pub fn extract_emails(text: &str) -> Vec<String> {
     // Regex pattern for email addresses
     // This pattern matches most common email formats
     let email_pattern = r#"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"#;
-    
+
     let re = Regex::new(email_pattern).unwrap_or_else(|_| {
         // Fallback simple pattern if regex fails
         Regex::new(r#"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"#).unwrap()
     });
-    
+
     let mut emails = HashSet::new();
-    
+
     // Find all matches
     for cap in re.find_iter(text) {
         let email = cap.as_str().to_lowercase();
         // Filter out common false positives
-        if !email.contains("example.com") && 
-           !email.contains("test@") &&
-           !email.ends_with(".png") &&
-           !email.ends_with(".jpg") &&
-           !email.ends_with(".gif") {
+        if !email.contains("example.com")
+            && !email.contains("test@")
+            && !email.ends_with(".png")
+            && !email.ends_with(".jpg")
+            && !email.ends_with(".gif")
+        {
             emails.insert(email);
         }
     }
-    
+
     emails.into_iter().collect()
 }
 
 /// Extract email addresses from job description and requirements
-pub fn extract_job_emails(description: &Option<String>, requirements: &Option<String>) -> Vec<String> {
+pub fn extract_job_emails(
+    description: &Option<String>,
+    requirements: &Option<String>,
+) -> Vec<String> {
     let mut emails = Vec::new();
-    
+
     if let Some(desc) = description {
         emails.extend(extract_emails(desc));
     }
-    
+
     if let Some(req) = requirements {
         emails.extend(extract_emails(req));
     }
-    
+
     // Remove duplicates while preserving order
     let mut seen = HashSet::new();
-    emails.into_iter()
+    emails
+        .into_iter()
         .filter(|email| seen.insert(email.clone()))
         .collect()
 }
@@ -75,7 +80,9 @@ mod tests {
         let text = "Email us at jobs@company.com. Also contact jobs@company.com for more info.";
         let emails = extract_emails(text);
         // Should only have one instance
-        assert_eq!(emails.iter().filter(|e| e == &"jobs@company.com").count(), 1);
+        assert_eq!(
+            emails.iter().filter(|e| e == &"jobs@company.com").count(),
+            1
+        );
     }
 }
-

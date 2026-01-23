@@ -57,15 +57,15 @@ export function UserProfileForm({ profile, onSave, isLoading }: UserProfileFormP
     }));
   };
 
-  const updateSkills = (field: keyof SkillsProfile, value: any) => {
-    setFormData(prev => ({
+  const updateSkills = <K extends keyof SkillsProfile>(field: K, value: SkillsProfile[K]) => {
+    setFormData((prev) => ({
       ...prev,
       skills: {
         ...prev.skills,
         [field]: value,
       },
-    }));
-  };
+    }))
+  }
 
   const addTechSkill = () => {
     if (newTechSkill.trim() && !formData.skills.technical_skills.includes(newTechSkill.trim())) {
@@ -105,14 +105,18 @@ export function UserProfileForm({ profile, onSave, isLoading }: UserProfileFormP
     }));
   };
 
-  const updateExperience = (index: number, field: keyof ExperienceEntry, value: any) => {
-    setFormData(prev => ({
+  const updateExperience = <K extends keyof ExperienceEntry>(
+    index: number,
+    field: K,
+    value: ExperienceEntry[K]
+  ) => {
+    setFormData((prev) => ({
       ...prev,
       experience: prev.experience.map((exp, i) =>
         i === index ? { ...exp, [field]: value } : exp
       ),
-    }));
-  };
+    }))
+  }
 
   const removeExperience = (index: number) => {
     setFormData(prev => ({
@@ -136,14 +140,18 @@ export function UserProfileForm({ profile, onSave, isLoading }: UserProfileFormP
     }));
   };
 
-  const updateEducation = (index: number, field: keyof EducationEntry, value: any) => {
-    setFormData(prev => ({
+  const updateEducation = <K extends keyof EducationEntry>(
+    index: number,
+    field: K,
+    value: EducationEntry[K]
+  ) => {
+    setFormData((prev) => ({
       ...prev,
       education: prev.education.map((edu, i) =>
         i === index ? { ...edu, [field]: value } : edu
       ),
-    }));
-  };
+    }))
+  }
 
   const removeEducation = (index: number) => {
     setFormData(prev => ({

@@ -66,7 +66,7 @@ export interface ApplicationFormData {
 export interface ApiError {
   message: string;
   status?: number;
-  details?: any;
+  details?: unknown;
 }
 
 // Pagination

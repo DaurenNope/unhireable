@@ -1,0 +1,65 @@
+# Pre-commit hooks configuration
+# Install with: pip install pre-commit && pre-commit install
+# Or: brew install pre-commit && pre-commit install
+
+repos:
+  # Rust formatting and linting
+  - repo: https://github.com/doublify/pre-commit-rust
+    rev: v1.0
+    hooks:
+      - id: fmt
+        name: rustfmt
+        entry: bash -c 'cd src-tauri && cargo fmt -- --check'
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: clippy
+        name: clippy
+        entry: bash -c 'cd src-tauri && cargo clippy -- -D warnings'
+        language: system
+        pass_filenames: false
+        always_run: true
+
+  # Frontend linting
+  - repo: https://github.com/pre-commit/mirrors-eslint
+    rev: v9.0.0
+    hooks:
+      - id: eslint
+        name: ESLint
+        entry: bash -c 'cd frontend && npm run lint'
+        language: system
+        pass_filenames: false
+        always_run: true
+        additional_dependencies: []
+
+  # General file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        name: Trim Trailing Whitespace
+      - id: end-of-file-fixer
+        name: Fix End of Files
+      - id: check-yaml
+        name: Check YAML
+      - id: check-json
+        name: Check JSON
+      - id: check-toml
+        name: Check TOML
+      - id: check-added-large-files
+        name: Check for large files
+        args: ['--maxkb=1000']
+      - id: check-merge-conflict
+        name: Check for merge conflicts
+      - id: detect-private-key
+        name: Detect Private Keys
+
+  # Security checks
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        name: Detect secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: package-lock.json
+

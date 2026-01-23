@@ -1,297 +1,495 @@
-# 🔍 Job Hunter MVP - Codebase Analysis Report
+# 🔍 Comprehensive Codebase Analysis: Unhireable (JobEz)
 
 ## Executive Summary
 
-This analysis examines the current state of the Job Hunter MVP codebase, identifying what works, what doesn't, and what needs to be fixed to build the app correctly.
+**Unhireable** (formerly JobEz) is a desktop application built with **Tauri** (Rust backend + React frontend) for automating job search, application tracking, and AI-powered document generation. The application scrapes jobs from 15+ sources, matches them to user profiles using a neural matching algorithm, and can auto-apply to jobs using browser automation.
 
-**Overall Status**: The foundation is solid, but there are critical bugs and architectural issues that need to be addressed before proceeding with feature development.
-
----
-
-## ✅ What Works (The Good)
-
-### 1. **Project Structure**
-- ✅ Clean separation between frontend (React/TypeScript) and backend (Rust/Tauri)
-- ✅ Well-organized database layer with trait-based queries
-- ✅ Proper migration system for database schema
-- ✅ Good use of TypeScript types and Rust models
-
-### 2. **Backend (Rust/Tauri)**
-- ✅ **Database Layer**: Well-designed with:
-  - Trait-based query system (`JobQueries`, `ApplicationQueries`, etc.)
-  - Proper error handling with custom `Error` enum
-  - SQLite with migrations
-  - Foreign key constraints enabled
-  
-- ✅ **Tauri Commands**: All CRUD operations implemented for:
-  - Jobs
-  - Applications
-  - Contacts
-  - Interviews
-  - Documents
-
-- ✅ **Scraper Foundation**: Basic scraper structure exists with:
-  - `ScraperManager` for orchestrating scrapes
-  - Individual scrapers for hh.kz, LinkedIn, Wellfound
-  - Rate limiting and error handling
-
-### 3. **Frontend Architecture**
-- ✅ React Router setup for navigation
-- ✅ TanStack Query for data fetching
-- ✅ Shadcn/UI components integrated
-- ✅ Theme provider with dark mode support
-- ✅ TypeScript types defined for models
-
-### 4. **Database Schema**
-- ✅ Comprehensive schema with:
-  - Jobs table
-  - Applications table
-  - Contacts table
-  - Interviews table
-  - Documents table
-  - Proper indexes for performance
+**Overall Health Score: 6.5/10**
+- ✅ Solid architecture and structure
+- ⚠️ Multiple bugs and potential issues
+- ⚠️ Some hardcoded paths and unsafe unwraps
+- ⚠️ Race conditions in concurrent operations
+- ⚠️ Missing error handling in critical paths
 
 ---
 
-## ❌ What Doesn't Work (The Bad)
+## 📋 What This Project Is
 
-### 1. **Critical Bugs**
+### Core Purpose
+A desktop application that helps job seekers:
+1. **Scrape jobs** from multiple sources (LinkedIn, Wellfound, hh.kz, RemoteOK, etc.)
+2. **Match jobs** to user profiles using AI-powered scoring (0-100%)
+3. **Generate documents** (resumes, cover letters) tailored to specific jobs
+4. **Track applications** through the entire lifecycle
+5. **Auto-apply** to jobs using browser automation (Playwright/Chrome)
+6. **Schedule scraping** at regular intervals
+7. **Send notifications** (email, desktop) for new matches
 
-#### **Dashboard.tsx - Broken Code**
-```typescript
-// Lines 208-213: Incomplete/broken code
-const [isLoading, setIsLoading] = useState(false);
-const [error, setError] = useState<string | null>(null);
-        return [];  // ❌ This is orphaned code
-      }
-    }
-  });  // ❌ Missing opening for useQuery
+### Technology Stack
+- **Frontend**: React 18 + TypeScript + Vite + Tailwind CSS + Shadcn/UI
+- **Backend**: Rust (Tauri 2.x)
+- **Database**: SQLite (with optional PostgreSQL support disabled)
+- **Browser Automation**: Playwright/Chrome DevTools
+- **AI Integration**: OpenAI/Anthropic (optional) for document generation
+- **State Management**: TanStack Query (React Query)
+- **Routing**: React Router v6
+
+---
+
+## 🏗️ How It Works
+
+### Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Frontend (React/TS)                       │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐ │
+│  │ Dashboard│  │   Jobs    │  │Applications│  │ Settings │ │
+│  └────┬─────┘  └────┬──────┘  └────┬───────┘  └────┬──────┘ │
+│       │             │              │                │         │
+│       └─────────────┴──────────────┴──────────────┘         │
+│                          │                                    │
+│                    API Client (Tauri)                         │
+└───────────────────────────┼──────────────────────────────────┘
+                            │
+                    Tauri IPC Bridge
+                            │
+┌───────────────────────────┼──────────────────────────────────┐
+│                    Backend (Rust/Tauri)                       │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │   Commands   │  │   Database   │  │   Scrapers   │      │
+│  │  (92 total)  │  │   (SQLite)    │  │ (15+ sources)│      │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘      │
+│         │                 │                 │                │
+│  ┌──────┴─────────────────┴─────────────────┴──────┐        │
+│  │         Core Services Layer                      │        │
+│  │  • Job Matcher (Neural Algorithm)               │        │
+│  │  • Document Generator (AI-powered)              │        │
+│  │  • Job Applicator (Browser Automation)          │        │
+│  │  • Scheduler (Background Jobs)                  │        │
+│  │  • Event Bus (Real-time Updates)                │        │
+│  └─────────────────────────────────────────────────┘        │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-**Issues:**
-- Missing `useQuery` hook for applications
-- Missing state variables: `searchQuery`, `applicationsData`, `applicationsLoading`, `refetchApplications`
-- Missing imports for recharts components (`ResponsiveContainer`, `BarChart`, `PieChart`, etc.)
-- Chart components used but not imported
+### Key Components
 
-#### **API Client Type Mismatch**
-```typescript
-// frontend/src/api/client.ts
-async function apiCall<T>(command: string, args?: any): Promise<T> {
-  const result = await invoke<ApiResponse<T>>(command, args || {});
-  // ❌ Tauri commands return T directly, not ApiResponse<T>
+#### 1. **Database Layer** (`src-tauri/src/db/`)
+- **Models**: Job, Application, Contact, Interview, Document, Credential, UserProfile
+- **Queries**: Trait-based query system (`JobQueries`, `ApplicationQueries`, etc.)
+- **Migrations**: SQLite schema migrations
+- **Connection**: Single SQLite connection wrapped in Mutex
+
+#### 2. **Scraper System** (`src-tauri/src/scraper/`)
+- **ScraperManager**: Orchestrates scraping from multiple sources
+- **Individual Scrapers**: 
+  - RemoteOK, hh.kz, Wellfound, LinkedIn
+  - Indeed, Glassdoor, Stack Overflow
+  - Greenhouse, Lever, Work at Startup
+  - Remote.co, Remotive, ZipRecruiter, Dice
+- **Browser Automation**: Fallback when HTTP scraping fails
+- **Job Enricher**: Fetches full job details from URLs
+- **Source Normalizer**: Deduplicates jobs from different sources
+
+#### 3. **Matching Algorithm** (`src-tauri/src/matching/`)
+- **JobMatcher**: Calculates match scores (0-100%)
+- **Weights**:
+  - Skills Match: 50% (most important)
+  - Experience Level: 25%
+  - Location: 15%
+  - Job Title: 10%
+- **Skills Analyzer**: Extracts and compares skills from job descriptions and user profiles
+
+#### 4. **Document Generation** (`src-tauri/src/generator/`)
+- **Resume Generator**: Creates tailored resumes using Handlebars templates
+- **Cover Letter Generator**: Generates personalized cover letters
+- **AI Integration**: Optional OpenAI/Anthropic enhancement
+- **PDF/DOCX Export**: Converts generated documents to files
+- **ATS Optimizer**: Optimizes documents for Applicant Tracking Systems
+
+#### 5. **Application Automation** (`src-tauri/src/applicator/`)
+- **JobApplicator**: Automates job applications using browser automation
+- **ATS Detector**: Identifies ATS type (Greenhouse, Lever, etc.)
+- **Form Filler**: Automatically fills application forms
+- **Workflow Engine**: Orchestrates multi-step application processes
+
+#### 6. **Frontend** (`frontend/src/`)
+- **Pages**: Dashboard, Jobs, Applications, Settings, Job Details
+- **Components**: Reusable UI components (Shadcn/UI)
+- **API Client**: Type-safe Tauri command invocations
+- **State Management**: TanStack Query for server state
+
+### Data Flow Examples
+
+#### Job Scraping Flow
+```
+User clicks "Scrape Jobs" 
+  → Frontend calls `scrape_jobs` command
+  → ScraperManager.scrape_all(query)
+  → Each scraper runs in sequence with rate limiting
+  → Jobs are normalized and deduplicated
+  → Jobs saved to database
+  → Match scores calculated (if profile exists)
+  → Frontend updates job list
+```
+
+#### Application Flow
+```
+User selects job → Clicks "Apply"
+  → Frontend calls `apply_to_job` command
+  → JobApplicator initializes browser
+  → ATS type detected from job URL
+  → Form fields identified and filled
+  → Resume/cover letter uploaded
+  → Application submitted (if auto_submit=true)
+  → Application record created in database
+  → Activity logged
+  → Event published (APPLICATION_CREATED)
+  → Document generation triggered (async)
+```
+
+#### Match Score Calculation
+```
+Job created/updated
+  → If user profile exists:
+    → JobMatcher.calculate_match(job, profile)
+    → Skills extracted from job description
+    → Skills compared to user skills
+    → Experience level matched
+    → Location checked
+    → Title similarity calculated
+    → Weighted score computed (0-100%)
+    → Score saved to job.match_score
+```
+
+---
+
+## 🐛 Bugs and Critical Issues
+
+### 🔴 Critical Bugs
+
+#### 1. **Hardcoded File Path** (Line 585 in `lib.rs`)
+```rust
+let project_resume = std::path::Path::new("/Users/mac/Documents/Development/jobez/Maksut_Beksultan_Cv.pdf");
+```
+**Issue**: Hardcoded absolute path that will fail on other machines
+**Impact**: Auto-apply feature will fail for users without this exact path
+**Fix**: Use environment variable or config file for dev resume path
+
+#### 2. **Unsafe Regex Compilation** (Line 518 in `lib.rs`)
+```rust
+let numbers: Vec<f64> = regex::Regex::new(r"\$?([\d,]+)")
+    .unwrap()  // ⚠️ Will panic if regex is invalid (shouldn't happen, but unsafe)
+```
+**Issue**: Using `unwrap()` on regex compilation
+**Impact**: Potential panic if regex becomes invalid
+**Fix**: Use `expect()` with descriptive message or handle error
+
+#### 3. **Race Condition in Database Access**
+Multiple places access database without proper locking:
+- `lib.rs:622-654`: Database lock released but job_id used after
+- `scheduler/job_scheduler.rs:221-233`: Database access in async context without proper error handling
+**Issue**: Concurrent database access can cause data corruption
+**Impact**: Potential data loss or corruption
+**Fix**: Ensure all database operations are properly serialized
+
+#### 4. **Missing Error Handling in Scraper Queue**
+`scraper_queue.rs:30-55`: Queue worker doesn't handle errors properly
+```rust
+if let Some(job) = self.queue.dequeue().await {
+    // Process job - but no error handling if processing fails
 }
 ```
+**Issue**: Failed jobs are silently dropped
+**Impact**: Lost scraping jobs, no retry mechanism
+**Fix**: Add error handling and retry logic
 
-**Problem**: The API client expects `ApiResponse<T>` but Tauri commands return `T` directly. This causes type mismatches.
-
-#### **Database Query Issues**
+#### 5. **Unsafe Unwrap in Application Status Parsing**
+`db/queries.rs:369,389`: Multiple unwraps when parsing application status
 ```rust
-// src-tauri/src/db/queries.rs
-// Line 359: Missing parameter in INSERT
-INSERT INTO contacts (
-    job_id, name, email, phone, position, notes, created_at, updated_at
-) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)  // ❌ 8 columns, 7 values
+let status = status_str.parse().unwrap_or(ApplicationStatus::Preparing);
 ```
+**Issue**: Silent fallback to default status if parsing fails
+**Impact**: Data corruption - applications may show wrong status
+**Fix**: Log error and handle explicitly
 
-**Problem**: SQL parameter count mismatch in `create_contact`.
+### ⚠️ High Priority Issues
 
-### 2. **Architectural Issues**
+#### 6. **Match Score Weights Don't Sum to 100%**
+`matching/job_matcher.rs:22-26`:
+```rust
+skills_weight: 0.5,      // 50%
+experience_weight: 0.25, // 25%
+location_weight: 0.15,   // 15%
+title_weight: 0.10,     // 10%
+// Total: 100% ✅ Actually correct!
+```
+**Status**: Actually correct (sums to 100%)
+**Note**: But README says different weights (40%, 30%, 15%, 15%)
 
-#### **Duplicate Files**
-- Both `.js` and `.ts` versions of files exist:
-  - `frontend/src/api/client.js` and `client.ts`
-  - `frontend/src/lib/api.js` and `api.ts`
-  - `frontend/src/hooks/useApi.js` and `useApi.ts`
-  - Multiple component files with both extensions
+#### 7. **Location Matching Logic Flaw**
+`matching/job_matcher.rs:164`:
+```rust
+if job_location.contains(&user_location) || user_location.contains(&job_location) {
+    return 100.0;
+}
+```
+**Issue**: "San Francisco" contains "Francisco" → false positive match
+**Impact**: Incorrect location matches
+**Fix**: Use word boundary matching or proper geocoding
 
-**Problem**: Causes confusion and potential import conflicts.
+#### 8. **Experience Level Defaults to "mid"**
+`matching/job_matcher.rs:125`:
+```rust
+} else {
+    "mid".to_string() // Default to mid-level
+}
+```
+**Issue**: Jobs without clear level indicators default to "mid"
+**Impact**: May over-match entry-level candidates
+**Fix**: Return None or use more sophisticated detection
 
-#### **Inconsistent API Usage**
-- `frontend/src/pages/dashboard.tsx` uses `invoke` directly
-- `frontend/src/pages/jobs.tsx` uses `jobApi` from client
-- `frontend/src/lib/api.ts` has unused HTTP fetch functions
+#### 9. **No Rate Limiting on Scrapers**
+`scraper/mod.rs:92,109`: Fixed delays, but no adaptive rate limiting
+**Issue**: Fixed sleep times don't adapt to server responses
+**Impact**: May get blocked by aggressive rate limiting
+**Fix**: Implement adaptive rate limiting based on response codes
 
-**Problem**: No consistent pattern for API calls.
+#### 10. **Debug Files Written to /tmp**
+`scraper/wellfound.rs:70,85`: Debug HTML saved to `/tmp/`
+**Issue**: Unix-specific path, won't work on Windows
+**Impact**: Debug feature fails on Windows
+**Fix**: Use `std::env::temp_dir()` for cross-platform support
 
-#### **Missing Error Handling**
-- Many Tauri commands don't properly handle database initialization errors
-- Frontend doesn't handle API errors gracefully
-- No error boundaries in React
+### 🟡 Medium Priority Issues
 
-### 3. **Missing Features**
+#### 11. **Duplicate Scraping Logic**
+`main.rs:392-492` and `main.rs:495-595`: Identical scraping code duplicated
+**Issue**: Code duplication violates DRY principle
+**Impact**: Maintenance burden, potential for bugs
+**Fix**: Extract to shared function
 
-#### **Document Generation**
-- ❌ No resume/cover letter generation
-- ❌ No template system
-- ❌ No AI integration (OpenAI API)
-- ❌ No PDF/DOCX export
+#### 12. **Missing Validation in Auto-Apply Filter**
+`lib.rs:485-535`: Filter logic doesn't validate job data
+**Issue**: May filter out valid jobs or include invalid ones
+**Impact**: Incorrect job filtering
+**Fix**: Add validation checks
 
-#### **Email Integration**
-- ❌ No Gmail API integration
-- ❌ No OAuth2 flow
-- ❌ No email parsing
-- ❌ No automatic status updates
+#### 13. **Event Handler Spawns Tasks Without Error Handling**
+`lib.rs:196-273`: Async tasks spawned without proper error handling
+```rust
+tokio::spawn(async move {
+    // No error handling if handler fails
+});
+```
+**Issue**: Silent failures in event handlers
+**Impact**: Document generation may fail silently
+**Fix**: Add error handling and logging
 
-#### **Job Scraper**
-- ⚠️ Basic structure exists but:
-  - Scrapers may be outdated (HTML selectors)
-  - No authentication for LinkedIn
-  - No rate limiting beyond basic sleep
-  - No retry logic
+#### 14. **Cache Invalidation Not Implemented**
+`commands/jobs.rs:103`: Cache mentioned but invalidation unclear
+**Issue**: Stale data may be served
+**Impact**: Users see outdated information
+**Fix**: Implement proper cache invalidation strategy
 
-#### **Dashboard Functionality**
-- ❌ Charts don't work (missing imports, empty data)
-- ❌ Statistics are hardcoded
-- ❌ No real-time updates
-- ❌ Search functionality incomplete
+#### 15. **No Timeout on Browser Automation**
+`applicator/workflow.rs`: Browser operations may hang indefinitely
+**Issue**: No timeout on browser automation steps
+**Impact**: Application process may hang
+**Fix**: Add timeouts to all browser operations
 
-### 4. **Code Quality Issues**
+### 🔵 Low Priority / Code Quality Issues
 
-#### **Type Safety**
-- Some `any` types used in API client
-- Missing type guards
-- Inconsistent null handling
+#### 16. **Inconsistent Error Messages**
+Error messages vary in format and detail across modules
+**Fix**: Standardize error message format
 
-#### **Error Handling**
-- Inconsistent error handling patterns
-- Some functions swallow errors silently
-- No centralized error logging
+#### 17. **Missing Documentation**
+Many functions lack doc comments
+**Fix**: Add rustdoc comments to public APIs
 
-#### **Testing**
-- No unit tests for frontend
-- Only basic scraper tests exist
-- No integration tests
-- No E2E tests
+#### 18. **Magic Numbers**
+Hardcoded values like `1000` (HTML size check), `500` (delay ms)
+**Fix**: Extract to constants or config
 
----
+#### 19. **Unused Imports**
+Some files have unused imports (detected by clippy)
+**Fix**: Remove unused imports
 
-## 🔧 Critical Fixes Needed
-
-### Priority 1: Fix Dashboard.tsx
-1. Add missing `useQuery` for applications
-2. Add missing state variables
-3. Import recharts components
-4. Fix broken code around lines 208-213
-
-### Priority 2: Fix API Client
-1. Remove `ApiResponse` wrapper (Tauri returns T directly)
-2. Standardize error handling
-3. Remove duplicate `.js` files
-
-### Priority 3: Fix Database Queries
-1. Fix `create_contact` parameter count
-2. Add proper error handling
-3. Verify all queries match schema
-
-### Priority 4: Clean Up Codebase
-1. Remove duplicate `.js` files
-2. Standardize API usage pattern
-3. Add error boundaries
-4. Fix type safety issues
-
----
-
-## 📊 Codebase Health Score
-
-| Category | Score | Notes |
-|----------|-------|-------|
-| **Backend Architecture** | 8/10 | Well-structured, minor bugs |
-| **Frontend Architecture** | 6/10 | Good foundation, needs cleanup |
-| **Type Safety** | 7/10 | Mostly good, some gaps |
-| **Error Handling** | 5/10 | Inconsistent patterns |
-| **Testing** | 2/10 | Minimal test coverage |
-| **Documentation** | 4/10 | Basic README, no API docs |
-| **Code Quality** | 6/10 | Good structure, needs cleanup |
-
-**Overall: 5.4/10** - Needs significant work before feature development
+#### 20. **Frontend: Missing Error Boundaries**
+Some pages don't have error boundaries
+**Fix**: Add error boundaries to all pages
 
 ---
 
-## 🎯 Recommended Action Plan
+## 🔍 Potential Logical Issues
 
-### Phase 1: Fix Critical Bugs (Week 1)
-1. Fix dashboard.tsx broken code
-2. Fix API client type mismatches
-3. Fix database query bugs
-4. Remove duplicate files
-5. Add error boundaries
+### 1. **Match Score Calculation Edge Cases**
 
-### Phase 2: Standardize Architecture (Week 2)
-1. Standardize API usage pattern
-2. Improve error handling
-3. Add proper logging
-4. Fix type safety issues
-5. Add basic tests
+**Issue**: Match score can exceed 100% if weights are modified
+**Location**: `matching/job_matcher.rs:67-70`
+```rust
+result.match_score = result.skills_match * self.weights.skills_weight
+    + result.experience_match * self.weights.experience_weight
+    + result.location_match * self.weights.location_weight
+    + title_match * self.weights.title_weight;
+```
+**Problem**: If weights don't sum to 1.0, scores can be >100%
+**Fix**: Validate weights sum to 1.0 or normalize
 
-### Phase 3: Core Features (Weeks 3-4)
-1. Implement document generation
-2. Add email integration
-3. Improve job scraper
-4. Build dashboard functionality
+### 2. **Skills Overlap Calculation**
 
-### Phase 4: Polish & Testing (Week 5)
-1. Add comprehensive tests
-2. Performance optimization
-3. UI/UX improvements
-4. Documentation
+**Issue**: Skills matching may be too lenient or strict
+**Location**: `matching/skills_analyzer.rs`
+**Problem**: Simple string matching may miss synonyms (e.g., "JS" vs "JavaScript")
+**Fix**: Use skill normalization or synonym matching
 
----
+### 3. **Job Deduplication**
 
-## 🔍 Detailed Issues by File
+**Issue**: Jobs from different sources may not be properly deduplicated
+**Location**: `deduplication/merger.rs`
+**Problem**: URL-based deduplication may miss same job with different URLs
+**Fix**: Use fuzzy matching on title + company
 
-### `frontend/src/pages/dashboard.tsx`
-- **Lines 208-213**: Broken/incomplete code
-- **Missing**: `searchQuery` state, `applicationsData` query, recharts imports
-- **Issue**: Charts won't render, search won't work
+### 4. **Application Status Transitions**
 
-### `frontend/src/api/client.ts`
-- **Line 20**: Type mismatch - expects `ApiResponse<T>` but gets `T`
-- **Issue**: Type errors, potential runtime issues
+**Issue**: No validation of status transitions (e.g., can't go from "Rejected" to "Submitted")
+**Location**: `db/models.rs:144-151`
+**Problem**: Invalid state transitions allowed
+**Fix**: Add state machine validation
 
-### `src-tauri/src/db/queries.rs`
-- **Line 359**: SQL parameter mismatch in `create_contact`
-- **Issue**: Database insert will fail
+### 5. **Concurrent Scraping**
 
-### `src-tauri/src/lib.rs`
-- **Lines 140-160**: Scraper doesn't handle errors well
-- **Issue**: Silent failures, no user feedback
+**Issue**: Scrapers run sequentially, not in parallel
+**Location**: `scraper/mod.rs:77-999`
+**Problem**: Slow scraping when multiple sources available
+**Fix**: Run scrapers in parallel with proper error handling
 
----
+### 6. **Database Connection Pooling**
 
-## ✅ What to Keep
+**Issue**: Single database connection shared across async tasks
+**Location**: `db/mod.rs`
+**Problem**: Potential bottleneck and race conditions
+**Fix**: Use connection pool or ensure proper serialization
 
-1. **Database Architecture**: The trait-based query system is excellent
-2. **Tauri Integration**: Well-structured command handlers
-3. **Type Definitions**: Good TypeScript/Rust type alignment
-4. **Component Structure**: Shadcn/UI integration is good
-5. **Migration System**: Simple but effective
+### 7. **Event Bus Memory Leak**
 
----
+**Issue**: Event subscribers may accumulate over time
+**Location**: `events.rs`
+**Problem**: Memory leak if subscribers not properly cleaned up
+**Fix**: Implement subscriber cleanup mechanism
 
-## ❌ What to Refactor
+### 8. **Browser Automation Resource Leak**
 
-1. **API Client**: Remove wrapper, use Tauri directly
-2. **Error Handling**: Centralize and standardize
-3. **State Management**: Consider Zustand or Redux for complex state
-4. **Scraper**: Add proper retry logic and error recovery
-5. **Testing**: Add comprehensive test suite
+**Issue**: Browser instances may not be properly closed
+**Location**: `scraper/browser.rs`, `applicator/workflow.rs`
+**Problem**: Resource leaks if browser crashes or errors occur
+**Fix**: Use RAII patterns or ensure cleanup in finally blocks
 
 ---
 
-## 🚀 Next Steps
+## 📊 Statistics
 
-1. **Immediate**: Fix critical bugs in dashboard and API client
-2. **Short-term**: Clean up codebase, remove duplicates
-3. **Medium-term**: Implement core features (documents, email)
-4. **Long-term**: Add tests, optimize, prepare for production
+### Codebase Metrics
+- **Total Rust Files**: 68
+- **Total TypeScript Files**: 58
+- **Tauri Commands**: 92
+- **Job Sources**: 15+
+- **Unsafe Unwraps**: 196 instances across 42 files
+- **TODO Comments**: 183 instances
+
+### Risk Assessment
+
+| Category | Risk Level | Count |
+|----------|-----------|-------|
+| Critical Bugs | 🔴 High | 5 |
+| High Priority Issues | ⚠️ Medium | 5 |
+| Medium Priority Issues | 🟡 Low | 5 |
+| Code Quality Issues | 🔵 Very Low | 5 |
 
 ---
 
-## 📝 Notes
+## 🎯 Recommended Fix Priority
 
-- The codebase shows good architectural thinking
-- Main issues are bugs and inconsistencies, not fundamental design flaws
-- With focused effort, this can be production-ready in 4-6 weeks
-- Consider adding a Python microservice for AI operations (as mentioned in TA.md)
+### Phase 1: Critical Fixes (Week 1)
+1. Remove hardcoded file path
+2. Fix unsafe unwraps in critical paths
+3. Add proper error handling to scraper queue
+4. Fix race conditions in database access
+5. Add validation to application status parsing
 
+### Phase 2: High Priority (Week 2)
+6. Fix location matching logic
+7. Implement adaptive rate limiting
+8. Fix cross-platform debug file paths
+9. Add timeouts to browser automation
+10. Implement proper cache invalidation
+
+### Phase 3: Medium Priority (Week 3)
+11. Remove code duplication
+12. Add error boundaries to frontend
+13. Implement proper event handler error handling
+14. Add state machine validation for applications
+15. Improve skills matching with normalization
+
+### Phase 4: Code Quality (Week 4)
+16. Standardize error messages
+17. Add documentation
+18. Extract magic numbers to constants
+19. Remove unused imports
+20. Add comprehensive tests
+
+---
+
+## ✅ What Works Well
+
+1. **Architecture**: Clean separation of concerns, trait-based design
+2. **Type Safety**: Good use of Rust types and TypeScript
+3. **Error Types**: Custom error enum with proper conversions
+4. **Database Schema**: Well-designed with proper indexes
+5. **Frontend Structure**: Good component organization
+6. **Scraper System**: Flexible scraper trait system
+7. **Matching Algorithm**: Solid foundation (needs refinement)
+8. **Document Generation**: Template system is extensible
+
+---
+
+## ❌ What Needs Improvement
+
+1. **Error Handling**: Too many unwraps, inconsistent patterns
+2. **Concurrency**: Race conditions in database access
+3. **Testing**: Minimal test coverage
+4. **Documentation**: Missing API docs and inline comments
+5. **Hardcoded Values**: Paths, delays, thresholds
+6. **Cross-Platform**: Some Unix-specific code
+7. **Resource Management**: Potential leaks in browser automation
+8. **Validation**: Missing input validation in many places
+
+---
+
+## 🔧 Quick Wins
+
+1. Replace all `unwrap()` with `expect()` with descriptive messages
+2. Extract hardcoded paths to config/environment variables
+3. Add `#[derive(Debug)]` to all error types for better debugging
+4. Use `std::env::temp_dir()` instead of `/tmp`
+5. Add timeouts to all network operations
+6. Implement proper logging levels (debug, info, warn, error)
+7. Add input validation to all Tauri commands
+8. Create error boundary component for React
+
+---
+
+## 📝 Conclusion
+
+The codebase is **well-structured** with a **solid architecture**, but has **multiple bugs and potential issues** that need attention. The most critical issues are:
+
+1. **Hardcoded paths** that break portability
+2. **Unsafe unwraps** that can cause panics
+3. **Race conditions** in concurrent database access
+4. **Missing error handling** in critical paths
+5. **Resource leaks** in browser automation
+
+With focused effort on the critical and high-priority issues, this codebase can be made production-ready. The foundation is strong, but attention to error handling, concurrency, and cross-platform compatibility is needed.
+
+**Estimated Effort**: 3-4 weeks to address all critical and high-priority issues.

@@ -1,14 +1,14 @@
 // End-to-end test for job matching workflow
-use jobez_lib::matching::JobMatcher;
-use jobez_lib::db::models::{Job, JobStatus};
-use jobez_lib::generator::{UserProfile, PersonalInfo, SkillsProfile, ExperienceEntry};
-use std::collections::HashMap;
 use chrono::Utc;
+use jobez_lib::db::models::{Job, JobStatus};
+use jobez_lib::generator::{ExperienceEntry, PersonalInfo, SkillsProfile, UserProfile};
+use jobez_lib::matching::JobMatcher;
+use std::collections::HashMap;
 
 #[test]
 fn test_end_to_end_job_matching_workflow() {
     println!("\n🧪 Testing End-to-End Job Matching Workflow\n");
-    
+
     // Step 1: Create a user profile
     println!("📝 Step 1: Creating user profile...");
     let profile = UserProfile {
@@ -21,7 +21,9 @@ fn test_end_to_end_job_matching_workflow() {
             github: None,
             portfolio: None,
         },
-        summary: "Full-stack developer with 6 years of experience in React, TypeScript, and Node.js".to_string(),
+        summary:
+            "Full-stack developer with 6 years of experience in React, TypeScript, and Node.js"
+                .to_string(),
         skills: SkillsProfile {
             technical_skills: vec![
                 "React".to_string(),
@@ -41,28 +43,26 @@ fn test_end_to_end_job_matching_workflow() {
             },
             proficiency_levels: HashMap::new(),
         },
-        experience: vec![
-            ExperienceEntry {
-                company: "Tech Corp".to_string(),
-                position: "Senior Frontend Developer".to_string(),
-                duration: "4 years".to_string(),
-                description: vec![
-                    "Led React development team".to_string(),
-                    "Built microservices with Node.js".to_string(),
-                ],
-                technologies: vec![
-                    "React".to_string(),
-                    "TypeScript".to_string(),
-                    "Node.js".to_string(),
-                    "Docker".to_string(),
-                ],
-            }
-        ],
+        experience: vec![ExperienceEntry {
+            company: "Tech Corp".to_string(),
+            position: "Senior Frontend Developer".to_string(),
+            duration: "4 years".to_string(),
+            description: vec![
+                "Led React development team".to_string(),
+                "Built microservices with Node.js".to_string(),
+            ],
+            technologies: vec![
+                "React".to_string(),
+                "TypeScript".to_string(),
+                "Node.js".to_string(),
+                "Docker".to_string(),
+            ],
+        }],
         education: vec![],
         projects: vec!["React project with AWS deployment".to_string()],
     };
     println!("✅ User profile created");
-    
+
     // Step 2: Create multiple job postings
     println!("\n📋 Step 2: Creating job postings...");
     let jobs = vec![
@@ -74,11 +74,13 @@ fn test_end_to_end_job_matching_workflow() {
             description: Some(
                 "We are looking for a senior React developer with TypeScript experience. \
                  Must know Node.js, Docker, and REST APIs. Remote work available. \
-                 5+ years of experience required.".to_string()
+                 5+ years of experience required."
+                    .to_string(),
             ),
             requirements: Some(
                 "Experience with React, TypeScript, Node.js required. \
-                 Docker experience preferred. AWS knowledge is a plus.".to_string()
+                 Docker experience preferred. AWS knowledge is a plus."
+                    .to_string(),
             ),
             location: Some("Remote".to_string()),
             salary: None,
@@ -110,7 +112,8 @@ fn test_end_to_end_job_matching_workflow() {
             url: "https://example.com/job/3".to_string(),
             description: Some(
                 "Mid-level frontend developer needed. React experience required. \
-                 TypeScript preferred.".to_string()
+                 TypeScript preferred."
+                    .to_string(),
             ),
             requirements: Some("React, JavaScript, TypeScript".to_string()),
             location: Some("Remote".to_string()),
@@ -123,18 +126,23 @@ fn test_end_to_end_job_matching_workflow() {
         },
     ];
     println!("✅ Created {} job postings", jobs.len());
-    
+
     // Step 3: Match jobs to profile
     println!("\n🔍 Step 3: Matching jobs to profile...");
     let matcher = JobMatcher::new();
     let results = matcher.match_jobs(&jobs, &profile);
     println!("✅ Matched {} jobs", results.len());
-    
+
     // Step 4: Display results
     println!("\n📊 Step 4: Match Results:\n");
     for (i, result) in results.iter().enumerate() {
         let quality = result.get_match_quality();
-        println!("Job {}: {} at {}", i + 1, result.job.title, result.job.company);
+        println!(
+            "Job {}: {} at {}",
+            i + 1,
+            result.job.title,
+            result.job.company
+        );
         println!("  Match Score: {:.1}% ({:?})", result.match_score, quality);
         println!("  Skills Match: {:.1}%", result.skills_match);
         println!("  Experience Match: {:.1}%", result.experience_match);
@@ -146,31 +154,54 @@ fn test_end_to_end_job_matching_workflow() {
         println!("  Experience Level: {}", result.experience_level);
         println!();
     }
-    
+
     // Step 5: Filter by minimum score
     println!("🎯 Step 5: Filtering jobs with match score >= 60%...");
     let filtered = matcher.filter_by_score(&results, 60.0);
     println!("✅ Found {} jobs with score >= 60%", filtered.len());
-    
+
     // Step 6: Assertions
     println!("\n✅ Step 6: Validating results...");
     assert_eq!(results.len(), 3, "Should have 3 match results");
-    assert!(results[0].match_score >= results[1].match_score, "Results should be sorted by score");
-    assert!(results[0].match_score >= results[2].match_score, "Results should be sorted by score");
-    
+    assert!(
+        results[0].match_score >= results[1].match_score,
+        "Results should be sorted by score"
+    );
+    assert!(
+        results[0].match_score >= results[2].match_score,
+        "Results should be sorted by score"
+    );
+
     // Senior React job should score highest
-    assert!(results[0].match_score > 60.0, "Senior React job should score > 60%");
-    assert!(results[0].matched_skills.len() >= 3, "Should match at least 3 skills");
-    
+    assert!(
+        results[0].match_score > 60.0,
+        "Senior React job should score > 60%"
+    );
+    assert!(
+        results[0].matched_skills.len() >= 3,
+        "Should match at least 3 skills"
+    );
+
     // Python job should score lower
-    let python_job_index = results.iter().position(|r| r.job.title.contains("Python")).unwrap();
-    assert!(results[python_job_index].match_score < 50.0, "Python job should score < 50%");
-    
+    let python_job_index = results
+        .iter()
+        .position(|r| r.job.title.contains("Python"))
+        .unwrap();
+    assert!(
+        results[python_job_index].match_score < 50.0,
+        "Python job should score < 50%"
+    );
+
     // Filtered results should only include high-scoring jobs
-    assert!(filtered.len() <= results.len(), "Filtered results should be subset");
-    assert!(filtered.iter().all(|r| r.match_score >= 60.0), "All filtered results should meet minimum score");
-    
+    assert!(
+        filtered.len() <= results.len(),
+        "Filtered results should be subset"
+    );
+    assert!(
+        filtered.iter().all(|r| r.match_score >= 60.0),
+        "All filtered results should meet minimum score"
+    );
+
     println!("✅ All validations passed!");
     println!("\n🎉 End-to-end test completed successfully!\n");
 }
-

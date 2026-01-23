@@ -5,12 +5,15 @@
   "scripts": {
     "dev": "npm run dev:tauri",
     "dev:web": "npm --prefix frontend run dev",
-    "dev:tauri": "lsof -ti:3003 | xargs kill -9 2>/dev/null; sleep 1; cd frontend && npm run tauri:dev",
-    "tauri:dev": "lsof -ti:3003 | xargs kill -9 2>/dev/null; sleep 1; cd frontend && npm run tauri:dev",
-    "tauri": "cd frontend && npm run tauri",
-    "build": "cd frontend && npm run tauri:build",
+    "dev:tauri": "lsof -ti:3003 | xargs kill -9 2>/dev/null; sleep 1; npm --prefix frontend exec tauri dev",
+    "tauri:dev": "lsof -ti:3003 | xargs kill -9 2>/dev/null; sleep 1; npm --prefix frontend exec tauri dev",
+    "tauri": "npm --prefix frontend exec tauri",
+    "build": "npm --prefix frontend run tauri:build",
     "build:web": "npm --prefix frontend run build",
     "preview": "npm --prefix frontend run preview",
     "lint": "npm --prefix frontend run lint"
+  },
+  "devDependencies": {
+    "playwright": "^1.56.1"
   }
 }

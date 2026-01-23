@@ -1,13 +1,13 @@
 import { useState, useCallback } from 'react';
 
-type ApiFunction<T, P extends any[]> = (...args: P) => Promise<T>;
+type ApiFunction<T, P extends unknown[]> = (...args: P) => Promise<T>;
 
 interface ApiResult<T> {
   data?: T;
   error?: string;
 }
 
-export function useApi<T, P extends any[]>(
+export function useApi<T, P extends unknown[]>(
   apiFunction: ApiFunction<T, P>,
   options: { initialData?: T; onSuccess?: (data: T) => void } = {}
 ) {
@@ -44,7 +44,7 @@ export function useApi<T, P extends any[]>(
 // const { data: jobs, isLoading, error, execute: fetchJobs } = useApi(api.jobs.list);
 // fetchJobs();
 
-export function useApiMutation<T, P extends any[]>(
+export function useApiMutation<T, P extends unknown[]>(
   apiFunction: ApiFunction<T, P>,
   options: { onSuccess?: (data: T) => void } = {}
 ) {

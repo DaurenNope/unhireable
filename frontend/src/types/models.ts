@@ -19,6 +19,28 @@ export const DocumentTypes = {
 
 export type DocumentType = typeof DocumentTypes[keyof typeof DocumentTypes];
 
+export interface AuthStatus {
+  configured: boolean;
+  authenticated: boolean;
+  email?: string | null;
+  last_login_at?: string | null;
+}
+
+export interface AutomationHealth {
+  profile_configured: boolean;
+  missing_fields: string[];
+  resume_documents: number;
+  credential_platforms: string[];
+  chromium_available: boolean;
+  playwright_available: boolean;
+}
+
+export interface ResumeEnvironmentStatus {
+  pdftotext_available: boolean;
+  pdftoppm_available: boolean;
+  tesseract_available: boolean;
+}
+
 // Base model with common fields
 export interface BaseModel {
   id?: number;
@@ -47,6 +69,13 @@ export interface Job extends BaseModel {
   source: string;
   status: JobStatus;
   match_score?: number | null; // Match score from 0.0 to 100.0, null if not calculated
+}
+
+// Recommended Job model (for recommendation system)
+export interface RecommendedJob {
+  job: Job;
+  recommendation_score: number; // 0.0 to 100.0
+  reasons: string[]; // Why this job was recommended
 }
 
 // Contact model
@@ -230,6 +259,11 @@ export interface NotificationConfig {
   notify_on_matches: boolean;
   min_match_score_for_notification: number;
   notify_daily_summary: boolean;
+  desktop_notifications_enabled: boolean;
+  quiet_hours_enabled: boolean;
+  quiet_hours_start: string; // HH:mm format, e.g., "22:00"
+  quiet_hours_end: string; // HH:mm format, e.g., "08:00"
+  max_notifications_per_hour: number; // Limit notification frequency
 }
 
 // Scheduler Configuration Types
@@ -250,4 +284,172 @@ export interface SchedulerStatus {
   sources: string[];
   min_match_score: number | null;
   send_notifications: boolean;
+}
+
+// Saved Search Types
+export type AlertFrequency = 'hourly' | 'daily' | 'weekly' | 'never';
+
+export interface SavedSearchFilters {
+  remote_only?: boolean;
+  min_match_score?: number | null;
+  status?: string | null; // "all", "saved", "applied", etc.
+  skill_filter?: string | null;
+  preferred_locations?: string[];
+  preferred_titles?: string[];
+  preferred_companies?: string[];
+  avoid_companies?: string[];
+  required_skills?: string[];
+  preferred_skills?: string[];
+  min_salary?: number | null;
+  job_types?: string[];
+  industries?: string[];
+  must_have_benefits?: string[];
+  company_size?: string | null;
+}
+
+export interface SavedSearch extends BaseModel {
+  name: string;
+  query: string;
+  sources: string[]; // ["remotive", "remoteok", "wellfound", "greenhouse"]
+  filters: SavedSearchFilters;
+  alert_frequency: AlertFrequency;
+  min_match_score: number;
+  enabled: boolean;
+  last_run_at?: string | null;
+}
+
+// Application Mode Types
+export type ApplicationMode = 'manual' | 'semi-auto' | 'yolo';
+
+export interface ApplicationConfig {
+  mode: ApplicationMode;
+  auto_submit: boolean;
+  auto_generate_documents: boolean;
+  min_match_score: number; // Minimum match score to auto-apply
+  batch_apply: boolean; // Apply to multiple jobs at once
+  batch_size: number; // Number of jobs to apply to in batch
+  delay_between_applications: number; // Delay in seconds between applications
+}
+
+export interface SkillStat {
+  name: string;
+  job_count: number;
+  percentage: number;
+}
+
+export interface EntityStat {
+  name: string;
+  job_count: number;
+  percentage: number;
+}
+
+export interface TrendStat {
+  name: string;
+  current_count: number;
+  previous_count: number;
+  delta_percentage: number;
+}
+
+export interface MarketInsights {
+  timeframe_days: number;
+  total_jobs_previous: number;
+  total_jobs_considered: number;
+  remote_percentage: number;
+  onsite_percentage: number;
+  trending_skills: SkillStat[];
+  skill_trends: TrendStat[];
+  skills_to_learn: SkillStat[];
+  trending_roles: EntityStat[];
+  role_trends: TrendStat[];
+  top_companies: EntityStat[];
+  top_locations: EntityStat[];
+  sources_breakdown: EntityStat[];
+}
+
+export interface ApplicationResult {
+  success: boolean;
+  application_id?: number;
+  message: string;
+  applied_at?: string;
+  ats_type?: string;
+  errors: string[];
+}
+
+// Resume Analysis types
+export interface ResumeAnalysis {
+  personal_info: PersonalInfo;
+  summary?: string | null;
+  skills: string[];
+  experience: ExperienceEntry[];
+  education: EducationEntry[];
+  projects: string[];
+  raw_text: string;
+  insights: AnalysisInsights;
+}
+
+export interface PersonalInfo {
+  name?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  location?: string | null;
+  linkedin?: string | null;
+  github?: string | null;
+  portfolio?: string | null;
+}
+
+export interface ExperienceEntry {
+  company?: string | null;
+  position?: string | null;
+  duration?: string | null;
+  description: string[];
+  technologies: string[];
+}
+
+export interface EducationEntry {
+  institution?: string | null;
+  degree?: string | null;
+  year?: string | null;
+  details?: string | null;
+}
+
+export interface AnalysisInsights {
+  total_years_experience?: number | null;
+  primary_skills: string[];
+  skill_categories: string[];
+  strengths: string[];
+  recommendations: string[];
+  ats_score?: number | null;
+  ats_breakdown: AtsBreakdown[];
+  hr_signals: HrSignal[];
+  keyword_gaps: KeywordGap[];
+  job_alignment?: JobAlignmentInsights | null;
+}
+
+export interface AtsBreakdown {
+  system: string;
+  score: number;
+  verdict: string;
+  highlights: string[];
+  risks: string[];
+}
+
+export type HrSignalStatus = 'positive' | 'warning' | 'critical';
+
+export interface HrSignal {
+  status: HrSignalStatus;
+  label: string;
+  detail: string;
+}
+
+export interface KeywordGap {
+  category: string;
+  missing: string[];
+}
+
+export interface JobAlignmentInsights {
+  dominant_role?: string | null;
+  role_confidence: number;
+  keyword_match: number;
+  matched_keywords: string[];
+  missing_keywords: string[];
 }

@@ -1,1 +1,0 @@
-# JobEz Assessment Platform Backend

@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::str::FromStr;
 use std::path::PathBuf;
+use std::str::FromStr;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Job {
@@ -198,11 +198,148 @@ pub struct Credential {
     pub username: Option<String>,
     pub email: Option<String>,
     pub encrypted_password: Option<String>, // Encrypted password
-    pub cookies: Option<String>, // JSON string of cookies
-    pub tokens: Option<String>, // JSON string of tokens
+    pub cookies: Option<String>,            // JSON string of cookies
+    pub tokens: Option<String>,             // JSON string of tokens
     pub is_active: bool,
     pub last_used_at: Option<DateTime<Utc>>,
     pub expires_at: Option<DateTime<Utc>>,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UserAuth {
+    pub id: Option<i64>,
+    pub email: Option<String>,
+    pub password_hash: String,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
+    pub last_login_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SnapshotCount {
+    pub name: String,
+    pub count: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct JobSnapshot {
+    pub id: Option<i64>,
+    pub captured_at: DateTime<Utc>,
+    pub timeframe_days: i64,
+    pub total_jobs: usize,
+    pub remote_count: usize,
+    pub onsite_count: usize,
+    pub skill_counts: Vec<SnapshotCount>,
+    pub role_counts: Vec<SnapshotCount>,
+    pub company_counts: Vec<SnapshotCount>,
+    pub source_counts: Vec<SnapshotCount>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SavedSearchFilters {
+    #[serde(default)]
+    pub remote_only: bool,
+    #[serde(default)]
+    pub min_match_score: Option<i32>,
+    #[serde(default)]
+    pub status: Option<String>, // "all", "saved", "applied", etc.
+    #[serde(default)]
+    pub skill_filter: Option<String>,
+    // Enhanced filters
+    #[serde(default)]
+    pub preferred_locations: Vec<String>,
+    #[serde(default)]
+    pub preferred_titles: Vec<String>,
+    #[serde(default)]
+    pub preferred_companies: Vec<String>,
+    #[serde(default)]
+    pub avoid_companies: Vec<String>,
+    #[serde(default)]
+    pub required_skills: Vec<String>,
+    #[serde(default)]
+    pub preferred_skills: Vec<String>,
+    #[serde(default)]
+    pub min_salary: Option<u32>,
+    #[serde(default)]
+    pub job_types: Vec<String>, // ["full-time", "part-time", "contract"]
+    #[serde(default)]
+    pub industries: Vec<String>,
+    #[serde(default)]
+    pub must_have_benefits: Vec<String>,
+    #[serde(default)]
+    pub company_size: Option<String>, // "startup", "small", "medium", "large", "enterprise"
+}
+
+impl Default for SavedSearchFilters {
+    fn default() -> Self {
+        Self {
+            remote_only: false,
+            min_match_score: None,
+            status: Some("all".to_string()),
+            skill_filter: None,
+            preferred_locations: Vec::new(),
+            preferred_titles: Vec::new(),
+            preferred_companies: Vec::new(),
+            avoid_companies: Vec::new(),
+            required_skills: Vec::new(),
+            preferred_skills: Vec::new(),
+            min_salary: None,
+            job_types: Vec::new(),
+            industries: Vec::new(),
+            must_have_benefits: Vec::new(),
+            company_size: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum AlertFrequency {
+    Hourly,
+    Daily,
+    Weekly,
+    Never,
+}
+
+impl FromStr for AlertFrequency {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "hourly" => Ok(AlertFrequency::Hourly),
+            "daily" => Ok(AlertFrequency::Daily),
+            "weekly" => Ok(AlertFrequency::Weekly),
+            "never" => Ok(AlertFrequency::Never),
+            _ => Err(format!("Unknown alert frequency: {}", s)),
+        }
+    }
+}
+
+impl std::fmt::Display for AlertFrequency {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            AlertFrequency::Hourly => "hourly",
+            AlertFrequency::Daily => "daily",
+            AlertFrequency::Weekly => "weekly",
+            AlertFrequency::Never => "never",
+        };
+        write!(f, "{}", s)
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SavedSearch {
+    pub id: Option<i64>,
+    pub name: String,
+    pub query: String,
+    pub sources: Vec<String>, // ["remotive", "remoteok", "wellfound", "greenhouse"]
+    pub filters: SavedSearchFilters,
+    pub alert_frequency: AlertFrequency,
+    pub min_match_score: i32,
+    pub enabled: bool,
+    pub last_run_at: Option<DateTime<Utc>>,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
 }

@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
+import type { KeyboardEvent } from "react"
 import { useSearchParams } from "react-router-dom"
 import { useTheme } from "next-themes"
 import { Button } from "../components/ui/button"
@@ -10,70 +11,138 @@ import { Switch } from "../components/ui/switch"
 import { Separator } from "../components/ui/separator"
 import { Badge } from "../components/ui/badge"
 import { Alert, AlertDescription } from "../components/ui/alert"
-import { Sun, Moon, Monitor, Key, Trash2, Plus, Save, AlertCircle, CheckCircle2, Mail, Send } from "lucide-react"
-import { credentialApi, schedulerApi, profileApi } from "@/api/client"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { Sun, Moon, Monitor, Key, Trash2, Plus, Save, AlertCircle, CheckCircle2, Mail, Send, Rocket, Shield, Zap, Search, Play } from "lucide-react"
+import { credentialApi, schedulerApi, profileApi, savedSearchApi, automationApi } from "@/api/client"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { UserProfileForm } from "@/components/user-profile-form"
-import type { UserProfile, SchedulerConfig } from "@/types/models"
+import type { UserProfile, SchedulerConfig, ApplicationMode, AutomationHealth } from "@/types/models"
+import { cn } from "@/lib/utils"
+import { SavedSearchesSettings } from "./saved-searches-settings"
 import { invoke } from "@tauri-apps/api/core"
-import { Clock, Play, Square, RefreshCw } from "lucide-react"
+import { Clock, Square, RefreshCw, Loader2 } from "lucide-react"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { useNavigate } from "react-router-dom"
+import { useToast } from "@/components/ui/use-toast"
 
 export function Settings() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const defaultTab = searchParams.get('tab') || 'appearance';
+  const defaultTab = searchParams.get('tab') || 'profile';
+
+  // Get scheduler status
+  const { data: schedulerStatus } = useQuery({
+    queryKey: ['scheduler-status'],
+    queryFn: () => schedulerApi.getStatus(),
+    refetchInterval: 5000,
+  });
+
+  // Get email config to check if enabled
+  const [emailEnabled, setEmailEnabled] = useState(false);
+
+  // Load email enabled state from localStorage
+  useEffect(() => {
+    const loadEmailEnabled = () => {
+      const savedConfig = localStorage.getItem('emailConfig');
+      if (savedConfig) {
+        try {
+          const config = JSON.parse(savedConfig);
+          setEmailEnabled(config.email_enabled || false);
+        } catch (e) {
+          console.error('Failed to load email config:', e);
+        }
+      }
+    };
+
+    loadEmailEnabled();
+    // Listen for storage changes (when email config is saved)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'emailConfig') {
+        loadEmailEnabled();
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    // Also poll for changes (since same-window storage events don't fire)
+    const interval = setInterval(loadEmailEnabled, 1000);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
 
   return (
     <div className="space-y-6 p-6">
       <div>
         <h2 className="text-3xl font-bold tracking-tight">Settings</h2>
         <p className="text-muted-foreground">
-          Manage your account settings and preferences.
+          Configure your profile, automation, and preferences.
         </p>
       </div>
-      
-      <Tabs 
-        value={defaultTab} 
+
+      <Tabs
+        value={defaultTab}
         onValueChange={(value) => {
           setSearchParams({ tab: value });
         }}
         className="space-y-4"
       >
         <TabsList>
-          <TabsTrigger value="appearance">Appearance</TabsTrigger>
           <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="scraper">Scraper Config</TabsTrigger>
-          <TabsTrigger value="credentials">Credentials</TabsTrigger>
-          <TabsTrigger value="email">Email Notifications</TabsTrigger>
-          <TabsTrigger value="scheduler">Scheduler</TabsTrigger>
-          <TabsTrigger value="job-prefs">Job Preferences</TabsTrigger>
+          <TabsTrigger value="automation">Automation</TabsTrigger>
+          <TabsTrigger value="scraper">Job Sources</TabsTrigger>
+          <TabsTrigger value="appearance">Appearance</TabsTrigger>
         </TabsList>
-        
+
+        <TabsContent value="profile" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Your Profile</CardTitle>
+              <CardDescription>
+                Your skills, experience, and preferences help us match you with the right jobs.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ProfileSettings />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="automation" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Automation</CardTitle>
+              <CardDescription>
+                Configure automatic job applications, email notifications, and scheduling.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <AutomationHealthCard />
+              <ApplicationSettings />
+              <Separator />
+              <EmailNotificationSettings />
+              <Separator />
+              <SchedulerSettings />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="scraper" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Job Sources</CardTitle>
+              <CardDescription>
+                Choose which job boards to scrape and how often to check for new listings.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <ScraperSettings />
+              <Separator />
+              <SavedSearchesSettings />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="appearance" className="space-y-4">
           <AppearanceSettings />
-        </TabsContent>
-        
-        <TabsContent value="profile" className="space-y-4">
-          <ProfileSettings />
-        </TabsContent>
-        
-        <TabsContent value="scraper" className="space-y-4">
-          <ScraperSettings />
-        </TabsContent>
-        
-        <TabsContent value="credentials" className="space-y-4">
-          <CredentialsSettings />
-        </TabsContent>
-
-        <TabsContent value="email" className="space-y-4">
-          <EmailNotificationSettings />
-        </TabsContent>
-
-        <TabsContent value="scheduler" className="space-y-4">
-          <SchedulerSettings />
-        </TabsContent>
-
-        <TabsContent value="job-prefs" className="space-y-4">
-          <JobPreferences />
         </TabsContent>
       </Tabs>
     </div>
@@ -170,8 +239,8 @@ function ScraperSettings() {
       }
       queryClient.invalidateQueries({ queryKey: ['credential'] })
       setTimeout(() => setMessage(null), 3000)
-    } catch (error: any) {
-      setMessage({ type: 'error', text: error.message || 'Failed to save API key' })
+    } catch (error: unknown) {
+      setMessage({ type: 'error', text: (error instanceof Error ? error.message : String(error)) || 'Failed to save API key' })
       setTimeout(() => setMessage(null), 3000)
     }
   }
@@ -290,8 +359,8 @@ function CredentialsSettings() {
     try {
       await credentialApi.delete(platform)
       queryClient.invalidateQueries({ queryKey: ['credentials'] })
-    } catch (error: any) {
-      alert(`Failed to delete: ${error.message}`)
+    } catch (error: unknown) {
+      alert(`Failed to delete: ${(error instanceof Error ? error.message : String(error)) || 'Unknown error'}`)
     }
   }
 
@@ -398,6 +467,11 @@ function EmailNotificationSettings() {
   const [notifyOnMatches, setNotifyOnMatches] = useState(true)
   const [minMatchScore, setMinMatchScore] = useState("60")
   const [notifyDailySummary, setNotifyDailySummary] = useState(true)
+  const [desktopNotificationsEnabled, setDesktopNotificationsEnabled] = useState(true)
+  const [quietHoursEnabled, setQuietHoursEnabled] = useState(false)
+  const [quietHoursStart, setQuietHoursStart] = useState("22:00")
+  const [quietHoursEnd, setQuietHoursEnd] = useState("08:00")
+  const [maxNotificationsPerHour, setMaxNotificationsPerHour] = useState("10")
   const [isTesting, setIsTesting] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
@@ -419,6 +493,11 @@ function EmailNotificationSettings() {
         setNotifyOnMatches(config.notify_on_matches !== false)
         setMinMatchScore(config.min_match_score_for_notification?.toString() || "60")
         setNotifyDailySummary(config.notify_daily_summary !== false)
+        setDesktopNotificationsEnabled(config.desktop_notifications_enabled !== false)
+        setQuietHoursEnabled(config.quiet_hours_enabled || false)
+        setQuietHoursStart(config.quiet_hours_start || "22:00")
+        setQuietHoursEnd(config.quiet_hours_end || "08:00")
+        setMaxNotificationsPerHour(config.max_notifications_per_hour?.toString() || "10")
       } catch (e) {
         console.error('Failed to load email config:', e)
       }
@@ -443,12 +522,17 @@ function EmailNotificationSettings() {
         notify_on_matches: notifyOnMatches,
         min_match_score_for_notification: parseFloat(minMatchScore) || 60,
         notify_daily_summary: notifyDailySummary,
+        desktop_notifications_enabled: desktopNotificationsEnabled,
+        quiet_hours_enabled: quietHoursEnabled,
+        quiet_hours_start: quietHoursStart,
+        quiet_hours_end: quietHoursEnd,
+        max_notifications_per_hour: parseInt(maxNotificationsPerHour) || 10,
       }
       localStorage.setItem('emailConfig', JSON.stringify(config))
       setMessage({ type: 'success', text: 'Email configuration saved successfully' })
       setTimeout(() => setMessage(null), 3000)
-    } catch (error: any) {
-      setMessage({ type: 'error', text: error.message || 'Failed to save email configuration' })
+    } catch (error: unknown) {
+      setMessage({ type: 'error', text: (error instanceof Error ? error.message : String(error)) || 'Failed to save email configuration' })
       setTimeout(() => setMessage(null), 3000)
     } finally {
       setIsSaving(false)
@@ -478,8 +562,8 @@ function EmailNotificationSettings() {
       await invoke<string>('test_email_connection', { config })
       setMessage({ type: 'success', text: 'Email connection test successful!' })
       setTimeout(() => setMessage(null), 3000)
-    } catch (error: any) {
-      setMessage({ type: 'error', text: error.message || 'Email connection test failed' })
+    } catch (error: unknown) {
+      setMessage({ type: 'error', text: (error instanceof Error ? error.message : String(error)) || 'Email connection test failed' })
       setTimeout(() => setMessage(null), 3000)
     } finally {
       setIsTesting(false)
@@ -512,11 +596,18 @@ function EmailNotificationSettings() {
         use_tls: smtpPort === "587",
         use_ssl: smtpPort === "465",
       }
-      await invoke<string>('send_test_email', { config, to: testEmailTo })
-      setMessage({ type: 'success', text: `Test email sent successfully to ${testEmailTo}!` })
+      const testMode = localStorage.getItem('testMode') === 'true';
+      const testEmailEndpoint = localStorage.getItem('testEmailEndpoint') || '';
+      await invoke<string>('send_test_email', {
+        config,
+        to: testEmailTo,
+        test_mode: testMode,
+        test_email_endpoint: testEmailEndpoint || undefined,
+      })
+      setMessage({ type: 'success', text: `Test email sent successfully${testMode ? ' (TEST MODE)' : ''} to ${testMode && testEmailEndpoint ? testEmailEndpoint : testEmailTo}!` })
       setTimeout(() => setMessage(null), 5000)
-    } catch (error: any) {
-      setMessage({ type: 'error', text: error.message || 'Failed to send test email' })
+    } catch (error: unknown) {
+      setMessage({ type: 'error', text: (error instanceof Error ? error.message : String(error)) || 'Failed to send test email' })
       setTimeout(() => setMessage(null), 3000)
     } finally {
       setIsTesting(false)
@@ -543,8 +634,8 @@ function EmailNotificationSettings() {
             <Switch
               checked={emailEnabled}
               onCheckedChange={setEmailEnabled}
-                  />
-                </div>
+            />
+          </div>
 
           <Separator />
 
@@ -590,7 +681,7 @@ function EmailNotificationSettings() {
               <p className="text-xs text-muted-foreground">
                 Your email address (used as username for SMTP)
               </p>
-              </div>
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="email-password">Password / App Password</Label>
@@ -602,7 +693,7 @@ function EmailNotificationSettings() {
                 onChange={(e) => setPassword(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                For Gmail, use an App Password (not your regular password). 
+                For Gmail, use an App Password (not your regular password).
                 <a href="https://support.google.com/accounts/answer/185833" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline ml-1">
                   Learn more
                 </a>
@@ -632,14 +723,14 @@ function EmailNotificationSettings() {
                   value={fromName}
                   onChange={(e) => setFromName(e.target.value)}
                 />
+              </div>
             </div>
-          </div>
 
             <Separator />
 
             <div className="space-y-4">
               <h3 className="font-semibold">Notification Preferences</h3>
-              
+
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label>Notify on New Jobs</Label>
@@ -684,7 +775,7 @@ function EmailNotificationSettings() {
                   <p className="text-xs text-muted-foreground">
                     Only notify for jobs with match score &gt;= this value (0-100)
                   </p>
-              </div>
+                </div>
               )}
 
               <div className="flex items-center justify-between">
@@ -705,8 +796,85 @@ function EmailNotificationSettings() {
             <Separator />
 
             <div className="space-y-4">
+              <h3 className="font-semibold">Desktop Notifications</h3>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Enable Desktop Notifications</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Show desktop notifications when new jobs are found
+                  </p>
+                </div>
+                <Switch
+                  checked={desktopNotificationsEnabled}
+                  onCheckedChange={setDesktopNotificationsEnabled}
+                />
+              </div>
+
+              {desktopNotificationsEnabled && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="max-notifications">Max Notifications Per Hour</Label>
+                    <Input
+                      id="max-notifications"
+                      type="number"
+                      min="1"
+                      max="60"
+                      value={maxNotificationsPerHour}
+                      onChange={(e) => setMaxNotificationsPerHour(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Limit the number of notifications to prevent spam (1-60)
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Quiet Hours</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Disable notifications during specified hours
+                      </p>
+                    </div>
+                    <Switch
+                      checked={quietHoursEnabled}
+                      onCheckedChange={setQuietHoursEnabled}
+                    />
+                  </div>
+
+                  {quietHoursEnabled && (
+                    <div className="grid grid-cols-2 gap-4 p-4 bg-muted rounded-lg">
+                      <div className="space-y-2">
+                        <Label htmlFor="quiet-start">Start Time</Label>
+                        <Input
+                          id="quiet-start"
+                          type="time"
+                          value={quietHoursStart}
+                          onChange={(e) => setQuietHoursStart(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="quiet-end">End Time</Label>
+                        <Input
+                          id="quiet-end"
+                          type="time"
+                          value={quietHoursEnd}
+                          onChange={(e) => setQuietHoursEnd(e.target.value)}
+                        />
+                      </div>
+                      <p className="col-span-2 text-xs text-muted-foreground">
+                        Notifications will be suppressed during these hours
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            <Separator />
+
+            <div className="space-y-4">
               <h3 className="font-semibold">Test Email Configuration</h3>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="test-email">Test Email Address</Label>
                 <div className="flex gap-2">
@@ -767,6 +935,8 @@ function EmailNotificationSettings() {
 }
 
 function ProfileSettings() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -795,7 +965,7 @@ function ProfileSettings() {
             }
           }
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Failed to load profile:', error);
         // Try loading from localStorage as fallback
         const localProfile = localStorage.getItem('userProfile');
@@ -823,11 +993,20 @@ function ProfileSettings() {
       // Also save to localStorage as backup
       localStorage.setItem('userProfile', JSON.stringify(newProfile));
       setProfile(newProfile);
-      setMessage({ type: 'success', text: 'Profile saved successfully!' });
-      setTimeout(() => setMessage(null), 3000);
-    } catch (error: any) {
+
+      // Invalidate profile query to trigger refetch and bootstrap
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
+
+      setMessage({ type: 'success', text: 'Profile saved successfully! Redirecting to dashboard...' });
+
+      // Redirect to dashboard after a short delay
+      // The dashboard will detect the profile and trigger auto-scraping
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 1500);
+    } catch (error: unknown) {
       console.error('Failed to save profile:', error);
-      setMessage({ type: 'error', text: `Failed to save profile: ${error.message || 'Unknown error'}` });
+      setMessage({ type: 'error', text: `Failed to save profile: ${(error instanceof Error ? error.message : String(error)) || 'Unknown error'}` });
       setTimeout(() => setMessage(null), 3000);
     } finally {
       setIsLoading(false);
@@ -970,130 +1149,943 @@ function ProfileSettings() {
   );
 }
 
-function JobPreferences() {
-  const [keywords, setKeywords] = useState<string>(() => localStorage.getItem('prefs.keywords') || '')
-  const [location, setLocation] = useState<string>(() => localStorage.getItem('prefs.location') || '')
-  const [sources, setSources] = useState<string[]>(() => {
-    try { return JSON.parse(localStorage.getItem('prefs.sources') || '[]') } catch { return [] }
-  })
-  const [isRunning, setIsRunning] = useState(false)
-  const [message, setMessage] = useState<string | null>(null)
+function ApplicationSettings() {
+  const [mode, setMode] = useState<ApplicationMode>(() => {
+    const saved = localStorage.getItem('applicationMode');
+    return (saved as ApplicationMode) || 'manual';
+  });
+  const [autoSubmit, setAutoSubmit] = useState(() => {
+    const saved = localStorage.getItem('applicationAutoSubmit');
+    return saved === 'true';
+  });
+  const [autoGenerateDocuments, setAutoGenerateDocuments] = useState(() => {
+    const saved = localStorage.getItem('applicationAutoGenerateDocuments');
+    return saved !== 'false'; // Default to true
+  });
+  const [minMatchScore, setMinMatchScore] = useState(() => {
+    const saved = localStorage.getItem('applicationMinMatchScore');
+    return saved ? parseInt(saved) : 70;
+  });
+  const [batchApply, setBatchApply] = useState(() => {
+    const saved = localStorage.getItem('applicationBatchApply');
+    return saved === 'true';
+  });
+  const [batchSize, setBatchSize] = useState(() => {
+    const saved = localStorage.getItem('applicationBatchSize');
+    return saved ? parseInt(saved) : 10;
+  });
+  const [delayBetweenApplications, setDelayBetweenApplications] = useState(() => {
+    const saved = localStorage.getItem('applicationDelay');
+    return saved ? parseInt(saved) : 5;
+  });
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
-  const toggleSource = (src: string) => {
-    setSources(prev => prev.includes(src) ? prev.filter(s => s !== src) : [...prev, src])
-  }
+  const saveSettings = () => {
+    localStorage.setItem('applicationMode', mode);
+    localStorage.setItem('applicationAutoSubmit', autoSubmit.toString());
+    localStorage.setItem('applicationAutoGenerateDocuments', autoGenerateDocuments.toString());
+    localStorage.setItem('applicationMinMatchScore', minMatchScore.toString());
+    localStorage.setItem('applicationBatchApply', batchApply.toString());
+    localStorage.setItem('applicationBatchSize', batchSize.toString());
+    localStorage.setItem('applicationDelay', delayBetweenApplications.toString());
+    setMessage({ type: 'success', text: 'Application settings saved successfully' });
+    setTimeout(() => setMessage(null), 3000);
+  };
 
-  const savePrefs = () => {
-    localStorage.setItem('prefs.keywords', keywords)
-    localStorage.setItem('prefs.location', location)
-    localStorage.setItem('prefs.sources', JSON.stringify(sources))
-    setMessage('Preferences saved')
-    setTimeout(() => setMessage(null), 1500)
-  }
-
-  const runScrape = async () => {
-    try {
-      setIsRunning(true)
-      setMessage(null)
-      const { invoke } = await import("@tauri-apps/api/core")
-      const q = [keywords, location].filter(Boolean).join(' ') || 'developer'
-      
-      if (sources.length === 0) {
-        setMessage('Please select at least one source to scrape')
-        setIsRunning(false)
-        return
-      }
-      
-      console.log('Starting scrape with sources:', sources, 'query:', q)
-      const scrapedJobs = await invoke<number>('scrape_jobs_selected', { sources, query: q }) as any
-      const jobCount = Array.isArray(scrapedJobs) ? scrapedJobs.length : 0
-      
-      if (jobCount > 0) {
-        setMessage(`Successfully scraped ${jobCount} job(s)! Check Jobs page.`)
-      } else {
-        setMessage('No new jobs found. Try different keywords or check if jobs already exist.')
-      }
-      
-      // Invalidate jobs query to refresh the jobs list
-      const { useQueryClient } = await import("@tanstack/react-query")
-      const queryClient = useQueryClient()
-      queryClient.invalidateQueries({ queryKey: ['jobs'] })
-    } catch (e: any) {
-      console.error('Scrape error:', e)
-      const errorMessage = e?.message || e?.toString() || 'Scrape failed'
-      setMessage(`Error: ${errorMessage}`)
-      alert(`Failed to scrape: ${errorMessage}`)
-    } finally {
-      setIsRunning(false)
+  // Update autoSubmit based on mode
+  useEffect(() => {
+    if (mode === 'yolo') {
+      setAutoSubmit(true);
+    } else if (mode === 'manual') {
+      setAutoSubmit(false);
     }
-  }
+    // semi-auto can have either
+  }, [mode]);
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Application Mode</CardTitle>
+          <CardDescription>
+            Choose how you want to apply to jobs. Manual mode is safest, YOLO mode applies to all jobs automatically.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <RadioGroup value={mode} onValueChange={(value) => setMode(value as ApplicationMode)}>
+            <div className="flex items-start space-x-3 p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+              <RadioGroupItem value="manual" id="mode-manual" className="mt-1" />
+              <div className="flex-1">
+                <Label htmlFor="mode-manual" className="flex items-center gap-2 cursor-pointer">
+                  <Shield className="h-4 w-4 text-blue-500" />
+                  <span className="font-semibold">Manual Mode</span>
+                </Label>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Fill forms automatically, but you review and submit manually. Safest option.
+                </p>
+                <div className="mt-2 text-xs text-muted-foreground">
+                  ✓ Form filled automatically<br />
+                  ✓ Browser opens for review<br />
+                  ✓ You submit manually<br />
+                  ✓ Best for important applications
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-start space-x-3 p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+              <RadioGroupItem value="semi-auto" id="mode-semi-auto" className="mt-1" />
+              <div className="flex-1">
+                <Label htmlFor="mode-semi-auto" className="flex items-center gap-2 cursor-pointer">
+                  <Zap className="h-4 w-4 text-yellow-500" />
+                  <span className="font-semibold">Semi-Auto Mode</span>
+                </Label>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Fill forms and show preview, then auto-submit after confirmation.
+                </p>
+                <div className="mt-2 text-xs text-muted-foreground">
+                  ✓ Form filled automatically<br />
+                  ✓ Preview shown before submission<br />
+                  ✓ Auto-submit after confirmation<br />
+                  ✓ Balance of speed and safety
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-start space-x-3 p-4 border-2 border-red-500/50 rounded-lg hover:bg-red-50/50 dark:hover:bg-red-950/20 transition-colors">
+              <RadioGroupItem value="yolo" id="mode-yolo" className="mt-1" />
+              <div className="flex-1">
+                <Label htmlFor="mode-yolo" className="flex items-center gap-2 cursor-pointer">
+                  <Rocket className="h-4 w-4 text-red-500" />
+                  <span className="font-semibold">YOLO Mode 🚀</span>
+                  <Badge variant="destructive" className="ml-2">AUTO-APPLY</Badge>
+                </Label>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Fully automated. Applies to all jobs matching your criteria without any confirmation.
+                </p>
+                <div className="mt-2 text-xs text-muted-foreground">
+                  ✓ Forms filled automatically<br />
+                  ✓ Applications submitted automatically<br />
+                  ✓ Batch apply to multiple jobs<br />
+                  ⚠️ No manual review - use with caution
+                </div>
+                <Alert variant="destructive" className="mt-3">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>Warning:</strong> YOLO mode will automatically apply to jobs without your review.
+                    Make sure your profile and documents are ready. Use at your own risk.
+                  </AlertDescription>
+                </Alert>
+              </div>
+            </div>
+          </RadioGroup>
+
+          <Separator />
+
+          <div className="space-y-4">
+            <h3 className="font-semibold">Test Mode</h3>
+
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Test Mode:</strong> Use test endpoints to verify functionality without applying to real jobs.
+                Applications will be sent to test endpoints where you can verify they were received.
+              </AlertDescription>
+            </Alert>
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>Enable Test Mode</Label>
+                <p className="text-sm text-muted-foreground">
+                  Use test endpoints for applications and emails (for testing only)
+                </p>
+              </div>
+              <Switch
+                checked={(() => {
+                  const testMode = localStorage.getItem('testMode');
+                  return testMode === 'true';
+                })()}
+                onCheckedChange={(checked) => {
+                  localStorage.setItem('testMode', checked.toString());
+                  setMessage({ type: 'success', text: `Test mode ${checked ? 'enabled' : 'disabled'}` });
+                  setTimeout(() => setMessage(null), 2000);
+                }}
+              />
+            </div>
+
+            {(() => {
+              const testMode = localStorage.getItem('testMode') === 'true';
+              return testMode ? (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="test-application-endpoint">Test Application Endpoint</Label>
+                    <Input
+                      id="test-application-endpoint"
+                      type="url"
+                      placeholder="https://httpbin.org/post"
+                      value={localStorage.getItem('testApplicationEndpoint') || 'https://httpbin.org/post'}
+                      onChange={(e) => {
+                        localStorage.setItem('testApplicationEndpoint', e.target.value);
+                        setMessage({ type: 'success', text: 'Test endpoint saved' });
+                        setTimeout(() => setMessage(null), 2000);
+                      }}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      URL where test applications will be submitted. Default: httpbin.org/post (shows the submitted data)
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="test-email-endpoint">Test Email Address</Label>
+                    <Input
+                      id="test-email-endpoint"
+                      type="email"
+                      placeholder="test@example.com"
+                      value={localStorage.getItem('testEmailEndpoint') || ''}
+                      onChange={(e) => {
+                        localStorage.setItem('testEmailEndpoint', e.target.value);
+                        setMessage({ type: 'success', text: 'Test email saved' });
+                        setTimeout(() => setMessage(null), 2000);
+                      }}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Email address to receive test emails. Leave empty to use your configured email.
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">
+                      💡 Test Endpoints Explained:
+                    </p>
+                    <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-1 list-disc list-inside">
+                      <li><strong>Application Endpoint:</strong> Applications will be sent here. httpbin.org/post shows all submitted data.</li>
+                      <li><strong>Test Email:</strong> All emails will be sent to this address instead of job contacts.</li>
+                      <li><strong>Safe Testing:</strong> No real applications will be sent when test mode is enabled.</li>
+                    </ul>
+                  </div>
+                </>
+              ) : null;
+            })()}
+
+            <Separator />
+
+            <h3 className="font-semibold">Application Settings</h3>
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>Auto-Generate Documents</Label>
+                <p className="text-sm text-muted-foreground">
+                  Automatically generate resume and cover letter before applying
+                </p>
+              </div>
+              <Switch
+                checked={autoGenerateDocuments}
+                onCheckedChange={setAutoGenerateDocuments}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="min-match-score">Minimum Match Score for Auto-Apply</Label>
+              <Input
+                id="min-match-score"
+                type="number"
+                min="0"
+                max="100"
+                value={minMatchScore}
+                onChange={(e) => setMinMatchScore(parseInt(e.target.value) || 70)}
+                disabled={mode !== 'yolo'}
+              />
+              <p className="text-xs text-muted-foreground">
+                Only auto-apply to jobs with match score &gt;= this value (YOLO mode only)
+              </p>
+            </div>
+
+            {mode === 'yolo' && (
+              <>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Batch Apply</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Apply to multiple jobs in batch (YOLO mode)
+                    </p>
+                  </div>
+                  <Switch
+                    checked={batchApply}
+                    onCheckedChange={setBatchApply}
+                  />
+                </div>
+
+                {batchApply && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="batch-size">Batch Size</Label>
+                      <Input
+                        id="batch-size"
+                        type="number"
+                        min="1"
+                        max="50"
+                        value={batchSize}
+                        onChange={(e) => setBatchSize(parseInt(e.target.value) || 10)}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Number of jobs to apply to in each batch
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="delay-between">Delay Between Applications (seconds)</Label>
+                      <Input
+                        id="delay-between"
+                        type="number"
+                        min="1"
+                        max="60"
+                        value={delayBetweenApplications}
+                        onChange={(e) => setDelayBetweenApplications(parseInt(e.target.value) || 5)}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Delay between applications to avoid rate limiting
+                      </p>
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>Auto-Submit Applications</Label>
+                <p className="text-sm text-muted-foreground">
+                  Automatically submit applications without manual review
+                </p>
+              </div>
+              <Switch
+                checked={autoSubmit}
+                onCheckedChange={setAutoSubmit}
+                disabled={mode === 'manual'} // Manual mode always has autoSubmit = false
+              />
+            </div>
+          </div>
+
+          {message && (
+            <Alert variant={message.type === 'error' ? 'destructive' : 'default'}>
+              {message.type === 'success' ? (
+                <CheckCircle2 className="h-4 w-4" />
+              ) : (
+                <AlertCircle className="h-4 w-4" />
+              )}
+              <AlertDescription>{message.text}</AlertDescription>
+            </Alert>
+          )}
+
+          <div className="flex justify-end">
+            <Button onClick={saveSettings}>
+              <Save className="mr-2 h-4 w-4" />
+              Save Settings
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function AutomationHealthCard() {
+  const { data, isLoading, isFetching, refetch } = useQuery({
+    queryKey: ['automation-health'],
+    queryFn: () => automationApi.healthCheck(),
+    staleTime: 60 * 1000,
+  });
+
+  const health: AutomationHealth | undefined = data;
+  const profileReady = !health || (health.profile_configured && (health.missing_fields?.length ?? 0) === 0);
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Automation Health Check</CardTitle>
+          <CardDescription>
+            Run this before enabling auto-apply to ensure everything is ready.
+          </CardDescription>
+        </div>
+        <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+          <RefreshCw className={cn("mr-2 h-4 w-4", isFetching && "animate-spin")} />
+          Refresh
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {isLoading && !health ? (
+          <p className="text-sm text-muted-foreground">Running checks...</p>
+        ) : (
+          <>
+            <HealthRow
+              label="Profile completeness"
+              ok={profileReady}
+              description={
+                profileReady
+                  ? "Name, email, and phone look good."
+                  : `Missing: ${(health?.missing_fields ?? []).join(", ")}`
+              }
+            />
+            <HealthRow
+              label="Resume on file"
+              ok={(health?.resume_documents ?? 0) > 0}
+              description={
+                (health?.resume_documents ?? 0) > 0
+                  ? `${health?.resume_documents} resume uploaded.`
+                  : "Upload at least one resume document."
+              }
+            />
+            <HealthRow
+              label="Saved credentials"
+              ok={(health?.credential_platforms?.length ?? 0) > 0}
+              description={
+                (health?.credential_platforms?.length ?? 0) > 0
+                  ? `Active for: ${(health?.credential_platforms ?? []).join(", ")}`
+                  : "Add credentials under the Credentials tab."
+              }
+            />
+            <HealthRow
+              label="Browser automation"
+              ok={Boolean(health?.chromium_available || health?.playwright_available)}
+              description={
+                health
+                  ? `Chromium: ${health.chromium_available ? 'ready ✅' : 'missing ❌'}, Playwright: ${health.playwright_available ? 'ready ✅' : 'missing ❌'}`
+                  : "Browser runtimes will be detected automatically."
+              }
+            />
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function HealthRow({
+  label,
+  ok,
+  description,
+}: {
+  label: string;
+  ok: boolean;
+  description: string;
+}) {
+  return (
+    <div className="flex items-start justify-between border rounded-lg p-3">
+      <div>
+        <p className="font-medium">{label}</p>
+        <p className="text-sm text-muted-foreground">{description}</p>
+      </div>
+      <Badge variant={ok ? "default" : "destructive"}>
+        {ok ? "Ready" : "Needs attention"}
+      </Badge>
+    </div>
+  );
+}
+
+type PreferenceFormState = {
+  query: string;
+  sources: string[];
+  remoteOnly: boolean;
+  minMatchScore: number;
+  alertFrequency: AlertFrequency;
+  locations: string[];
+  titles: string[];
+  preferredCompanies: string[];
+  avoidCompanies: string[];
+  requiredSkills: string[];
+  preferredSkills: string[];
+  jobTypes: string[];
+  industries: string[];
+  benefits: string[];
+  companySize: string | null;
+  minSalary: string;
+};
+
+const defaultPreferenceForm: PreferenceFormState = {
+  query: "remote software engineer",
+  sources: ["remotive", "remoteok", "wellfound", "greenhouse"],
+  remoteOnly: true,
+  minMatchScore: 65,
+  alertFrequency: "daily",
+  locations: [],
+  titles: [],
+  preferredCompanies: [],
+  avoidCompanies: [],
+  requiredSkills: [],
+  preferredSkills: [],
+  jobTypes: [],
+  industries: [],
+  benefits: [],
+  companySize: null,
+  minSalary: "",
+};
+
+function JobPreferences() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [form, setForm] = useState<PreferenceFormState>(defaultPreferenceForm);
+  const [runLoading, setRunLoading] = useState(false);
+
+  const { data: savedSearches, isLoading } = useQuery({
+    queryKey: ["saved-searches"],
+    queryFn: () => savedSearchApi.list(false),
+  });
+
+  const smartSearch = useMemo(
+    () => savedSearches?.find((search) => search.name === "Smart Filter"),
+    [savedSearches]
+  );
+
+  useEffect(() => {
+    if (smartSearch) {
+      const filters = {
+        remote_only: smartSearch.filters?.remote_only ?? defaultPreferenceForm.remoteOnly,
+        preferred_locations: smartSearch.filters?.preferred_locations ?? [],
+        preferred_titles: smartSearch.filters?.preferred_titles ?? [],
+        preferred_companies: smartSearch.filters?.preferred_companies ?? [],
+        avoid_companies: smartSearch.filters?.avoid_companies ?? [],
+        required_skills: smartSearch.filters?.required_skills ?? [],
+        preferred_skills: smartSearch.filters?.preferred_skills ?? [],
+        job_types: smartSearch.filters?.job_types ?? [],
+        industries: smartSearch.filters?.industries ?? [],
+        must_have_benefits: smartSearch.filters?.must_have_benefits ?? [],
+        company_size: smartSearch.filters?.company_size ?? null,
+        min_salary: smartSearch.filters?.min_salary ?? null,
+      };
+
+      setForm({
+        query: smartSearch.query || defaultPreferenceForm.query,
+        sources:
+          smartSearch.sources?.length > 0
+            ? smartSearch.sources
+            : defaultPreferenceForm.sources,
+        remoteOnly: filters.remote_only,
+        minMatchScore: smartSearch.min_match_score || defaultPreferenceForm.minMatchScore,
+        alertFrequency: smartSearch.alert_frequency || defaultPreferenceForm.alertFrequency,
+        locations: filters.preferred_locations,
+        titles: filters.preferred_titles,
+        preferredCompanies: filters.preferred_companies,
+        avoidCompanies: filters.avoid_companies,
+        requiredSkills: filters.required_skills,
+        preferredSkills: filters.preferred_skills,
+        jobTypes: filters.job_types,
+        industries: filters.industries,
+        benefits: filters.must_have_benefits,
+        companySize: filters.company_size,
+        minSalary: filters.min_salary ? String(filters.min_salary) : "",
+      });
+    }
+  }, [smartSearch]);
+
+  const sourceOptions = [
+    { id: "remotive", label: "Remotive" },
+    { id: "remoteok", label: "RemoteOK" },
+    { id: "wellfound", label: "Wellfound" },
+    { id: "greenhouse", label: "Greenhouse" },
+    { id: "ziprecruiter", label: "ZipRecruiter" },
+    { id: "dice", label: "Dice" },
+  ];
+
+  const jobTypeOptions = ["full-time", "part-time", "contract", "freelance", "internship"];
+  const companySizeOptions = ["startup", "small", "medium", "large", "enterprise"];
+
+  const updateArrayField = (field: keyof Pick<PreferenceFormState, 'sources' | 'jobTypes' | 'industries' | 'benefits'>, value: string) => {
+    setForm((prev) => {
+      const current = prev[field] as string[];
+      const exists = current.includes(value);
+      return {
+        ...prev,
+        [field]: exists ? current.filter((item) => item !== value) : [...current, value],
+      };
+    });
+  };
+
+  const handleTagChange = (field: keyof PreferenceFormState, values: string[]) => {
+    setForm((prev) => ({
+      ...prev,
+      [field]: values,
+    }));
+  };
+
+  const savePreferences = useMutation({
+    mutationFn: async () => {
+      const filters = {
+        remote_only: form.remoteOnly,
+        min_match_score: form.minMatchScore,
+        status: smartSearch?.filters?.status || "all",
+        skill_filter: smartSearch?.filters?.skill_filter || null,
+        preferred_locations: form.locations,
+        preferred_titles: form.titles,
+        preferred_companies: form.preferredCompanies,
+        avoid_companies: form.avoidCompanies,
+        required_skills: form.requiredSkills,
+        preferred_skills: form.preferredSkills,
+        min_salary: form.minSalary ? parseInt(form.minSalary, 10) || null : null,
+        job_types: form.jobTypes,
+        industries: form.industries,
+        must_have_benefits: form.benefits,
+        company_size: form.companySize,
+      };
+
+      if (smartSearch?.id) {
+        return savedSearchApi.update({
+          ...smartSearch,
+          query: form.query,
+          sources: form.sources,
+          filters,
+          alert_frequency: form.alertFrequency,
+          min_match_score: form.minMatchScore,
+          enabled: true,
+        });
+      }
+
+      return savedSearchApi.create({
+        name: "Smart Filter",
+        query: form.query,
+        sources: form.sources,
+        filters,
+        alert_frequency: form.alertFrequency,
+        min_match_score: form.minMatchScore,
+        enabled: true,
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "Preferences saved", description: "Smart filter updated successfully." });
+      queryClient.invalidateQueries({ queryKey: ["saved-searches"] });
+    },
+    onError: (error: unknown) => {
+      toast({
+        title: "Failed to save preferences",
+        description: (error instanceof Error ? error.message : String(error)) || "Try again in a moment.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleRunSmartFilter = async () => {
+    if (!smartSearch?.id) {
+      toast({
+        title: "No saved filter found",
+        description: "Save your preferences first before running the filter.",
+      });
+      return;
+    }
+
+    try {
+      setRunLoading(true);
+      const jobs = await savedSearchApi.run(smartSearch.id);
+      toast({
+        title: "Smart filter executed",
+        description: `Found ${jobs.length} matching job${jobs.length === 1 ? "" : "s"}.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["jobs"] });
+    } catch (error: unknown) {
+      toast({
+        title: "Failed to run filter",
+        description: (error instanceof Error ? error.message : String(error)) || "Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setRunLoading(false);
+    }
+  };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Job Search Preferences</CardTitle>
+        <CardTitle>Smart Job Preferences</CardTitle>
         <CardDescription>
-          Configure your default job search criteria.
+          Answer a few prompts and we’ll automatically filter jobs and saved searches to match your ideal role.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="keywords">Keywords</Label>
-            <Input
-              id="keywords"
-            type="text"
-            placeholder="e.g. Rust, React, TypeScript"
-            value={keywords}
-            onChange={(e) => setKeywords(e.target.value)}
-          />
-        </div>
-          <div className="space-y-2">
-            <Label htmlFor="location">Location</Label>
-            <Input
-              id="location"
-            type="text"
-            placeholder="e.g. Remote, Almaty"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-          />
-        </div>
-      </div>
-        <div className="space-y-2">
-          <Label>Sources</Label>
-          <div className="grid gap-2 md:grid-cols-3">
-          {['hhkz', 'linkedin', 'wellfound'].map(src => (
-              <div key={src} className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id={`source-${src}`}
-                  checked={sources.includes(src)}
-                  onChange={() => toggleSource(src)}
-                  className="rounded border-gray-300"
+      <CardContent className="space-y-6">
+        {isLoading ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Loading existing preferences...
+          </div>
+        ) : (
+          <>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="smart-query">Role / Keyword Focus</Label>
+                <Input
+                  id="smart-query"
+                  value={form.query}
+                  onChange={(e) => setForm((prev) => ({ ...prev, query: e.target.value }))}
+                  placeholder="e.g. Staff React Engineer"
                 />
-                <Label htmlFor={`source-${src}`} className="capitalize cursor-pointer">
-                  {src}
-                </Label>
               </div>
-          ))}
-        </div>
-      </div>
-        <Separator />
-      <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={savePrefs} disabled={isRunning}>
-            <Save className="mr-2 h-4 w-4" />
-            Save Preferences
-          </Button>
-          <Button onClick={runScrape} disabled={isRunning}>
-            {isRunning ? 'Scraping...' : 'Scrape Now'}
-          </Button>
-          {message && (
-            <span className="text-sm text-muted-foreground">{message}</span>
-          )}
-      </div>
+              <div className="space-y-2">
+                <Label htmlFor="smart-salary">Minimum Salary (USD)</Label>
+                <Input
+                  id="smart-salary"
+                  type="number"
+                  min="0"
+                  value={form.minSalary}
+                  onChange={(e) => setForm((prev) => ({ ...prev, minSalary: e.target.value }))}
+                  placeholder="120000"
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Sources</Label>
+                <div className="flex flex-wrap gap-2">
+                  {sourceOptions.map((source) => (
+                    <Button
+                      key={source.id}
+                      type="button"
+                      variant={form.sources.includes(source.id) ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => updateArrayField("sources", source.id)}
+                    >
+                      {source.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Alert Frequency</Label>
+                <select
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  value={form.alertFrequency}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, alertFrequency: e.target.value as AlertFrequency }))
+                  }
+                >
+                  <option value="hourly">Hourly</option>
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="never">Never</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Match Requirements</Label>
+                <div className="space-y-3 rounded-lg border p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">Remote only</p>
+                      <p className="text-xs text-muted-foreground">
+                        Filter out onsite roles automatically.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={form.remoteOnly}
+                      onCheckedChange={(checked) =>
+                        setForm((prev) => ({ ...prev, remoteOnly: checked }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="smart-min-match" className="text-sm">
+                      Minimum match score
+                    </Label>
+                    <Input
+                      id="smart-min-match"
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={form.minMatchScore}
+                      onChange={(e) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          minMatchScore: parseInt(e.target.value) || prev.minMatchScore,
+                        }))
+                      }
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Jobs below this score will be hidden from the smart feed.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="smart-company-size">Preferred company size</Label>
+                <select
+                  id="smart-company-size"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  value={form.companySize || ""}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, companySize: e.target.value || null }))
+                  }
+                >
+                  <option value="">No preference</option>
+                  {companySizeOptions.map((size) => (
+                    <option key={size} value={size}>
+                      {size.charAt(0).toUpperCase() + size.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-2">
+              <div className="space-y-4">
+                <TagInput
+                  label="Preferred locations"
+                  values={form.locations}
+                  placeholder="Add city or region"
+                  onChange={(values) => handleTagChange("locations", values)}
+                />
+                <TagInput
+                  label="Target job titles"
+                  values={form.titles}
+                  placeholder="Add role (e.g. 'Senior React Engineer')"
+                  onChange={(values) => handleTagChange("titles", values)}
+                />
+                <TagInput
+                  label="Required skills"
+                  values={form.requiredSkills}
+                  placeholder="Add required skill"
+                  onChange={(values) => handleTagChange("requiredSkills", values)}
+                />
+                <TagInput
+                  label="Nice-to-have skills"
+                  values={form.preferredSkills}
+                  placeholder="Add nice-to-have skill"
+                  onChange={(values) => handleTagChange("preferredSkills", values)}
+                />
+              </div>
+              <div className="space-y-4">
+                <TagInput
+                  label="Preferred companies"
+                  values={form.preferredCompanies}
+                  placeholder="Add company name"
+                  onChange={(values) => handleTagChange("preferredCompanies", values)}
+                />
+                <TagInput
+                  label="Avoid companies"
+                  values={form.avoidCompanies}
+                  placeholder="Add company to avoid"
+                  onChange={(values) => handleTagChange("avoidCompanies", values)}
+                />
+                <TagInput
+                  label="Industries"
+                  values={form.industries}
+                  placeholder="Add industry (e.g. fintech, AI safety)"
+                  onChange={(values) => handleTagChange("industries", values)}
+                />
+                <TagInput
+                  label="Must-have benefits"
+                  values={form.benefits}
+                  placeholder="Add benefit (e.g. visa sponsorship)"
+                  onChange={(values) => handleTagChange("benefits", values)}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Label>Ideal working style</Label>
+              <div className="flex flex-wrap gap-2">
+                {jobTypeOptions.map((type) => (
+                  <Button
+                    key={type}
+                    type="button"
+                    variant={form.jobTypes.includes(type) ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => updateArrayField("jobTypes", type)}
+                  >
+                    {type}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Button
+                onClick={() => savePreferences.mutate()}
+                disabled={savePreferences.isLoading}
+                className="gap-2"
+              >
+                {savePreferences.isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+                <Save className="h-4 w-4" />
+                {smartSearch ? "Update Preferences" : "Save Preferences"}
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={handleRunSmartFilter}
+                disabled={runLoading}
+                className="gap-2"
+              >
+                {runLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Play className="h-4 w-4" />
+                )}
+                Run Smart Filter
+              </Button>
+              {smartSearch && smartSearch.last_run_at && (
+                <Badge variant="outline" className="text-xs">
+                  Last run {new Date(smartSearch.last_run_at).toLocaleString()}
+                </Badge>
+              )}
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
-  )
+  );
+}
+
+function TagInput({
+  label,
+  values,
+  placeholder,
+  onChange,
+}: {
+  label: string;
+  values: string[];
+  placeholder?: string;
+  onChange: (values: string[]) => void;
+}) {
+  const [inputValue, setInputValue] = useState("");
+
+  const addValue = () => {
+    const trimmed = inputValue.trim();
+    if (!trimmed) return;
+    if (!values.includes(trimmed)) {
+      onChange([...values, trimmed]);
+    }
+    setInputValue("");
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter" || event.key === ",") {
+      event.preventDefault();
+      addValue();
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <div className="flex flex-wrap gap-2">
+        {values.map((value) => (
+          <Badge key={value} variant="outline" className="flex items-center gap-1">
+            {value}
+            <button
+              type="button"
+              onClick={() => onChange(values.filter((item) => item !== value))}
+              className="ml-1 text-xs text-muted-foreground hover:text-foreground"
+            >
+              ×
+            </button>
+          </Badge>
+        ))}
+      </div>
+      <Input
+        value={inputValue}
+        onChange={(e) => setInputValue(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder={placeholder}
+      />
+    </div>
+  );
 }
 function SchedulerSettings() {
   const [enabled, setEnabled] = useState(false)
@@ -1112,6 +2104,12 @@ function SchedulerSettings() {
     refetchInterval: 5000,
   })
 
+  const { data: savedSearchesStatus } = useQuery({
+    queryKey: ["saved-searches-status"],
+    queryFn: () => savedSearchApi.getStatus(),
+    refetchInterval: 10000,
+  })
+
   useEffect(() => {
     const savedConfig = localStorage.getItem("schedulerConfig")
     if (savedConfig) {
@@ -1120,7 +2118,7 @@ function SchedulerSettings() {
         setEnabled(config.enabled)
         setSchedule(config.schedule)
         setQuery(config.query)
-        setSources(config.sources)
+        setSources(config.sources || [])
         setMinMatchScore(config.min_match_score?.toString() || "60")
         setSendNotifications(config.send_notifications)
       } catch (e) {
@@ -1135,7 +2133,7 @@ function SchedulerSettings() {
       setEnabled(status.enabled)
       setSchedule(status.schedule)
       setQuery(status.query)
-      setSources(status.sources)
+      setSources(status.sources || [])
       setMinMatchScore(status.min_match_score?.toString() || "60")
       setSendNotifications(status.send_notifications)
     }
@@ -1149,7 +2147,7 @@ function SchedulerSettings() {
         enabled,
         schedule,
         query,
-        sources,
+        sources: sources || [],
         min_match_score: parseFloat(minMatchScore) || null,
         send_notifications: sendNotifications,
       }
@@ -1158,8 +2156,8 @@ function SchedulerSettings() {
       await refetchStatus()
       setMessage({ type: "success", text: "Scheduler configuration saved successfully" })
       setTimeout(() => setMessage(null), 3000)
-    } catch (error: any) {
-      setMessage({ type: "error", text: error.message || "Failed to save scheduler configuration" })
+    } catch (error: unknown) {
+      setMessage({ type: "error", text: (error instanceof Error ? error.message : String(error)) || "Failed to save scheduler configuration" })
       setTimeout(() => setMessage(null), 3000)
     } finally {
       setIsLoading(false)
@@ -1174,8 +2172,8 @@ function SchedulerSettings() {
       await refetchStatus()
       setMessage({ type: "success", text: "Scheduler started successfully" })
       setTimeout(() => setMessage(null), 3000)
-    } catch (error: any) {
-      setMessage({ type: "error", text: error.message || "Failed to start scheduler" })
+    } catch (error: unknown) {
+      setMessage({ type: "error", text: (error instanceof Error ? error.message : String(error)) || "Failed to start scheduler" })
       setTimeout(() => setMessage(null), 3000)
     } finally {
       setIsLoading(false)
@@ -1190,8 +2188,8 @@ function SchedulerSettings() {
       await refetchStatus()
       setMessage({ type: "success", text: "Scheduler stopped successfully" })
       setTimeout(() => setMessage(null), 3000)
-    } catch (error: any) {
-      setMessage({ type: "error", text: error.message || "Failed to stop scheduler" })
+    } catch (error: unknown) {
+      setMessage({ type: "error", text: (error instanceof Error ? error.message : String(error)) || "Failed to stop scheduler" })
       setTimeout(() => setMessage(null), 3000)
     } finally {
       setIsLoading(false)
@@ -1199,7 +2197,10 @@ function SchedulerSettings() {
   }
 
   const toggleSource = (src: string) => {
-    setSources(prev => prev.includes(src) ? prev.filter(s => s !== src) : [...prev, src])
+    setSources(prev => {
+      const current = prev || [];
+      return current.includes(src) ? current.filter(s => s !== src) : [...current, src];
+    })
   }
 
   return (
@@ -1227,39 +2228,59 @@ function SchedulerSettings() {
           </div>
 
           {status && (
-            <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
-              <Clock className="h-4 w-4" />
-              <div className="flex-1">
-                <p className="text-sm font-medium">
-                  Status: {isRunning ? "Running" : "Stopped"}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Schedule: {schedule} | Query: {query}
-                </p>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+                <Clock className="h-4 w-4" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium">
+                    Status: {isRunning ? "Running" : "Stopped"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Schedule: {schedule} | Query: {query}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  {!isRunning ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleStart}
+                      disabled={isLoading || !enabled}
+                    >
+                      <Play className="mr-2 h-4 w-4" />
+                      Start
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleStop}
+                      disabled={isLoading}
+                    >
+                      <Square className="mr-2 h-4 w-4" />
+                      Stop
+                    </Button>
+                  )}
+                </div>
               </div>
-              <div className="flex gap-2">
-                {!isRunning ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleStart}
-                    disabled={isLoading || !enabled}
-                  >
-                    <Play className="mr-2 h-4 w-4" />
-                    Start
-                  </Button>
-                ) : (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleStop}
-                    disabled={isLoading}
-                  >
-                    <Square className="mr-2 h-4 w-4" />
-                    Stop
-                  </Button>
-                )}
-              </div>
+
+              {savedSearchesStatus && (
+                <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg border">
+                  <Search className="h-4 w-4" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">Saved Searches</p>
+                    <div className="flex gap-4 text-xs text-muted-foreground mt-1">
+                      <span>Total: {savedSearchesStatus.total}</span>
+                      <span>Enabled: {savedSearchesStatus.enabled}</span>
+                      {savedSearchesStatus.due_for_run > 0 && (
+                        <span className="text-amber-600 font-medium">
+                          {savedSearchesStatus.due_for_run} due for run
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -1316,7 +2337,7 @@ function SchedulerSettings() {
                     <input
                       type="checkbox"
                       id={`scheduler-source-${src}`}
-                      checked={sources.includes(src)}
+                      checked={(sources || []).includes(src)}
                       onChange={() => toggleSource(src)}
                       disabled={isLoading}
                       className="rounded border-gray-300"

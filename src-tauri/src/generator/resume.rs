@@ -1,7 +1,7 @@
 use crate::db::models::Job;
 use crate::generator::{
-    GeneratedDocument, DocumentFormat, DocumentMetadata, 
-    UserProfile, JobAnalysis, GenerationResult, TemplateManager, AIIntegration
+    AIIntegration, DocumentFormat, DocumentMetadata, GeneratedDocument, GenerationResult,
+    JobAnalysis, TemplateManager, UserProfile,
 };
 use anyhow::Result;
 
@@ -41,10 +41,17 @@ impl ResumeGenerator {
 
         // Improve profile with AI if requested and API key is available
         let final_profile = if improve_with_ai && self.ai_integration.has_api_key() {
-            match self.ai_integration.improve_profile(profile, &job_analysis).await {
+            match self
+                .ai_integration
+                .improve_profile(profile, &job_analysis)
+                .await
+            {
                 Ok(improved) => improved,
                 Err(e) => {
-                    eprintln!("AI profile improvement failed: {}, using original profile", e);
+                    eprintln!(
+                        "AI profile improvement failed: {}, using original profile",
+                        e
+                    );
                     profile.clone()
                 }
             }
@@ -54,14 +61,19 @@ impl ResumeGenerator {
 
         // Generate resume content (always works, uses templates)
         let template_name = template_name.unwrap_or("resume_modern");
-        let content = self.template_manager.render_resume(&final_profile, &job_analysis, template_name)?;
+        let content =
+            self.template_manager
+                .render_resume(&final_profile, &job_analysis, template_name)?;
 
         // Calculate word count
         let word_count = content.split_whitespace().count();
 
         // Create metadata
         let metadata = DocumentMetadata {
-            title: format!("Resume - {} for {}", final_profile.personal_info.name, job.title),
+            title: format!(
+                "Resume - {} for {}",
+                final_profile.personal_info.name, job.title
+            ),
             job_title: job.title.clone(),
             company: job.company.clone(),
             generated_at: chrono::Utc::now(),
@@ -84,14 +96,19 @@ impl ResumeGenerator {
     ) -> GenerationResult {
         // Generate resume content with pre-computed analysis
         let template_name = template_name.unwrap_or("resume_modern");
-        let content = self.template_manager.render_resume(profile, job_analysis, template_name)?;
+        let content = self
+            .template_manager
+            .render_resume(profile, job_analysis, template_name)?;
 
         // Calculate word count
         let word_count = content.split_whitespace().count();
 
         // Create metadata
         let metadata = DocumentMetadata {
-            title: format!("Resume - {} for {}", profile.personal_info.name, job_analysis.job_title),
+            title: format!(
+                "Resume - {} for {}",
+                profile.personal_info.name, job_analysis.job_title
+            ),
             job_title: job_analysis.job_title.clone(),
             company: job_analysis.company.clone(),
             generated_at: chrono::Utc::now(),
@@ -107,7 +124,8 @@ impl ResumeGenerator {
     }
 
     pub fn list_available_templates(&self) -> Vec<String> {
-        self.template_manager.list_templates()
+        self.template_manager
+            .list_templates()
             .into_iter()
             .filter(|name| name.starts_with("resume_"))
             .collect()
@@ -115,6 +133,113 @@ impl ResumeGenerator {
 
     pub fn add_custom_template(&mut self, name: String, template: String) -> Result<()> {
         self.template_manager.add_custom_template(name, template)
+    }
+
+    /// Preview a template with sample data
+    pub async fn preview_template(&self, template_name: &str) -> Result<GeneratedDocument> {
+        // Create sample profile for preview
+        let sample_profile = UserProfile {
+            personal_info: crate::generator::PersonalInfo {
+                name: "John Doe".to_string(),
+                email: "john.doe@example.com".to_string(),
+                phone: Some("+1 (555) 123-4567".to_string()),
+                location: Some("San Francisco, CA".to_string()),
+                linkedin: Some("linkedin.com/in/johndoe".to_string()),
+                github: Some("github.com/johndoe".to_string()),
+                portfolio: Some("johndoe.dev".to_string()),
+            },
+            summary: "Experienced software engineer with 5+ years of expertise in full-stack development, cloud architecture, and team leadership. Passionate about building scalable applications and mentoring junior developers.".to_string(),
+            skills: crate::generator::SkillsProfile {
+                technical_skills: vec![
+                    "React".to_string(),
+                    "TypeScript".to_string(),
+                    "Node.js".to_string(),
+                    "Python".to_string(),
+                    "AWS".to_string(),
+                    "Docker".to_string(),
+                    "PostgreSQL".to_string(),
+                ],
+                soft_skills: vec![
+                    "Leadership".to_string(),
+                    "Communication".to_string(),
+                    "Problem Solving".to_string(),
+                ],
+                experience_years: std::collections::HashMap::new(),
+                proficiency_levels: std::collections::HashMap::new(),
+            },
+            experience: vec![
+                crate::generator::ExperienceEntry {
+                    company: "Tech Corp".to_string(),
+                    position: "Senior Software Engineer".to_string(),
+                    duration: "2020 - Present".to_string(),
+                    description: vec![
+                        "Led development of microservices architecture serving 1M+ users".to_string(),
+                        "Mentored team of 5 junior developers".to_string(),
+                        "Reduced system latency by 40% through optimization".to_string(),
+                    ],
+                    technologies: vec!["React", "Node.js", "AWS", "Docker"].into_iter().map(String::from).collect(),
+                },
+            ],
+            education: vec![
+                crate::generator::EducationEntry {
+                    institution: "University of Technology".to_string(),
+                    degree: "B.S. Computer Science".to_string(),
+                    year: "2018".to_string(),
+                    details: Some("Magna Cum Laude".to_string()),
+                },
+            ],
+            projects: vec![
+                "Open-source library with 10K+ GitHub stars".to_string(),
+                "E-commerce platform handling $1M+ in transactions".to_string(),
+            ],
+        };
+
+        // Create sample job analysis
+        let sample_job_analysis = JobAnalysis {
+            extracted_keywords: vec!["React", "TypeScript", "Node.js", "AWS"]
+                .into_iter()
+                .map(String::from)
+                .collect(),
+            required_skills: vec!["React", "TypeScript", "Node.js"]
+                .into_iter()
+                .map(String::from)
+                .collect(),
+            preferred_skills: vec!["AWS", "Docker"]
+                .into_iter()
+                .map(String::from)
+                .collect(),
+            experience_level: "Senior".to_string(),
+            company_tone: "Professional and innovative".to_string(),
+            key_responsibilities: vec![
+                "Build scalable web applications".to_string(),
+                "Lead technical initiatives".to_string(),
+            ],
+            match_score: 85.0,
+            job_title: "Senior Full Stack Developer".to_string(),
+            company: "Innovation Labs".to_string(),
+        };
+
+        // Generate preview content
+        let content = self.template_manager.render_resume(
+            &sample_profile,
+            &sample_job_analysis,
+            template_name,
+        )?;
+
+        let word_count = content.split_whitespace().count();
+
+        Ok(GeneratedDocument {
+            content,
+            format: DocumentFormat::Markdown,
+            metadata: DocumentMetadata {
+                title: format!("Preview - {}", template_name),
+                job_title: sample_job_analysis.job_title,
+                company: sample_job_analysis.company,
+                generated_at: chrono::Utc::now(),
+                template_used: template_name.to_string(),
+                word_count,
+            },
+        })
     }
 }
 
@@ -127,9 +252,7 @@ impl Default for ResumeGenerator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::generator::{
-        PersonalInfo, SkillsProfile, ExperienceEntry, EducationEntry
-    };
+    use crate::generator::{EducationEntry, ExperienceEntry, PersonalInfo, SkillsProfile};
 
     fn create_test_profile() -> UserProfile {
         UserProfile {
@@ -158,29 +281,23 @@ mod tests {
                 experience_years: std::collections::HashMap::new(),
                 proficiency_levels: std::collections::HashMap::new(),
             },
-            experience: vec![
-                ExperienceEntry {
-                    company: "Tech Corp".to_string(),
-                    position: "Senior Developer".to_string(),
-                    duration: "2020-2023".to_string(),
-                    description: vec![
-                        "Led development of flagship product".to_string(),
-                        "Mentored junior developers".to_string(),
-                    ],
-                    technologies: vec!["React".to_string(), "Node.js".to_string()],
-                },
-            ],
-            education: vec![
-                EducationEntry {
-                    institution: "University of Technology".to_string(),
-                    degree: "Bachelor of Computer Science".to_string(),
-                    year: "2019".to_string(),
-                    details: Some("Graduated with honors".to_string()),
-                },
-            ],
-            projects: vec![
-                "E-commerce platform with React and Node.js".to_string(),
-            ],
+            experience: vec![ExperienceEntry {
+                company: "Tech Corp".to_string(),
+                position: "Senior Developer".to_string(),
+                duration: "2020-2023".to_string(),
+                description: vec![
+                    "Led development of flagship product".to_string(),
+                    "Mentored junior developers".to_string(),
+                ],
+                technologies: vec!["React".to_string(), "Node.js".to_string()],
+            }],
+            education: vec![EducationEntry {
+                institution: "University of Technology".to_string(),
+                degree: "Bachelor of Computer Science".to_string(),
+                year: "2019".to_string(),
+                details: Some("Graduated with honors".to_string()),
+            }],
+            projects: vec!["E-commerce platform with React and Node.js".to_string()],
         }
     }
 

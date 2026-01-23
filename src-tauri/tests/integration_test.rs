@@ -1,9 +1,9 @@
 // Integration tests for job matching
-use jobez_lib::matching::JobMatcher;
-use jobez_lib::db::models::{Job, JobStatus};
-use jobez_lib::generator::{UserProfile, PersonalInfo, SkillsProfile, ExperienceEntry};
-use std::collections::HashMap;
 use chrono::Utc;
+use jobez_lib::db::models::{Job, JobStatus};
+use jobez_lib::generator::{ExperienceEntry, PersonalInfo, SkillsProfile, UserProfile};
+use jobez_lib::matching::JobMatcher;
+use std::collections::HashMap;
 
 fn create_test_job() -> Job {
     Job {
@@ -14,11 +14,13 @@ fn create_test_job() -> Job {
         description: Some(
             "We are looking for a senior React developer with TypeScript experience. \
              Must know Node.js, Docker, and REST APIs. Remote work available. \
-             5+ years of experience required.".to_string()
+             5+ years of experience required."
+                .to_string(),
         ),
         requirements: Some(
             "Experience with React, TypeScript, Node.js required. \
-             Docker experience preferred. Strong problem-solving skills.".to_string()
+             Docker experience preferred. Strong problem-solving skills."
+                .to_string(),
         ),
         location: Some("Remote".to_string()),
         salary: None,
@@ -59,22 +61,20 @@ fn create_test_profile() -> UserProfile {
             },
             proficiency_levels: HashMap::new(),
         },
-        experience: vec![
-            ExperienceEntry {
-                company: "Previous Corp".to_string(),
-                position: "Senior Frontend Developer".to_string(),
-                duration: "3 years".to_string(),
-                description: vec![
-                    "Built React applications".to_string(),
-                    "Worked with TypeScript and Node.js".to_string(),
-                ],
-                technologies: vec![
-                    "React".to_string(),
-                    "TypeScript".to_string(),
-                    "Node.js".to_string(),
-                ],
-            }
-        ],
+        experience: vec![ExperienceEntry {
+            company: "Previous Corp".to_string(),
+            position: "Senior Frontend Developer".to_string(),
+            duration: "3 years".to_string(),
+            description: vec![
+                "Built React applications".to_string(),
+                "Worked with TypeScript and Node.js".to_string(),
+            ],
+            technologies: vec![
+                "React".to_string(),
+                "TypeScript".to_string(),
+                "Node.js".to_string(),
+            ],
+        }],
         education: vec![],
         projects: vec!["React project with AWS".to_string()],
     }
@@ -85,30 +85,54 @@ fn test_job_match_integration() {
     let matcher = JobMatcher::new();
     let job = create_test_job();
     let profile = create_test_profile();
-    
+
     let result = matcher.calculate_match(&job, &profile);
-    
+
     // Assertions
-    assert!(result.match_score > 0.0, "Match score should be greater than 0");
-    assert!(result.match_score <= 100.0, "Match score should be less than or equal to 100");
-    assert!(result.skills_match > 0.0, "Skills match should be greater than 0");
-    assert!(!result.matched_skills.is_empty(), "Should have matched skills");
+    assert!(
+        result.match_score > 0.0,
+        "Match score should be greater than 0"
+    );
+    assert!(
+        result.match_score <= 100.0,
+        "Match score should be less than or equal to 100"
+    );
+    assert!(
+        result.skills_match > 0.0,
+        "Skills match should be greater than 0"
+    );
+    assert!(
+        !result.matched_skills.is_empty(),
+        "Should have matched skills"
+    );
     assert_eq!(result.job_id, Some(1), "Job ID should match");
-    assert_eq!(result.experience_level, "senior", "Experience level should be senior");
-    
+    assert_eq!(
+        result.experience_level, "senior",
+        "Experience level should be senior"
+    );
+
     // Check that React, TypeScript, and Node.js are matched
-    assert!(result.matched_skills.iter().any(|s| s.to_lowercase().contains("react")));
-    assert!(result.matched_skills.iter().any(|s| s.to_lowercase().contains("typescript")));
-    assert!(result.matched_skills.iter().any(|s| s.to_lowercase().contains("node")));
-    
+    assert!(result
+        .matched_skills
+        .iter()
+        .any(|s| s.to_lowercase().contains("react")));
+    assert!(result
+        .matched_skills
+        .iter()
+        .any(|s| s.to_lowercase().contains("typescript")));
+    assert!(result
+        .matched_skills
+        .iter()
+        .any(|s| s.to_lowercase().contains("node")));
+
     // Check match quality
     let quality = result.get_match_quality();
     assert!(
-        matches!(quality, jobez_lib::matching::MatchQuality::Good) || 
-        matches!(quality, jobez_lib::matching::MatchQuality::Excellent),
+        matches!(quality, jobez_lib::matching::MatchQuality::Good)
+            || matches!(quality, jobez_lib::matching::MatchQuality::Excellent),
         "Match quality should be Good or Excellent for this profile"
     );
-    
+
     println!("✅ Integration test passed!");
     println!("   Match Score: {}%", result.match_score);
     println!("   Skills Match: {}%", result.skills_match);
@@ -120,7 +144,7 @@ fn test_job_match_integration() {
 fn test_multiple_jobs_matching() {
     let matcher = JobMatcher::new();
     let profile = create_test_profile();
-    
+
     let jobs = vec![
         create_test_job(),
         Job {
@@ -139,13 +163,19 @@ fn test_multiple_jobs_matching() {
             updated_at: Some(Utc::now()),
         },
     ];
-    
+
     let results = matcher.match_jobs(&jobs, &profile);
-    
+
     assert_eq!(results.len(), 2, "Should have 2 match results");
-    assert!(results[0].match_score >= results[1].match_score, "Results should be sorted by score");
-    assert!(results[0].match_score > results[1].match_score, "React job should score higher than Python job");
-    
+    assert!(
+        results[0].match_score >= results[1].match_score,
+        "Results should be sorted by score"
+    );
+    assert!(
+        results[0].match_score > results[1].match_score,
+        "React job should score higher than Python job"
+    );
+
     println!("✅ Multiple jobs test passed!");
     println!("   Job 1 (React): {}%", results[0].match_score);
     println!("   Job 2 (Python): {}%", results[1].match_score);
@@ -155,7 +185,7 @@ fn test_multiple_jobs_matching() {
 fn test_filter_by_score() {
     let matcher = JobMatcher::new();
     let profile = create_test_profile();
-    
+
     let jobs = vec![
         create_test_job(), // Should match well
         Job {
@@ -174,15 +204,20 @@ fn test_filter_by_score() {
             updated_at: Some(Utc::now()),
         },
     ];
-    
+
     let results = matcher.match_jobs(&jobs, &profile);
     let filtered = matcher.filter_by_score(&results, 50.0);
-    
-    assert!(filtered.len() <= results.len(), "Filtered results should be subset");
-    assert!(filtered.iter().all(|r| r.match_score >= 50.0), "All filtered results should meet minimum score");
-    
+
+    assert!(
+        filtered.len() <= results.len(),
+        "Filtered results should be subset"
+    );
+    assert!(
+        filtered.iter().all(|r| r.match_score >= 50.0),
+        "All filtered results should meet minimum score"
+    );
+
     println!("✅ Filter by score test passed!");
     println!("   Total results: {}", results.len());
     println!("   Filtered results (>=50%): {}", filtered.len());
 }
-

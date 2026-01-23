@@ -1,0 +1,66 @@
+name: CD
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev
+      
+      - name: Build release
+        working-directory: src-tauri
+        run: cargo build --release
+      
+      - name: Create release archive
+        run: |
+          tar -czf jobez-release.tar.gz \
+            -C src-tauri/target/release \
+            jobez
+      
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: release
+          path: jobez-release.tar.gz
+
+
+
+
+
+
+
+
+
+
+
+
+

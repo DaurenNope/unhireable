@@ -31,6 +31,7 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { applicationApi } from '@/api/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { EmptyState } from '@/components/ui/empty-state';
 
 // Type for sortable columns
 type SortableColumn = keyof Pick<Application, 'job_title' | 'company' | 'status' | 'applied_at' | 'updated_at'>;
@@ -40,7 +41,7 @@ const formatDate = (dateString?: string, formatStr = 'PP') => {
   if (!dateString) return 'N/A';
   try {
     return format(new Date(dateString), formatStr);
-  } catch (e) {
+  } catch {
     return 'Invalid date';
   }
 };
@@ -197,7 +198,7 @@ export default function Applications() {
     queryFn: async () => {
       try {
         return await applicationApi.list();
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Failed to fetch applications:', err);
         throw err;
       }
@@ -265,7 +266,7 @@ export default function Applications() {
     try {
       await applicationApi.delete(applicationId);
       queryClient.invalidateQueries({ queryKey: ['applications'] });
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Failed to delete application:', err);
       alert('Failed to delete application. Please try again.');
     }
@@ -392,25 +393,31 @@ export default function Applications() {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={5} className="h-32 text-center">
-                      <div className="flex flex-col items-center justify-center gap-3 py-8">
-                        <FileText className="h-12 w-12 text-muted-foreground/50" />
-                        <div>
-                          <p className="font-medium text-foreground">No applications found</p>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {searchTerm || statusFilter !== 'all' 
-                              ? 'Try adjusting your search or filters'
-                              : 'Get started by creating your first application'}
-                          </p>
-                        </div>
-                        {!searchTerm && statusFilter === 'all' && (
-                          <Button asChild variant="outline" className="mt-2">
-                            <Link to="/applications/new">
-                              <Plus className="mr-2 h-4 w-4" />
-                              Create Application
-                            </Link>
-                          </Button>
-                        )}
-                      </div>
+                      <EmptyState
+                        icon={FileText}
+                        title={searchTerm || statusFilter !== 'all' ? "No applications match your filters" : "No applications yet"}
+                        description={
+                          searchTerm || statusFilter !== 'all'
+                            ? "Try adjusting your search terms or filters to find what you're looking for."
+                            : "Start tracking your job applications. Create your first application to get started!"
+                        }
+                        action={
+                          !searchTerm && statusFilter === 'all'
+                            ? {
+                                label: "Create Application",
+                                onClick: () => navigate('/applications/new'),
+                                icon: Plus,
+                              }
+                            : {
+                                label: "Clear filters",
+                                onClick: () => {
+                                  setSearchTerm('');
+                                  setStatusFilter('all');
+                                },
+                              }
+                        }
+                        className="py-8"
+                      />
                     </TableCell>
                   </TableRow>
                 )}

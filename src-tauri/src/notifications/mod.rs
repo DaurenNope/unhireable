@@ -1,11 +1,15 @@
+pub mod desktop;
 pub mod email;
-pub mod templates;
 pub mod email_extractor;
+pub mod gmail;
+pub mod templates;
 
-pub use email::EmailService;
+pub use desktop::{DesktopNotificationConfig, DesktopNotificationService};
 pub use email::EmailConfig;
-pub use templates::EmailTemplate;
+pub use email::EmailService;
 pub use email_extractor::{extract_emails, extract_job_emails};
+pub use gmail::{ApplicationStatusUpdate, GmailConfig, GmailService};
+pub use templates::EmailTemplate;
 
 use serde::{Deserialize, Serialize};
 
@@ -32,4 +36,3 @@ impl Default for NotificationConfig {
         }
     }
 }
-

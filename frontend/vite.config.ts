@@ -6,7 +6,8 @@ import { loadEnv } from 'vite';
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   // Load env file based on `mode` in the current working directory
-  const env = loadEnv(mode, process.cwd(), '');
+  // Note: env is loaded but not used directly - it's accessed via import.meta.env
+  loadEnv(mode, process.cwd(), '');
 
   return {
     server: {
@@ -25,10 +26,10 @@ export default defineConfig(({ mode }) => {
     build: {
       // Tauri supports es2021
       target: ['es2021', 'chrome100', 'safari13'],
-      // Don't minify for debug builds
-      minify: !process.env.TAURI_DEBUG ? 'esbuild' : false,
-      // Produce sourcemaps for debug builds
-      sourcemap: !!process.env.TAURI_DEBUG,
+      // Don't minify for debug builds - always disable minification in dev
+      minify: process.env.NODE_ENV === 'production' ? 'esbuild' : false,
+      // Produce sourcemaps for debug builds - always enable in dev
+      sourcemap: process.env.NODE_ENV !== 'production',
     },
     plugins: [
       react({

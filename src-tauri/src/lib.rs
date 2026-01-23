@@ -1,33 +1,94 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-use std::str::FromStr;
 use std::sync::Arc;
 use tauri::{Manager, State};
-use tokio::sync::Mutex;
+use tokio::{sync::Mutex, task};
 
 // Import trait implementations
-use crate::db::queries::{JobQueries, ContactQueries, InterviewQueries, DocumentQueries, ApplicationQueries, ActivityQueries, CredentialQueries};
+use crate::db::queries::{
+    ActivityQueries, ApplicationQueries, CredentialQueries, JobQueries,
+};
 
+pub mod applicator;
+pub mod automation;
+pub mod cache;
+pub mod channel;
+pub mod commands;
 pub mod db;
 pub mod error;
-pub mod scraper;
+pub mod events;
+pub mod flow_engine;
 pub mod generator;
+pub mod insights;
+pub mod intelligence;
+pub mod logging;
 pub mod matching;
-pub mod scheduler;
+pub mod metrics;
+// PostgreSQL migration temporarily disabled due to dependency conflicts
+// #[cfg(feature = "postgres")]
+// pub mod migration;
 pub mod notifications;
+pub mod persona;
+pub mod queue;
+pub mod recommendations;
+pub mod resume_analyzer;
+pub mod scheduler;
+pub mod scraper;
+pub mod scraper_queue;
+pub mod security;
+pub mod session;
 
+use crate::applicator::{ApplicationConfig, ApplicationResult, JobApplicator};
 use crate::db::Database;
 use crate::error::Result;
-use rusqlite::params;
+use crate::scraper::browser::BrowserScraper;
 
 // Application state structure
-#[derive(Default)]
+#[allow(dead_code)] // Some fields are reserved for future features
 pub struct AppState {
     db: Arc<Mutex<Option<Database>>>,
     scheduler: Arc<Mutex<Option<scheduler::JobScheduler>>>,
+    app_dir: Arc<Mutex<Option<std::path::PathBuf>>>,
+    session_manager: Arc<Mutex<Option<session::SessionManager>>>,
+    event_bus: Arc<events::EventBus>,
+    flow_engine: Arc<flow_engine::FlowEngine>,
+    cache: Arc<cache::Cache<String, serde_json::Value>>,
+    document_cache: Arc<Mutex<generator::DocumentCache>>,
+    queue_manager: Arc<queue::QueueManager>,
+    channel_manager: Arc<channel::ChannelManager>,
+    rate_limiter: Arc<security::RateLimiter>,
+}
+
+impl Default for AppState {
+    fn default() -> Self {
+        AppState {
+            db: Arc::new(Mutex::new(None)),
+            scheduler: Arc::new(Mutex::new(None)),
+            app_dir: Arc::new(Mutex::new(None)),
+            session_manager: Arc::new(Mutex::new(None)),
+            event_bus: Arc::new(events::EventBus::new()),
+            flow_engine: Arc::new(flow_engine::FlowEngine::new()),
+            cache: Arc::new(cache::Cache::new(std::time::Duration::from_secs(3600))),
+            document_cache: Arc::new(Mutex::new(generator::DocumentCache::new(100, Some(86400)))), // 100 entries, 24h TTL
+            queue_manager: Arc::new(queue::QueueManager::new()),
+            channel_manager: Arc::new(channel::ChannelManager::new()),
+            rate_limiter: Arc::new(security::RateLimiter::new(100, 60)),
+        }
+    }
 }
 
 // Initialize the application state
 async fn setup_app_state(app: &mut tauri::App) -> Result<()> {
+    // Initialize logging
+    if std::env::var("RUST_LOG").is_err() {
+        crate::logging::init_console_logging();
+    } else {
+        crate::logging::init_logging();
+    }
+
+    // Initialize metrics
+    crate::metrics::init_metrics();
+    tracing::info!("Application starting up");
+
     // Get the app data directory (using "unhireable" as the app name)
     let app_dir = app.path().app_data_dir().map_err(|_| {
         crate::error::Error::Custom("Could not find application data directory".to_string())
@@ -38,14 +99,177 @@ async fn setup_app_state(app: &mut tauri::App) -> Result<()> {
         std::fs::create_dir_all(&app_dir)?;
     }
 
-    // Initialize the database
-    let db_path = app_dir.join("jobhunter.db");
-    let db = Database::new(db_path)?;
+    // Initialize the database (SQLite only - PostgreSQL support disabled due to dependency conflicts)
+    let db = {
+        if std::env::var("DATABASE_URL").is_ok() {
+            tracing::warn!("DATABASE_URL set but postgres feature not enabled, using SQLite");
+        }
+        tracing::info!("Using SQLite database");
+        let db_path = app_dir.join("jobhunter.db");
+        Database::new(db_path)?
+    };
 
-    // Store the database in the app state
+    // Initialize Redis session manager if REDIS_URL is set
+    let session_manager = if let Ok(redis_url) = std::env::var("REDIS_URL") {
+        tracing::info!("Initializing Redis session manager");
+        Some(session::SessionManager::new(&redis_url, 3600)?)
+    } else {
+        tracing::info!("Redis not configured, sessions will be in-memory only");
+        None
+    };
+
+    // Get the state to set up event handlers
+    let state: State<AppState> = app.state();
+
+    // Initialize Intelligence Agent and Event Handler
+    let intelligence_agent = Arc::new(intelligence::IntelligenceAgent::default());
+    let matcher = Arc::new(matching::JobMatcher::new());
+    let event_bus = state.event_bus.clone();
+    let db_for_intelligence = Arc::clone(&state.db);
+
+    let intelligence_handler = Arc::new(intelligence::IntelligenceEventHandler::new(
+        intelligence_agent,
+        matcher,
+        state.cache.clone(),
+        event_bus.clone(),
+        db_for_intelligence,
+    ));
+
+    // Initialize Intelligence event handler (subscribes to JOB_CREATED)
+    intelligence_handler.initialize().await?;
+    tracing::info!("Intelligence Agent event handler initialized");
+
+    // Register Intelligence Agent flows
+    let flow_engine = state.flow_engine.clone();
+    flow_engine.register_intelligence_flows().await?;
+    tracing::info!("Intelligence Agent flows registered");
+
+    let event_bus = state.event_bus.clone();
+    event_bus
+        .subscribe(
+            events::event_types::SCRAPER_COMPLETED.to_string(),
+            |event| {
+                tracing::info!("Scraper completed event: {:?}", event);
+                Ok(())
+            },
+        )
+        .await;
+
+    // Subscribe to APPLICATION_CREATED for automatic document generation
+    let document_event_bus = state.event_bus.clone();
+    let db_clone = Arc::clone(&state.db);
+    let cache = Arc::new(Mutex::new(generator::DocumentCache::new(100, Some(86400)))); // 100 entries, 24h TTL
+    let handler_arc = Arc::new(generator::DocumentGenerationEventHandler::new(
+        cache.clone(),
+        document_event_bus.clone(),
+    ));
+
+    document_event_bus
+        .subscribe(
+            events::event_types::APPLICATION_CREATED.to_string(),
+            move |event| {
+                let handler = handler_arc.clone();
+                let db = db_clone.clone();
+                let event_owned = event.clone();
+
+                // Spawn async task to handle document generation
+                tokio::spawn(async move {
+                    let db_for_application = db.clone();
+                    let get_application = move |app_id: i64| -> anyhow::Result<
+                        Option<crate::db::models::Application>,
+                    > {
+                        let db_clone = db_for_application.clone();
+                        tokio::runtime::Handle::current().block_on(async {
+                            let db = db_clone.lock().await;
+                            if let Some(db) = &*db {
+                                let conn = db.get_connection();
+                                conn.get_application(app_id)
+                                    .map_err(|e| anyhow::anyhow!("{}", e))
+                            } else {
+                                Err(anyhow::anyhow!("Database not initialized"))
+                            }
+                        })
+                    };
+
+                    let db_for_job = db.clone();
+                    let get_job =
+                        move |job_id: i64| -> anyhow::Result<Option<crate::db::models::Job>> {
+                            let db_clone = db_for_job.clone();
+                            tokio::runtime::Handle::current().block_on(async {
+                                let db = db_clone.lock().await;
+                                if let Some(db) = &*db {
+                                    let conn = db.get_connection();
+                                    conn.get_job(job_id).map_err(|e| anyhow::anyhow!("{}", e))
+                                } else {
+                                    Err(anyhow::anyhow!("Database not initialized"))
+                                }
+                            })
+                        };
+
+                    let db_for_profile = db.clone();
+                    let get_profile = move || -> anyhow::Result<Option<generator::UserProfile>> {
+                        let db_clone = db_for_profile.clone();
+                        tokio::runtime::Handle::current().block_on(async {
+                            let db = db_clone.lock().await;
+                            if let Some(db) = &*db {
+                                let conn = db.get_connection();
+                                commands::user::load_user_profile_from_conn(&conn)
+                                    .map_err(|e| anyhow::anyhow!("{}", e))
+                            } else {
+                                Err(anyhow::anyhow!("Database not initialized"))
+                            }
+                        })
+                    };
+
+                    let db_for_api = db.clone();
+                    let get_api_key =
+                        move || -> anyhow::Result<Option<String>> {
+                            let db_clone = db_for_api.clone();
+                            tokio::runtime::Handle::current().block_on(async {
+                                let db = db_clone.lock().await;
+                                if let Some(db) = &*db {
+                                    let conn = db.get_connection();
+                                    Ok(conn.get_credential("openai").ok().flatten().and_then(
+                                        |cred| cred.tokens.as_deref().map(|s| s.to_string()),
+                                    ))
+                                } else {
+                                    Err(anyhow::anyhow!("Database not initialized"))
+                                }
+                            })
+                        };
+
+                    if let Err(e) = handler
+                        .handle_application_created(
+                            &event_owned,
+                            get_application,
+                            get_job,
+                            get_profile,
+                            get_api_key,
+                        )
+                        .await
+                    {
+                        tracing::error!("Failed to handle APPLICATION_CREATED event: {}", e);
+                    }
+                });
+
+                Ok(())
+            },
+        )
+        .await;
+
+    // Store everything in the app state
     let state: State<AppState> = app.state();
     *state.db.lock().await = Some(db);
+    *state.app_dir.lock().await = Some(app_dir);
+    *state.session_manager.lock().await = session_manager;
 
+    // Update Arc fields by replacing the entire AppState
+    // Note: For Arc fields, we need to use Arc::get_mut or replace the state
+    // Since Tauri manages the state, we'll update what we can through the state
+    // The Arc fields are already initialized in Default, so we just need to ensure
+    // they're set up correctly. For now, the event handlers are set up above.
+
+    tracing::info!("Application state initialized successfully");
     Ok(())
 }
 
@@ -72,1460 +296,473 @@ fn log_activity(
 }
 
 // Generate sample/demo jobs for testing and fallback
-fn generate_sample_jobs(query: &str) -> Vec<db::models::Job> {
-    let base_jobs = vec![
-        ("Senior Frontend Developer", "Tech Corp", "Remote", "$120k - $180k", "React, TypeScript, Next.js, Tailwind CSS. We're looking for an experienced frontend developer to join our team."),
-        ("Full Stack Developer", "StartupXYZ", "San Francisco, CA", "$100k - $150k", "Node.js, React, PostgreSQL, AWS. Build amazing products with a passionate team."),
-        ("Backend Engineer", "DataFlow Inc", "New York, NY", "$130k - $170k", "Python, Django, Docker, Kubernetes. Work on scalable backend systems."),
-        ("DevOps Engineer", "CloudSystems", "Remote", "$140k - $190k", "AWS, Terraform, Kubernetes, CI/CD. Manage cloud infrastructure at scale."),
-        ("Mobile Developer", "AppStudio", "Austin, TX", "$110k - $160k", "React Native, Swift, Kotlin. Build beautiful mobile applications."),
-        ("Data Scientist", "AI Labs", "Boston, MA", "$125k - $175k", "Python, Machine Learning, TensorFlow, SQL. Work on cutting-edge AI projects."),
-        ("Product Designer", "DesignCo", "Remote", "$90k - $140k", "Figma, User Research, Prototyping. Create delightful user experiences."),
-        ("QA Engineer", "QualityTech", "Seattle, WA", "$85k - $120k", "Selenium, Jest, Cypress, Test Automation. Ensure product quality."),
-    ];
-    
-    let query_lower = query.to_lowercase();
-    base_jobs
-        .into_iter()
-        .filter(|(title, _, _, _, _)| {
-            query_lower.is_empty() || 
-            title.to_lowercase().contains(&query_lower) || 
-            query_lower == "developer" || 
-            query_lower == "demo" ||
-            query_lower == "test"
-        })
-        .map(|(title, company, location, salary, description)| {
-            db::models::Job {
-                id: None,
-                title: title.to_string(),
-                company: company.to_string(),
-                url: format!("https://example.com/jobs/{}", title.to_lowercase().replace(" ", "-")),
-                description: Some(description.to_string()),
-                requirements: Some(format!("Experience with modern web technologies. Strong problem-solving skills. Excellent communication.")),
-                location: Some(location.to_string()),
-                salary: Some(salary.to_string()),
-                source: "demo".to_string(),
-                status: db::models::JobStatus::Saved,
-                match_score: None,
-                created_at: None,
-                updated_at: None,
-            }
-        })
-        .collect()
-}
 
-// Job Commands
-#[tauri::command]
-async fn get_jobs(
-    state: State<'_, AppState>,
-    status: Option<String>,
-    query: Option<String>,
-    page: Option<usize>,
-    page_size: Option<usize>,
-) -> Result<Vec<db::models::Job>> {
-    println!("get_jobs called with status={:?}, query={:?}, page={:?}, page_size={:?}", status, query, page, page_size);
-    let db = state.db.lock().await;
-    if let Some(db) = &*db {
-        let conn = db.get_connection();
-        let status = status
-            .as_deref()
-            .and_then(|s| db::models::JobStatus::from_str(s).ok());
-        
-        println!("Fetching jobs from database with status filter: {:?}", status);
-        let mut jobs = conn.list_jobs(status)
-            .map_err(|e| {
-                eprintln!("Error listing jobs: {}", e);
-                e
-            })?;
-        
-        println!("Found {} jobs in database", jobs.len());
-        
-        // Apply search query if provided
-        if let Some(query) = query {
-            let query_lower = query.to_lowercase();
-            let initial_count = jobs.len();
-            jobs.retain(|job| {
-                job.title.to_lowercase().contains(&query_lower) ||
-                job.company.to_lowercase().contains(&query_lower) ||
-                job.description.as_ref().map_or(false, |d| d.to_lowercase().contains(&query_lower)) ||
-                job.requirements.as_ref().map_or(false, |r| r.to_lowercase().contains(&query_lower))
-            });
-            println!("After search filter '{}': {} jobs (filtered from {})", query, jobs.len(), initial_count);
-        }
-        // Pagination - if no page_size specified, return all jobs
-        let total_jobs = jobs.len();
-        let result = if let Some(ps) = page_size {
-            let p = page.unwrap_or(1).max(1);
-            let start = (p - 1) * ps;
-            let end = start + ps;
-            if start >= total_jobs { 
-                vec![] 
-            } else { 
-                jobs[start..total_jobs.min(end)].to_vec() 
-            }
-        } else {
-            // No pagination - return all jobs
-            jobs.clone()
-        };
-        println!("Returning {} jobs (out of {} total)", result.len(), total_jobs);
-        Ok(result)
-    } else {
-        eprintln!("ERROR: Database not initialized in get_jobs");
-        Err(anyhow::anyhow!("Database not initialized").into())
-    }
+// Recommendation & Insights Commands
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+struct AutomationHealthReport {
+    profile_configured: bool,
+    missing_fields: Vec<String>,
+    resume_documents: usize,
+    credential_platforms: Vec<String>,
+    chromium_available: bool,
+    playwright_available: bool,
 }
 
 #[tauri::command]
-async fn get_job(state: State<'_, AppState>, id: i64) -> Result<Option<db::models::Job>> {
-    let db = state.db.lock().await;
-    if let Some(db) = &*db {
-        let conn = db.get_connection();
-        conn.get_job(id).map_err(Into::into)
-    } else {
-        Err(anyhow::anyhow!("Database not initialized").into())
-    }
-}
+async fn automation_health_check(state: State<'_, AppState>) -> Result<AutomationHealthReport> {
+    // Get app_dir path first (before database work)
+    let app_dir_path = {
+        let app_dir_guard = state.app_dir.lock().await;
+        app_dir_guard.clone()
+    };
 
-#[tauri::command]
-async fn create_job(
-    state: State<'_, AppState>,
-    mut job: db::models::Job,
-) -> Result<db::models::Job> {
-    let db = state.db.lock().await;
-    if let Some(db) = &*db {
-        let conn = db.get_connection();
-        conn.create_job(&mut job)?;
-        
-        // Log activity
-        if let Some(job_id) = job.id {
-            let description = format!("Job '{}' at {} was created", job.title, job.company);
-            log_activity(&conn, "job", job_id, "created", Some(description), None)?;
-        }
-        
-        Ok(job)
-    } else {
-        Err(anyhow::anyhow!("Database not initialized").into())
-    }
-}
+    // Now do all database work
+    let (profile_configured, missing_fields, db_resume_count, credential_platforms) = {
+        let db = state.db.lock().await;
+        if let Some(db) = &*db {
+            let conn = db.get_connection();
+            let profile = commands::user::load_user_profile_from_conn(&conn)?;
+            let mut missing_fields = Vec::new();
+            let mut profile_configured = false;
 
-#[tauri::command]
-async fn update_job(
-    state: State<'_, AppState>,
-    job: db::models::Job,
-) -> Result<db::models::Job> {
-    let db = state.db.lock().await;
-    if let Some(db) = &*db {
-        let conn = db.get_connection();
-        
-        // Get old job to check for status changes
-        let old_job = if let Some(job_id) = job.id {
-            conn.get_job(job_id).ok().flatten()
-        } else {
-            None
-        };
-        
-        conn.update_job(&job)?;
-        
-        // Log activity
-        if let Some(job_id) = job.id {
-            let action = if let Some(old) = old_job {
-                if old.status != job.status {
-                    // Status changed
-                    let metadata = serde_json::json!({
-                        "old_status": old.status.to_string(),
-                        "new_status": job.status.to_string()
-                    }).to_string();
-                    log_activity(&conn, "job", job_id, "status_changed", 
-                        Some(format!("Job '{}' status changed from {} to {}", job.title, old.status, job.status)),
-                        Some(metadata))?;
-                    return Ok(job);
+            if let Some(profile) = profile.as_ref() {
+                profile_configured = true;
+                if profile.personal_info.name.trim().is_empty() {
+                    missing_fields.push("name".to_string());
                 }
-                "updated"
+                if profile.personal_info.email.trim().is_empty() {
+                    missing_fields.push("email".to_string());
+                }
+                if profile.summary.trim().is_empty() {
+                    missing_fields.push("summary".to_string());
+                }
             } else {
-                "updated"
-            };
-            
-            let description = format!("Job '{}' at {} was updated", job.title, job.company);
-            log_activity(&conn, "job", job_id, action, Some(description), None)?;
-        }
-        
-        Ok(job)
-    } else {
-        Err(anyhow::anyhow!("Database not initialized").into())
-    }
-}
+                missing_fields.push("profile".to_string());
+            }
 
-#[tauri::command]
-async fn delete_job(state: State<'_, AppState>, id: i64) -> Result<()> {
-    let db = state.db.lock().await;
-    if let Some(db) = &*db {
-        let conn = db.get_connection();
-        
-        // Get job info before deleting for activity log
-        let job_info = conn.get_job(id).ok().flatten();
-        
-        conn.delete_job(id)?;
-        
-        // Log activity
-        if let Some(job) = job_info {
-            let description = format!("Job '{}' at {} was deleted", job.title, job.company);
-            log_activity(&conn, "job", id, "deleted", Some(description), None)?;
-        }
-        
-        Ok(())
-    } else {
-        Err(anyhow::anyhow!("Database not initialized").into())
-    }
-}
+            // Count resume documents from database
+            let db_resume_count = conn
+                .query_row(
+                    "SELECT COUNT(*) FROM documents WHERE document_type = 'resume'",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .unwrap_or(0)
+                .max(0) as usize;
 
-#[tauri::command]
-async fn scrape_jobs(
-    state: State<'_, AppState>,
-    query: String,
-) -> Result<Vec<db::models::Job>> {
-    println!("Starting scrape_jobs with query: '{}'", query);
-    
-    // Check for Firecrawl API key from environment or credentials
-    let mut scraper = scraper::ScraperManager::new();
-    
-    // Try to get Firecrawl API key from credentials if available
-    let db = state.db.lock().await;
-    if let Some(db) = &*db {
-        let conn = db.get_connection();
-        if let Ok(Some(credential)) = conn.get_credential("firecrawl") {
-            if let Some(api_key) = credential.tokens.as_deref() {
-                // Parse JSON token if stored as JSON
-                if let Ok(tokens) = serde_json::from_str::<serde_json::Value>(api_key) {
-                    if let Some(key) = tokens.get("api_key").and_then(|v| v.as_str()) {
-                        scraper.set_firecrawl_key(key.to_string());
-                        println!("Firecrawl API key loaded from credentials");
-                    }
-                } else {
-                    // Assume it's API key directly
-                    scraper.set_firecrawl_key(api_key.to_string());
-                    println!("Firecrawl API key loaded from credentials (direct)");
-                }
-            }
-        }
-    }
-    drop(db);
-    
-    // Check if this is a demo/test request
-    let query_lower = query.to_lowercase();
-    let is_demo = query_lower.contains("demo") || query_lower == "test" || query_lower.is_empty();
-    
-    let mut jobs = if is_demo {
-        println!("🎯 Demo mode: Generating sample jobs");
-        generate_sample_jobs(&query)
-    } else {
-        println!("🌐 Attempting to scrape jobs from real sources...");
-        println!("⚠️  Note: Real scraping may fail due to website structure changes or network issues.");
-        println!("💡 Tip: Try 'demo' or 'test' as query to see sample jobs instead!");
-        
-        match scraper.scrape_all(&query) {
-            Ok(jobs) => {
-                println!("✅ Successfully scraped {} jobs from real sources", jobs.len());
-                jobs
-            }
-            Err(e) => {
-                eprintln!("❌ Scraping failed: {}", e);
-                eprintln!("💡 Falling back to demo mode. Try using 'demo' query for sample jobs.");
-                
-                // Fallback to demo jobs if real scraping fails
-                let sample_jobs = generate_sample_jobs(&query);
-                println!("📦 Generated {} sample jobs as fallback", sample_jobs.len());
-                sample_jobs
-            }
+            let credential_platforms = conn
+                .list_credentials(true)?
+                .into_iter()
+                .map(|cred| cred.platform)
+                .collect();
+
+            (
+                profile_configured,
+                missing_fields,
+                db_resume_count,
+                credential_platforms,
+            )
+        } else {
+            return Err(anyhow::anyhow!("Database not initialized").into());
         }
     };
-    
-    println!("Scraped {} jobs, saving to database...", jobs.len());
-    
-    // Save scraped jobs to database and extract emails
-    let db = state.db.lock().await;
-    if let Some(db) = &*db {
-        let conn = db.get_connection();
-        let mut saved_count = 0;
-        let mut new_saved_jobs = Vec::new(); // Track newly saved jobs for email extraction
-        
-        for job in &mut jobs {
-            // Skip if job with same URL already exists
-            match conn.get_job_by_url(&job.url) {
-                Ok(Some(_)) => {
-                    // Job already exists, skip
-                    continue;
-                }
-                Ok(None) => {
-                    // Job doesn't exist, create it
-                    match conn.create_job(job) {
-                        Ok(_) => {
-                            saved_count += 1;
-                            // Log activity for scraped jobs
-                            if let Some(job_id) = job.id {
-                                let description = format!("Job '{}' at {} was scraped from {}", job.title, job.company, job.source);
-                                let _ = log_activity(&conn, "job", job_id, "created", Some(description), Some(format!(r#"{{"source": "scraped", "source_name": "{}"}}"#, job.source)));
-                                
-                                // Store newly saved job for email extraction
-                                new_saved_jobs.push(job.clone());
-                            }
-                        }
-                        Err(e) => {
-                            eprintln!("Failed to save job {}: {}", job.title, e);
-                        }
-                    }
-                }
-                Err(e) => {
-                    eprintln!("Error checking if job exists: {}", e);
-                }
-            }
-        }
-        println!("Saved {} new jobs to database", saved_count);
-        
-        // Automatically extract emails from newly saved jobs and create contacts
-        if !new_saved_jobs.is_empty() {
-            let mut contacts_created = 0;
-            let mut jobs_with_emails = 0;
-            
-            for job in &new_saved_jobs {
-                if let Some(job_id) = job.id {
-                    // Extract emails from job description/requirements
-                    let emails = notifications::extract_job_emails(&job.description, &job.requirements);
-                    
-                    if !emails.is_empty() {
-                        jobs_with_emails += 1;
-                        println!("📧 Found {} email(s) in job: {} at {}", emails.len(), job.title, job.company);
-                        
-                        // Create contact for each email found
-                        for email in emails {
-                            // Check if contact already exists
-                            if let Ok(existing_contacts) = conn.list_contacts(Some(job_id)) {
-                                if !existing_contacts.iter().any(|c| c.email.as_deref() == Some(&email)) {
-                                    let mut contact = db::models::Contact {
-                                        id: None,
-                                        job_id,
-                                        name: format!("Contact at {}", job.company),
-                                        email: Some(email.clone()),
-                                        phone: None,
-                                        position: None,
-                                        notes: Some(format!("Extracted from job description/requirements")),
-                                        created_at: None,
-                                        updated_at: None,
-                                    };
-                                    
-                                    if conn.create_contact(&mut contact).is_ok() {
-                                        contacts_created += 1;
-                                        println!("  ✓ Created contact: {} for job {}", email, job_id);
-                                    }
-                                }
+
+    // Check for persona resume files in the file system (no await needed now)
+    let mut file_resume_count = 0;
+    if let Some(app_dir) = app_dir_path {
+        let personas_dir = app_dir.join("personas");
+        if personas_dir.exists() {
+            if let Ok(entries) = std::fs::read_dir(&personas_dir) {
+                for entry in entries.flatten() {
+                    let persona_dir = entry.path();
+                    if persona_dir.is_dir() {
+                        // Check for common resume file names
+                        let resume_files = [
+                            persona_dir.join("resume.md"),
+                            persona_dir.join("resume.pdf"),
+                            persona_dir.join("resume.txt"),
+                            persona_dir.join("resume.docx"),
+                        ];
+                        for resume_file in &resume_files {
+                            if resume_file.exists() {
+                                file_resume_count += 1;
+                                break; // Count each persona once
                             }
                         }
                     }
                 }
             }
-            
-            if contacts_created > 0 {
-                println!("📧 Created {} contact(s) from {} job(s) with emails", contacts_created, jobs_with_emails);
-            }
         }
     }
-    
-    println!("Returning {} jobs", jobs.len());
-    Ok(jobs)
-}
 
-#[tauri::command]
-async fn scrape_jobs_selected(
-    state: State<'_, AppState>,
-    sources: Vec<String>,
-    query: Option<String>,
-) -> Result<Vec<db::models::Job>> {
-    let query_str = query.as_deref().unwrap_or("");
-    println!("Starting scrape_jobs_selected with sources: {:?}, query: '{}'", sources, query_str);
-    
-    // Check for Firecrawl API key from environment or credentials
-    let mut scraper = scraper::ScraperManager::new();
-    
-    // Try to get Firecrawl API key from credentials if available
-    let db = state.db.lock().await;
-    if let Some(db) = &*db {
-        let conn = db.get_connection();
-        if let Ok(Some(credential)) = conn.get_credential("firecrawl") {
-            if let Some(api_key) = credential.tokens.as_deref() {
-                // Parse JSON token if stored as JSON
-                if let Ok(tokens) = serde_json::from_str::<serde_json::Value>(api_key) {
-                    if let Some(key) = tokens.get("api_key").and_then(|v| v.as_str()) {
-                        scraper.set_firecrawl_key(key.to_string());
-                        println!("Firecrawl API key loaded from credentials");
-                    }
-                } else {
-                    // Assume it's the API key directly
-                    scraper.set_firecrawl_key(api_key.to_string());
-                    println!("Firecrawl API key loaded from credentials (direct)");
-                }
-            }
-        }
-    }
-    drop(db);
-    
-    // Check if this is a demo/test request
-    let query_lower = query_str.to_lowercase();
-    let is_demo = query_lower.contains("demo") || query_lower == "test" || query_lower.is_empty() || sources.is_empty();
-    
-    let mut jobs = if is_demo {
-        println!("🎯 Demo mode: Generating sample jobs");
-        generate_sample_jobs(query_str)
-    } else {
-        println!("🌐 Attempting to scrape jobs from selected sources...");
-        println!("⚠️  Note: Real scraping may fail. Try 'demo' query for sample jobs!");
-        
-        match scraper.scrape_selected(&sources, query_str) {
-            Ok(jobs) => {
-                println!("✅ Successfully scraped {} jobs", jobs.len());
-                jobs
-            }
-            Err(e) => {
-                eprintln!("❌ Scraping failed: {}", e);
-                eprintln!("💡 Falling back to demo mode");
-                generate_sample_jobs(query_str)
-            }
-        }
-    };
-    
-    println!("Scraped {} jobs, saving to database...", jobs.len());
-    
-    let db = state.db.lock().await;
-    if let Some(db) = &*db {
-        let conn = db.get_connection();
-        let mut saved_count = 0;
-        let mut new_saved_jobs = Vec::new(); // Track newly saved jobs for email extraction
-        
-        for job in &mut jobs {
-            match conn.get_job_by_url(&job.url) {
-                Ok(Some(_)) => {
-                    // Job already exists, skip
-                    continue;
-                }
-                Ok(None) => {
-                    // Job doesn't exist, create it
-                    match conn.create_job(job) {
-                        Ok(_) => {
-                            saved_count += 1;
-                            // Log activity for scraped jobs
-                            if let Some(job_id) = job.id {
-                                let description = format!("Job '{}' at {} was scraped from {}", job.title, job.company, job.source);
-                                let _ = log_activity(&conn, "job", job_id, "created", Some(description), Some(format!(r#"{{"source": "scraped", "source_name": "{}"}}"#, job.source)));
-                                
-                                // Store newly saved job for email extraction
-                                new_saved_jobs.push(job.clone());
-                            }
-                        }
-                        Err(e) => {
-                            eprintln!("Failed to save job {}: {}", job.title, e);
-                        }
-                    }
-                }
-                Err(e) => {
-                    eprintln!("Error checking if job exists: {}", e);
-                }
-            }
-        }
-        println!("Saved {} new jobs to database", saved_count);
-        
-        // Automatically extract emails from newly saved jobs and create contacts
-        if !new_saved_jobs.is_empty() {
-            let mut contacts_created = 0;
-            let mut jobs_with_emails = 0;
-            
-            for job in &new_saved_jobs {
-                if let Some(job_id) = job.id {
-                    // Extract emails from job description/requirements
-                    let emails = notifications::extract_job_emails(&job.description, &job.requirements);
-                    
-                    if !emails.is_empty() {
-                        jobs_with_emails += 1;
-                        println!("📧 Found {} email(s) in job: {} at {}", emails.len(), job.title, job.company);
-                        
-                        // Create contact for each email found
-                        for email in emails {
-                            // Check if contact already exists
-                            if let Ok(existing_contacts) = conn.list_contacts(Some(job_id)) {
-                                if !existing_contacts.iter().any(|c| c.email.as_deref() == Some(&email)) {
-                                    let mut contact = db::models::Contact {
-                                        id: None,
-                                        job_id,
-                                        name: format!("Contact at {}", job.company),
-                                        email: Some(email.clone()),
-                                        phone: None,
-                                        position: None,
-                                        notes: Some(format!("Extracted from job description/requirements")),
-                                        created_at: None,
-                                        updated_at: None,
-                                    };
-                                    
-                                    if conn.create_contact(&mut contact).is_ok() {
-                                        contacts_created += 1;
-                                        println!("  ✓ Created contact: {} for job {}", email, job_id);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            
-            if contacts_created > 0 {
-                println!("📧 Created {} contact(s) from {} job(s) with emails", contacts_created, jobs_with_emails);
-            }
-        }
-    }
-    
-    println!("Returning {} jobs", jobs.len());
-    Ok(jobs)
-}
+    let resume_documents = db_resume_count + file_resume_count;
 
-// Contact Commands
-#[tauri::command]
-async fn get_contacts(
-    state: State<'_, AppState>,
-    job_id: Option<i64>,
-) -> Result<Vec<db::models::Contact>> {
-    let db = state.db.lock().await;
-    let db = db.as_ref().ok_or_else(|| crate::error::Error::Custom("Database not initialized".to_string()))?;
-    let conn = db.get_connection();
-    Ok(conn.list_contacts(job_id)?)
-}
-
-#[tauri::command]
-async fn create_contact(
-    state: State<'_, AppState>,
-    mut contact: db::models::Contact,
-) -> Result<db::models::Contact> {
-    let db = state.db.lock().await;
-    let db = db.as_ref().ok_or_else(|| crate::error::Error::Custom("Database not initialized".to_string()))?;
-    let conn = db.get_connection();
-    conn.create_contact(&mut contact)?;
-    Ok(contact)
-}
-
-#[tauri::command]
-async fn update_contact(
-    state: State<'_, AppState>,
-    contact: db::models::Contact,
-) -> Result<db::models::Contact> {
-    let db = state.db.lock().await;
-    let db = db.as_ref().ok_or_else(|| crate::error::Error::Custom("Database not initialized".to_string()))?;
-    let conn = db.get_connection();
-    conn.update_contact(&contact)?;
-    Ok(contact)
-}
-
-#[tauri::command]
-async fn delete_contact(
-    state: State<'_, AppState>,
-    id: i64,
-) -> Result<()> {
-    let db = state.db.lock().await;
-    let db = db.as_ref().ok_or_else(|| crate::error::Error::Custom("Database not initialized".to_string()))?;
-    let conn = db.get_connection();
-    Ok(conn.delete_contact(id)?)
-}
-
-// Interview Commands
-#[tauri::command]
-async fn get_interviews(
-    state: State<'_, AppState>,
-    application_id: Option<i64>,
-) -> Result<Vec<db::models::Interview>> {
-    let db = state.db.lock().await;
-    let db = db.as_ref().ok_or_else(|| crate::error::Error::Custom("Database not initialized".to_string()))?;
-    let conn = db.get_connection();
-    Ok(conn.list_interviews(application_id)?)
-}
-
-#[tauri::command]
-async fn create_interview(
-    state: State<'_, AppState>,
-    mut interview: db::models::Interview,
-) -> Result<db::models::Interview> {
-    let db = state.db.lock().await;
-    let db = db.as_ref().ok_or_else(|| crate::error::Error::Custom("Database not initialized".to_string()))?;
-    let conn = db.get_connection();
-    conn.create_interview(&mut interview)?;
-    Ok(interview)
-}
-
-#[tauri::command]
-async fn update_interview(
-    state: State<'_, AppState>,
-    interview: db::models::Interview,
-) -> Result<db::models::Interview> {
-    let db = state.db.lock().await;
-    let db = db.as_ref().ok_or_else(|| crate::error::Error::Custom("Database not initialized".to_string()))?;
-    let conn = db.get_connection();
-    conn.update_interview(&interview)?;
-    Ok(interview)
-}
-
-#[tauri::command]
-async fn delete_interview(
-    state: State<'_, AppState>,
-    id: i64,
-) -> Result<()> {
-    let db = state.db.lock().await;
-    let db = db.as_ref().ok_or_else(|| crate::error::Error::Custom("Database not initialized".to_string()))?;
-    let conn = db.get_connection();
-    Ok(conn.delete_interview(id)?)
-}
-
-// Document Commands
-#[tauri::command]
-async fn get_documents(
-    state: State<'_, AppState>,
-    application_id: Option<i64>,
-    document_type: Option<String>,
-) -> Result<Vec<db::models::Document>> {
-    let db = state.db.lock().await;
-    let db = db.as_ref().ok_or_else(|| crate::error::Error::Custom("Database not initialized".to_string()))?;
-    let conn = db.get_connection();
-    
-    let doc_type = match document_type {
-        Some(dt) => Some(db::models::DocumentType::from_str(&dt)?),
-        None => None,
-    };
-    
-    Ok(conn.list_documents(application_id, doc_type)?)
-}
-
-#[tauri::command]
-async fn create_document(
-    state: State<'_, AppState>,
-    mut document: db::models::Document,
-) -> Result<db::models::Document> {
-    let db = state.db.lock().await;
-    let db = db.as_ref().ok_or_else(|| crate::error::Error::Custom("Database not initialized".to_string()))?;
-    let conn = db.get_connection();
-    conn.create_document(&mut document)?;
-    Ok(document)
-}
-
-#[tauri::command]
-async fn update_document(
-    state: State<'_, AppState>,
-    document: db::models::Document,
-) -> Result<db::models::Document> {
-    let db = state.db.lock().await;
-    let db = db.as_ref().ok_or_else(|| crate::error::Error::Custom("Database not initialized".to_string()))?;
-    let conn = db.get_connection();
-    conn.update_document(&document)?;
-    Ok(document)
-}
-
-#[tauri::command]
-async fn delete_document(
-    state: State<'_, AppState>,
-    id: i64,
-) -> Result<()> {
-    let db = state.db.lock().await;
-    let db = db.as_ref().ok_or_else(|| crate::error::Error::Custom("Database not initialized".to_string()))?;
-    let conn = db.get_connection();
-    Ok(conn.delete_document(id)?)
-}
-
-// Application Commands
-#[tauri::command]
-async fn get_applications(
-    state: State<'_, AppState>,
-    job_id: Option<i64>,
-    status: Option<String>,
-) -> Result<Vec<db::models::Application>> {
-    let db = state.db.lock().await;
-    if let Some(db) = &*db {
-        let conn = db.get_connection();
-        let status = status
-            .as_deref()
-            .and_then(|s| db::models::ApplicationStatus::from_str(s).ok());
-        conn.list_applications(job_id, status).map_err(Into::into)
-    } else {
-        Err(anyhow::anyhow!("Database not initialized").into())
-    }
-}
-
-#[tauri::command]
-async fn create_application(
-    state: State<'_, AppState>,
-    mut application: db::models::Application,
-) -> Result<db::models::Application> {
-    let db = state.db.lock().await;
-    if let Some(db) = &*db {
-        let conn = db.get_connection();
-        
-        // Get job info for activity description
-        let job_info = conn.get_job(application.job_id).ok().flatten();
-        
-        conn.create_application(&mut application)?;
-        
-        // Log activity
-        if let Some(app_id) = application.id {
-            let description = if let Some(job) = job_info {
-                format!("Application created for '{}' at {}", job.title, job.company)
-            } else {
-                format!("Application created (Job ID: {})", application.job_id)
-            };
-            log_activity(&conn, "application", app_id, "created", Some(description), None)?;
-        }
-        
-        Ok(application)
-    } else {
-        Err(anyhow::anyhow!("Database not initialized").into())
-    }
-}
-
-#[tauri::command]
-async fn update_application(
-    state: State<'_, AppState>,
-    application: db::models::Application,
-) -> Result<db::models::Application> {
-    let db = state.db.lock().await;
-    if let Some(db) = &*db {
-        let conn = db.get_connection();
-        
-        // Get old application to check for status changes
-        let old_application = if let Some(app_id) = application.id {
-            conn.get_application(app_id).ok().flatten()
-        } else {
-            None
-        };
-        
-        // Get job info for activity description
-        let job_info = conn.get_job(application.job_id).ok().flatten();
-        
-        conn.update_application(&application)?;
-        
-        // Log activity
-        if let Some(app_id) = application.id {
-            let action = if let Some(old) = &old_application {
-                if old.status != application.status {
-                    // Status changed
-                    let metadata = format!(r#"{{"old_status": "{}", "new_status": "{}"}}"#, old.status, application.status);
-                    let description = if let Some(job) = &job_info {
-                        format!("Application status changed from {} to {} for '{}' at {}", 
-                            old.status, application.status, job.title, job.company)
-                    } else {
-                        format!("Application status changed from {} to {}", old.status, application.status)
-                    };
-                    log_activity(&conn, "application", app_id, "status_changed", Some(description), Some(metadata))?;
-                    return Ok(application);
-                }
-                "updated"
-            } else {
-                "updated"
-            };
-            
-            let description = if let Some(job) = job_info {
-                format!("Application updated for '{}' at {}", job.title, job.company)
-            } else {
-                format!("Application updated (Job ID: {})", application.job_id)
-            };
-            log_activity(&conn, "application", app_id, action, Some(description), None)?;
-        }
-        
-        Ok(application)
-    } else {
-        Err(anyhow::anyhow!("Database not initialized").into())
-    }
-}
-
-#[tauri::command]
-async fn delete_application(state: State<'_, AppState>, id: i64) -> Result<()> {
-    let db = state.db.lock().await;
-    if let Some(db) = &*db {
-        let conn = db.get_connection();
-        
-        // Get application info before deleting for activity log
-        let app_info = conn.get_application(id).ok().flatten();
-        let job_info = if let Some(app) = &app_info {
-            conn.get_job(app.job_id).ok().flatten()
-        } else {
-            None
-        };
-        
-        conn.delete_application(id)?;
-        
-        // Log activity
-        if let Some(_app) = app_info {
-            let description = if let Some(job) = job_info {
-                format!("Application deleted for '{}' at {}", job.title, job.company)
-            } else {
-                format!("Application deleted (ID: {})", id)
-            };
-            log_activity(&conn, "application", id, "deleted", Some(description), None)?;
-        }
-        
-        Ok(())
-    } else {
-        Err(anyhow::anyhow!("Database not initialized").into())
-    }
-}
-
-// Activity Commands
-#[tauri::command]
-async fn get_activities(
-    state: State<'_, AppState>,
-    entity_type: Option<String>,
-    limit: Option<usize>,
-) -> Result<Vec<db::models::Activity>> {
-    let db = state.db.lock().await;
-    if let Some(db) = &*db {
-        let conn = db.get_connection();
-        let entity_type_ref = entity_type.as_deref();
-        conn.list_activities(entity_type_ref, limit).map_err(Into::into)
-    } else {
-        Err(anyhow::anyhow!("Database not initialized").into())
-    }
-}
-
-// Credential Commands
-#[tauri::command]
-async fn get_credential(
-    state: State<'_, AppState>,
-    platform: String,
-) -> Result<Option<db::models::Credential>> {
-    let db = state.db.lock().await;
-    if let Some(db) = &*db {
-        let conn = db.get_connection();
-        conn.get_credential(&platform).map_err(Into::into)
-    } else {
-        Err(anyhow::anyhow!("Database not initialized").into())
-    }
-}
-
-// Document Generation Commands
-#[tauri::command]
-async fn generate_resume(
-    state: State<'_, AppState>,
-    profile: generator::UserProfile,
-    job_id: i64,
-    template_name: Option<String>,
-    improve_with_ai: Option<bool>,
-) -> Result<generator::GeneratedDocument> {
-    let (job, api_key) = {
-        let db = state.db.lock().await;
-        if let Some(db) = &*db {
-            let conn = db.get_connection();
-            let job = conn.get_job(job_id)?
-                .ok_or_else(|| anyhow::anyhow!("Job not found"))?;
-
-            // Get AI key from credentials if available
-            let api_key = conn.get_credential("openai")
-                .ok()
-                .flatten()
-                .and_then(|cred| cred.tokens.as_deref().map(|s| s.to_string()));
-            
-            (job, api_key)
-        } else {
-            return Err(anyhow::anyhow!("Database not initialized").into());
-        }
-    };
-
-    println!("Creating resume generator...");
-    let mut resume_generator = generator::ResumeGenerator::new();
-    if let Some(api_key) = &api_key {
-        println!("Using OpenAI API for resume generation");
-        resume_generator = resume_generator.with_ai_key(api_key.clone());
-    } else {
-        println!("No OpenAI API key - using basic job analysis");
-    }
-
-    let improve_with_ai = improve_with_ai.unwrap_or(false);
-    println!("Generating resume (improve_with_ai={}, template={:?})...", improve_with_ai, template_name);
-    
-    match resume_generator.generate_resume(&profile, &job, template_name.as_deref(), improve_with_ai).await {
-        Ok(document) => {
-            println!("✅ Resume generated successfully! Word count: {}", document.metadata.word_count);
-            Ok(document)
-        }
-        Err(e) => {
-            eprintln!("❌ ERROR generating resume: {}", e);
-            eprintln!("Error details: {:?}", e);
-            Err(anyhow::anyhow!("Failed to generate resume: {}", e).into())
-        }
-    }
-}
-
-#[tauri::command]
-async fn generate_cover_letter(
-    state: State<'_, AppState>,
-    profile: generator::UserProfile,
-    job_id: i64,
-    template_name: Option<String>,
-    improve_with_ai: Option<bool>,
-) -> Result<generator::GeneratedDocument> {
-    let (job, api_key) = {
-        let db = state.db.lock().await;
-        if let Some(db) = &*db {
-            let conn = db.get_connection();
-            let job = conn.get_job(job_id)?
-                .ok_or_else(|| anyhow::anyhow!("Job not found"))?;
-
-            // Get AI key from credentials if available
-            let api_key = conn.get_credential("openai")
-                .ok()
-                .flatten()
-                .and_then(|cred| cred.tokens.as_deref().map(|s| s.to_string()));
-            
-            (job, api_key)
-        } else {
-            return Err(anyhow::anyhow!("Database not initialized").into());
-        }
-    };
-
-    let mut cover_letter_generator = generator::CoverLetterGenerator::new();
-    if let Some(api_key) = api_key {
-        cover_letter_generator = cover_letter_generator.with_ai_key(api_key);
-    }
-
-    let improve_with_ai = improve_with_ai.unwrap_or(false);
-    cover_letter_generator.generate_cover_letter(&profile, &job, template_name.as_deref(), improve_with_ai).await
-        .map_err(Into::into)
-}
-
-#[tauri::command]
-async fn generate_email_version(
-    state: State<'_, AppState>,
-    profile: generator::UserProfile,
-    job_id: i64,
-    template_name: Option<String>,
-    improve_with_ai: Option<bool>,
-) -> Result<generator::GeneratedDocument> {
-    let (job, api_key) = {
-        let db = state.db.lock().await;
-        if let Some(db) = &*db {
-            let conn = db.get_connection();
-            let job = conn.get_job(job_id)?
-                .ok_or_else(|| anyhow::anyhow!("Job not found"))?;
-
-            // Get AI key from credentials if available
-            let api_key = conn.get_credential("openai")
-                .ok()
-                .flatten()
-                .and_then(|cred| cred.tokens.as_deref().map(|s| s.to_string()));
-            
-            (job, api_key)
-        } else {
-            return Err(anyhow::anyhow!("Database not initialized").into());
-        }
-    };
-
-    let mut cover_letter_generator = generator::CoverLetterGenerator::new();
-    if let Some(api_key) = api_key {
-        cover_letter_generator = cover_letter_generator.with_ai_key(api_key);
-    }
-
-    let improve_with_ai = improve_with_ai.unwrap_or(false);
-    cover_letter_generator.generate_email_version(&profile, &job, template_name.as_deref(), improve_with_ai).await
-        .map_err(Into::into)
-}
-
-#[tauri::command]
-async fn export_document_to_pdf(
-    app_handle: tauri::AppHandle,
-    document: generator::GeneratedDocument,
-    output_path: String,
-) -> Result<String> {
-    let pdf_exporter = generator::PDFExporter::new();
-    
-    // Resolve the output path - if it's just a filename, save to app data directory
-    let final_path = if output_path.starts_with('/') || output_path.contains('\\') || output_path.contains(':') {
-        // Absolute path provided (Unix, Windows, or drive letter)
-        std::path::PathBuf::from(&output_path)
-    } else {
-        // Just a filename - save to app data directory
-        let app_dir = app_handle.path().app_data_dir()
-            .map_err(|e| anyhow::anyhow!("Could not get app data directory: {}", e))?;
-        std::fs::create_dir_all(&app_dir)
-            .map_err(|e| anyhow::anyhow!("Could not create app data directory: {}", e))?;
-        app_dir.join(&output_path)
-    };
-    
-    pdf_exporter.export_to_pdf(&document, &final_path)?;
-    
-    Ok(format!("Document exported to: {}", final_path.display()))
-}
-
-#[tauri::command]
-async fn get_available_resume_templates() -> Result<Vec<String>> {
-    let resume_generator = generator::ResumeGenerator::new();
-    Ok(resume_generator.list_available_templates())
-}
-
-#[tauri::command]
-async fn get_available_cover_letter_templates() -> Result<Vec<String>> {
-    let cover_letter_generator = generator::CoverLetterGenerator::new();
-    Ok(cover_letter_generator.list_available_templates())
-}
-
-#[tauri::command]
-async fn analyze_job_for_profile(
-    state: State<'_, AppState>,
-    job_id: i64,
-) -> Result<generator::JobAnalysis> {
-    let (job, api_key) = {
-        let db = state.db.lock().await;
-        if let Some(db) = &*db {
-            let conn = db.get_connection();
-            let job = conn.get_job(job_id)?
-                .ok_or_else(|| anyhow::anyhow!("Job not found"))?;
-
-            // Get AI key from credentials if available
-            let api_key = conn.get_credential("openai")
-                .ok()
-                .flatten()
-                .and_then(|cred| cred.tokens.as_deref().map(|s| s.to_string()));
-            
-            (job, api_key)
-        } else {
-            return Err(anyhow::anyhow!("Database not initialized").into());
-        }
-    };
-
-    let mut ai_integration = generator::AIIntegration::new();
-    if let Some(api_key) = api_key {
-        ai_integration = ai_integration.with_api_key(api_key);
-    }
-
-    ai_integration.analyze_job(&job).await.map_err(Into::into)
-}
-
-// Job Matching Commands
-#[tauri::command]
-async fn calculate_job_match_score(
-    state: State<'_, AppState>,
-    job_id: i64,
-    profile: generator::UserProfile,
-) -> Result<matching::JobMatchResult> {
-    let job = {
-        let db = state.db.lock().await;
-        if let Some(db) = &*db {
-            let conn = db.get_connection();
-            conn.get_job(job_id)?
-                .ok_or_else(|| anyhow::anyhow!("Job not found"))?
-        } else {
-            return Err(anyhow::anyhow!("Database not initialized").into());
-        }
-    };
-    
-    let matcher = matching::JobMatcher::new();
-    let match_result = matcher.calculate_match(&job, &profile);
-    Ok(match_result)
-}
-
-#[tauri::command]
-async fn match_jobs_for_profile(
-    state: State<'_, AppState>,
-    profile: generator::UserProfile,
-    min_score: Option<f64>,
-) -> Result<Vec<matching::JobMatchResult>> {
-    let jobs = {
-        let db = state.db.lock().await;
-        if let Some(db) = &*db {
-            let conn = db.get_connection();
-            conn.list_jobs(None)?
-        } else {
-            return Err(anyhow::anyhow!("Database not initialized").into());
-        }
-    };
-    
-    let matcher = matching::JobMatcher::new();
-    let results = matcher.match_jobs(&jobs, &profile);
-    
-    let filtered = if let Some(min) = min_score {
-        matcher.filter_by_score(&results, min)
-    } else {
-        results
-    };
-    
-    Ok(filtered)
-}
-
-// User Profile Commands
-#[tauri::command]
-async fn save_user_profile(
-    state: State<'_, AppState>,
-    profile: generator::UserProfile,
-) -> Result<()> {
-    let db = state.db.lock().await;
-    if let Some(db) = &*db {
-        let conn = db.get_connection();
-        let profile_json = serde_json::to_string(&profile)
-            .map_err(|e| anyhow::anyhow!("Failed to serialize profile: {}", e))?;
-        
-        // Update or insert profile (id = 1)
-        conn.execute(
-            "INSERT OR REPLACE INTO user_profile (id, profile_data, updated_at) VALUES (1, ?1, ?2)",
-            params![profile_json, chrono::Utc::now()],
-        )?;
-        
-        println!("✅ User profile saved to database");
-        Ok(())
-    } else {
-        Err(anyhow::anyhow!("Database not initialized").into())
-    }
-}
-
-#[tauri::command]
-async fn get_user_profile(
-    state: State<'_, AppState>,
-) -> Result<Option<generator::UserProfile>> {
-    let db = state.db.lock().await;
-    if let Some(db) = &*db {
-        let conn = db.get_connection();
-        
-        match conn.query_row(
-            "SELECT profile_data FROM user_profile WHERE id = 1",
-            [],
-            |row| {
-                let profile_json: String = row.get(0)?;
-                Ok(profile_json)
-            },
-        ) {
-            Ok(profile_json) => {
-                let profile: generator::UserProfile = serde_json::from_str(&profile_json)
-                    .map_err(|e| anyhow::anyhow!("Failed to parse profile: {}", e))?;
-                Ok(Some(profile))
-            }
-            Err(rusqlite::Error::QueryReturnedNoRows) => {
-                println!("No user profile found in database");
-                Ok(None)
-            }
-            Err(e) => Err(anyhow::anyhow!("Failed to get user profile: {}", e).into()),
-        }
-    } else {
-        Err(anyhow::anyhow!("Database not initialized").into())
-    }
-}
-
-#[tauri::command]
-async fn update_job_match_scores(
-    state: State<'_, AppState>,
-    profile: generator::UserProfile,
-) -> Result<usize> {
-    println!("update_job_match_scores called with profile: {:?}", profile.personal_info.name);
-    let (jobs, mut updated_count) = {
-        let db = state.db.lock().await;
-        if let Some(db) = &*db {
-            let conn = db.get_connection();
-            let jobs = conn.list_jobs(None)?;
-            println!("Found {} jobs to calculate match scores for", jobs.len());
-            (jobs, 0)
-        } else {
-            return Err(anyhow::anyhow!("Database not initialized").into());
-        }
-    };
-
-    let matcher = matching::JobMatcher::new();
-    
-    // Calculate match scores for all jobs
-    for job in &jobs {
-        let match_result = matcher.calculate_match(job, &profile);
-        
-        // Update job with match score
-        let mut updated_job = job.clone();
-        updated_job.match_score = Some(match_result.match_score);
-        
-        {
-            let db = state.db.lock().await;
-            if let Some(db) = &*db {
-                let conn = db.get_connection();
-                if conn.update_job(&updated_job).is_ok() {
-                    updated_count += 1;
-                }
-            }
-        }
-    }
-    
-    Ok(updated_count)
-}
-
-// Email Notification Commands
-#[tauri::command]
-async fn test_email_connection(
-    config: notifications::EmailConfig,
-) -> Result<String> {
-    let mut email_service = notifications::EmailService::new(config);
-    email_service.initialize()?;
-    Ok("Email connection test successful!".to_string())
-}
-
-#[tauri::command]
-async fn send_test_email(
-    config: notifications::EmailConfig,
-    to: String,
-) -> Result<String> {
-    let mut email_service = notifications::EmailService::new(config);
-    email_service.initialize()?;
-    email_service.send_test_email(&to)?;
-    Ok(format!("Test email sent successfully to {}", to))
-}
-
-#[tauri::command]
-async fn send_job_match_email_with_result(
-    config: notifications::EmailConfig,
-    to: String,
-    job: db::models::Job,
-    match_result: matching::JobMatchResult,
-) -> Result<String> {
-    let mut email_service = notifications::EmailService::new(config);
-    email_service.initialize()?;
-    email_service.send_job_match_notification(&to, &job, &match_result)?;
-    Ok(format!("Job match notification sent to {}", to))
-}
-
-#[tauri::command]
-async fn send_new_jobs_notification_email(
-    config: notifications::EmailConfig,
-    to: String,
-    jobs: Vec<db::models::Job>,
-    match_results: Option<Vec<matching::JobMatchResult>>,
-) -> Result<String> {
-    let mut email_service = notifications::EmailService::new(config);
-    email_service.initialize()?;
-    
-    let match_results_ref = match_results.as_ref().map(|v| v.as_slice());
-    email_service.send_new_jobs_notification(&to, &jobs, match_results_ref)?;
-    
-    Ok(format!("New jobs notification sent to {} for {} job(s)", to, jobs.len()))
-}
-
-#[tauri::command]
-async fn extract_emails_from_jobs(
-    jobs: Vec<db::models::Job>,
-) -> Result<Vec<(i64, Vec<String>)>> {
-    // Extract emails from each job and return job_id -> emails mapping
-    let mut result = Vec::new();
-    
-    for job in jobs {
-        if let Some(job_id) = job.id {
-            let emails = notifications::extract_job_emails(&job.description, &job.requirements);
-            if !emails.is_empty() {
-                result.push((job_id, emails));
-            }
-        }
-    }
-    
-    Ok(result)
-}
-
-#[tauri::command]
-async fn create_contacts_from_jobs(
-    state: State<'_, AppState>,
-    jobs: Vec<db::models::Job>,
-) -> Result<usize> {
-    let db = state.db.lock().await;
-    if let Some(db) = &*db {
-        let conn = db.get_connection();
-        let mut contacts_created = 0;
-        
-        for job in jobs {
-            if let Some(job_id) = job.id {
-                // Extract emails from job
-                let emails = notifications::extract_job_emails(&job.description, &job.requirements);
-                
-                // Create contact for each email found
-                for email in emails {
-                    // Check if contact already exists
-                    let existing_contacts = conn.list_contacts(Some(job_id))?;
-                    if !existing_contacts.iter().any(|c| c.email.as_deref() == Some(&email)) {
-                        let mut contact = db::models::Contact {
-                            id: None,
-                            job_id,
-                            name: format!("Contact at {}", job.company),
-                            email: Some(email.clone()),
-                            phone: None,
-                            position: None,
-                            notes: Some(format!("Extracted from job description/requirements")),
-                            created_at: None,
-                            updated_at: None,
-                        };
-                        
-                        if conn.create_contact(&mut contact).is_ok() {
-                            contacts_created += 1;
-                            println!("📧 Created contact: {} for job {}", email, job_id);
-                        }
-                    }
-                }
-            }
-        }
-        
-        Ok(contacts_created)
-    } else {
-        Err(anyhow::anyhow!("Database not initialized").into())
-    }
+    Ok(AutomationHealthReport {
+        profile_configured,
+        missing_fields,
+        resume_documents,
+        credential_platforms,
+        chromium_available: BrowserScraper::is_chromium_available(),
+        playwright_available: BrowserScraper::is_playwright_available(),
+    })
 }
 
 // Scheduler Commands
-#[tauri::command]
-async fn get_scheduler_config() -> Result<scheduler::SchedulerConfig> {
-    // Load config from localStorage (managed by frontend)
-    // For now, return default config
-    Ok(scheduler::SchedulerConfig::default())
+
+// Auto-apply command
+#[derive(serde::Serialize)]
+pub struct AutoApplyResult {
+    pub jobs_scraped: usize,
+    pub jobs_filtered: usize,
+    pub applications_submitted: usize,
+    pub applications_failed: usize,
+    pub results: Vec<ApplicationResult>,
 }
 
-#[tauri::command]
-async fn update_scheduler_config(
-    state: State<'_, AppState>,
-    config: scheduler::SchedulerConfig,
-) -> Result<String> {
-    let mut scheduler_guard = state.scheduler.lock().await;
-    
-    // Stop existing scheduler if running
-    if let Some(scheduler) = scheduler_guard.as_ref() {
-        let _ = scheduler.stop().await;
-    }
-    
-    // Create new scheduler with updated config
-    let db = Arc::clone(&state.db);
-    let scheduler = scheduler::JobScheduler::new(config.clone(), db);
-    
-    // Start scheduler if enabled
-    if config.enabled {
-        scheduler.start().await?;
-        Ok("Scheduler configuration updated and started".to_string())
-    } else {
-        *scheduler_guard = Some(scheduler);
-        Ok("Scheduler configuration updated (disabled)".to_string())
-    }
-}
+pub async fn run_auto_apply_logic(
+    db: Arc<Mutex<Option<Database>>>,
+    app_dir: std::path::PathBuf,
+    query: String,
+    max_applications: usize,
+    dry_run: bool,
+) -> Result<AutoApplyResult> {
+    println!("🚀 Starting auto-apply process (Dry Run: {})", dry_run);
 
-#[tauri::command]
-async fn start_scheduler(
-    state: State<'_, AppState>,
-) -> Result<String> {
-    let mut scheduler_guard = state.scheduler.lock().await;
-    
-    if let Some(scheduler) = scheduler_guard.as_ref() {
-        // Check if already running
-        if scheduler.is_running().await {
-            return Ok("Scheduler is already running".to_string());
+    // Step 1: Get user profile
+    let db_guard = db.lock().await;
+    let profile = if let Some(db) = &*db_guard {
+        let conn = db.get_connection();
+        let profile = commands::user::load_user_profile_from_conn(&conn)?;
+        if let Some(profile) = profile {
+            profile
+        } else {
+            return Err(anyhow::anyhow!(
+                "User profile not found. Please configure your profile in Settings."
+            )
+            .into());
         }
-        scheduler.start().await?;
-        Ok("Scheduler started successfully".to_string())
     } else {
-        // Create scheduler with default config if it doesn't exist
-        let db = Arc::clone(&state.db);
-        let mut config = scheduler::SchedulerConfig::default();
-        config.enabled = true;
-        let scheduler = scheduler::JobScheduler::new(config, db);
-        scheduler.start().await?;
+        return Err(anyhow::anyhow!("Database not initialized").into());
+    };
+    drop(db_guard); // Release lock early
+
+    // Step 2: Scrape jobs (disable enrichment for speed - we'll filter first)
+    println!("📡 Scraping jobs for: {}", query);
+
+    // Disable auto-enrichment to speed up scraping - we'll filter jobs first
+    let mut scraper_config = scraper::config::ScraperConfig::default();
+    scraper_config.auto_enrich = false; // Skip enrichment to avoid getting stuck
+    let scraper = scraper::ScraperManager::with_config(scraper_config);
+    let jobs = task::spawn_blocking(move || scraper.scrape_all(&query))
+        .await
+        .map_err(|e| anyhow::anyhow!("Task join error: {}", e))?
+        .map_err(|e| anyhow::anyhow!("Scraping failed: {}", e))?;
+
+    let jobs_count = jobs.len();
+    println!("✅ Scraped {} jobs from all sources", jobs_count);
+
+    // Step 3: Filter jobs (remote, mid-senior, $30k+)
+    let filtered_jobs: Vec<_> = jobs
+        .into_iter()
+        .filter(|job| {
+            // Skip hh.kz jobs - they're mostly Russian jobs that don't match remote criteria
+            if job.source.eq_ignore_ascii_case("hh.kz") {
+                return false;
+            }
+
+            // Check if remote
+            let is_remote = job
+                .location
+                .as_ref()
+                .map(|loc| {
+                    let loc_lower = loc.to_lowercase();
+                    loc_lower.contains("remote") || loc_lower.contains("anywhere")
+                })
+                .unwrap_or(false)
+                || job.title.to_lowercase().contains("remote");
+
+            // Check if mid-senior level
+            let is_mid_senior = job.title.to_lowercase().contains("senior")
+                || job.title.to_lowercase().contains("staff")
+                || job.title.to_lowercase().contains("lead")
+                || job.title.to_lowercase().contains("engineer")
+                || job.title.to_lowercase().contains("developer");
+
+            // Check salary (if available) - at least $30k
+            let salary_ok = job
+                .salary
+                .as_ref()
+                .map(|s| {
+                    // Extract numbers from salary string
+                    let numbers: Vec<f64> = regex::Regex::new(r"\$?([\d,]+)")
+                        .expect("Failed to compile salary regex pattern")
+                        .find_iter(s)
+                        .filter_map(|m| {
+                            m.as_str()
+                                .replace("$", "")
+                                .replace(",", "")
+                                .parse::<f64>()
+                                .ok()
+                        })
+                        .collect();
+                    numbers.is_empty() || numbers.iter().any(|&n| n >= 30000.0)
+                })
+                .unwrap_or(true); // If no salary info, assume OK
+
+            is_remote && is_mid_senior && salary_ok
+        })
+        .take(max_applications)
+        .collect();
+
+    let filtered_count = filtered_jobs.len();
+    println!("🎯 Filtered to {} relevant jobs", filtered_count);
+
+    if filtered_count == 0 {
+        println!("⚠️  No jobs to apply to after filtering");
+        return Ok(AutoApplyResult {
+            jobs_scraped: jobs_count,
+            jobs_filtered: 0,
+            applications_submitted: 0,
+            applications_failed: 0,
+            results: Vec::new(),
+        });
+    }
+
+    // Step 4: Save jobs to database and apply
+    println!("📋 Preparing to apply to {} jobs...", filtered_count);
+    let mut applications_submitted = 0;
+    let mut applications_failed = 0;
+    let mut results = Vec::new();
+
+    println!("📁 Getting application directory...");
+
+    // Find resume file - look for any PDF in app dir
+    let mut resume_path = app_dir.join("resume.pdf"); // Default
+    let mut found_resume = false;
+
+    // First check if specific file exists
+    if resume_path.exists() {
+        found_resume = true;
+    } else {
+        // Search for any PDF
+        if let Ok(entries) = std::fs::read_dir(&app_dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if let Some(ext) = path.extension() {
+                    if ext.eq_ignore_ascii_case("pdf") {
+                        resume_path = path;
+                        found_resume = true;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    if !found_resume {
+        // Try dev environment fallback (if UNHIREABLE_DEV_RESUME_PATH is set)
+        if let Ok(dev_resume_path) = std::env::var("UNHIREABLE_DEV_RESUME_PATH") {
+            let project_resume = std::path::Path::new(&dev_resume_path);
+            if project_resume.exists() {
+                println!("📋 Copying resume from dev path to app directory...");
+                let target_path = app_dir.join("resume.pdf");
+                if let Err(e) = std::fs::copy(project_resume, &target_path) {
+                    tracing::warn!("Failed to copy dev resume: {}", e);
+                } else {
+                    resume_path = target_path;
+                    println!("✅ Resume copied successfully");
+                    found_resume = true;
+                }
+            }
+        }
         
-        *scheduler_guard = Some(scheduler);
-        Ok("Scheduler created and started".to_string())
+        if !found_resume {
+            return Err(anyhow::anyhow!(
+                "No resume found. Please upload a PDF resume in Settings or set UNHIREABLE_DEV_RESUME_PATH for development."
+            )
+            .into());
+        }
     }
+
+    println!("✅ Using resume: {:?}", resume_path);
+    let resume_path_str = resume_path.to_string_lossy().to_string();
+    println!(
+        "🚀 Starting application loop for {} jobs...",
+        filtered_count
+    );
+
+    for (idx, job) in filtered_jobs.iter().enumerate() {
+        println!(
+            "📝 [{}/{}] Processing: {} at {}",
+            idx + 1,
+            filtered_count,
+            job.title,
+            job.company
+        );
+        // Save job to database first
+        let job_id = {
+            let db_guard = db.lock().await;
+            if let Some(db) = &*db_guard {
+                let conn = db.get_connection();
+
+                // Check if job already exists
+                match conn.get_job_by_url(&job.url) {
+                    Ok(Some(existing_job)) => {
+                        println!("⏭️  Job already exists: {}", job.title);
+                        existing_job.id
+                    }
+                    Ok(None) => {
+                        let mut new_job = job.clone();
+                        match conn.create_job(&mut new_job) {
+                            Ok(_) => {
+                                println!("💾 Saved job to database: {}", new_job.title);
+                                new_job.id
+                            }
+                            Err(e) => {
+                                eprintln!("❌ Failed to save job: {}", e);
+                                continue;
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("❌ Error checking job: {}", e);
+                        continue;
+                    }
+                }
+            } else {
+                continue;
+            }
+        };
+
+        if let Some(job_id_val) = job_id {
+            // Apply to job
+            println!("📝 Applying to: {} at {}", job.title, job.company);
+
+            let config = ApplicationConfig {
+                auto_submit: !dry_run, // Don't auto-submit in dry run
+                upload_resume: true,
+                upload_cover_letter: false, // Start without cover letter for simplicity
+                resume_path: Some(resume_path_str.clone()),
+                cover_letter_path: None,
+                wait_for_confirmation: false,
+                timeout_secs: 120,
+                ..Default::default()
+            };
+
+            let applicator = JobApplicator::with_config(config);
+
+            let result = if dry_run {
+                println!("🧪 Dry Run: Simulating application to {}", job.title);
+                // Simulate delay
+                tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+                ApplicationResult {
+                    success: true,
+                    application_id: None,
+                    message: "Dry run simulation successful".to_string(),
+                    applied_at: Some(chrono::Utc::now()),
+                    ats_type: Some("DryRun".to_string()),
+                    errors: vec![],
+                }
+            } else {
+                match applicator
+                    .apply_to_job(&job, &profile, Some(&resume_path_str), None)
+                    .await
+                {
+                    Ok(res) => res,
+                    Err(e) => ApplicationResult {
+                        success: false,
+                        application_id: None,
+                        message: format!("Error: {}", e),
+                        applied_at: None,
+                        ats_type: None,
+                        errors: vec![e.to_string()],
+                    },
+                }
+            };
+
+            if result.success {
+                applications_submitted += 1;
+                println!("✅ Successfully applied to: {}", job.title);
+
+                // Create application record
+                let db_guard = db.lock().await;
+                if let Some(db) = &*db_guard {
+                    let conn = db.get_connection();
+                    let mut application = db::models::Application {
+                        id: None,
+                        job_id: job_id_val,
+                        applied_at: Some(chrono::Utc::now()),
+                        status: db::models::ApplicationStatus::Submitted,
+                        notes: Some(format!(
+                            "Auto-applied via RemoteOK. ATS: {:?}",
+                            result.ats_type
+                        )),
+                        created_at: None,
+                        updated_at: None,
+                    };
+                    if let Ok(_) = conn.create_application(&mut application) {
+                        if let Some(app_id) = application.id {
+                            let _ = log_activity(
+                                &conn,
+                                "application",
+                                app_id,
+                                "created",
+                                Some(format!(
+                                    "Auto-applied to '{}' at {}",
+                                    job.title, job.company
+                                )),
+                                None,
+                            );
+                        }
+                    }
+                }
+            } else {
+                applications_failed += 1;
+                println!("❌ Failed to apply to: {} - {}", job.title, result.message);
+            }
+            results.push(result);
+
+            // Small delay between applications
+            tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+        }
+    }
+
+    println!(
+        "🎉 Auto-apply complete! Submitted: {}, Failed: {}",
+        applications_submitted, applications_failed
+    );
+
+    Ok(AutoApplyResult {
+        jobs_scraped: jobs_count,
+        jobs_filtered: filtered_count,
+        applications_submitted,
+        applications_failed,
+        results,
+    })
 }
 
 #[tauri::command]
-async fn stop_scheduler(
+async fn auto_apply_to_jobs(
     state: State<'_, AppState>,
-) -> Result<String> {
-    let scheduler_guard = state.scheduler.lock().await;
-    
-    if let Some(scheduler) = scheduler_guard.as_ref() {
-        scheduler.stop().await?;
-        Ok("Scheduler stopped successfully".to_string())
-    } else {
-        Ok("Scheduler is not running".to_string())
-    }
-}
+    query: Option<String>,
+    max_applications: Option<usize>,
+    dry_run: Option<bool>,
+) -> Result<AutoApplyResult> {
+    let app_dir = state
+        .app_dir
+        .lock()
+        .await
+        .clone()
+        .ok_or_else(|| anyhow::anyhow!("Application data directory not initialized"))?;
 
-#[tauri::command]
-async fn get_scheduler_status(
-    state: State<'_, AppState>,
-) -> Result<serde_json::Value> {
-    let scheduler_guard = state.scheduler.lock().await;
-    
-    if let Some(scheduler) = scheduler_guard.as_ref() {
-        let config = scheduler.get_config().await;
-        let is_running = scheduler.is_running().await;
-        
-        Ok(serde_json::json!({
-            "enabled": config.enabled,
-            "running": is_running,
-            "schedule": config.schedule,
-            "query": config.query,
-            "sources": config.sources,
-            "min_match_score": config.min_match_score,
-            "send_notifications": config.send_notifications,
-        }))
-    } else {
-        // Return default status if scheduler doesn't exist
-        Ok(serde_json::json!({
-            "enabled": false,
-            "running": false,
-            "schedule": "0 9 * * *",
-            "query": "developer",
-            "sources": [],
-            "min_match_score": 60.0,
-            "send_notifications": true,
-        }))
-    }
-}
-
-#[tauri::command]
-async fn create_credential(
-    state: State<'_, AppState>,
-    mut credential: db::models::Credential,
-) -> Result<db::models::Credential> {
-    let db = state.db.lock().await;
-    if let Some(db) = &*db {
-        let conn = db.get_connection();
-        conn.create_credential(&mut credential)?;
-        Ok(credential)
-    } else {
-        Err(anyhow::anyhow!("Database not initialized").into())
-    }
-}
-
-#[tauri::command]
-async fn update_credential(
-    state: State<'_, AppState>,
-    credential: db::models::Credential,
-) -> Result<db::models::Credential> {
-    let db = state.db.lock().await;
-    if let Some(db) = &*db {
-        let conn = db.get_connection();
-        conn.update_credential(&credential)?;
-        Ok(credential)
-    } else {
-        Err(anyhow::anyhow!("Database not initialized").into())
-    }
-}
-
-#[tauri::command]
-async fn list_credentials(
-    state: State<'_, AppState>,
-    active_only: bool,
-) -> Result<Vec<db::models::Credential>> {
-    let db = state.db.lock().await;
-    if let Some(db) = &*db {
-        let conn = db.get_connection();
-        conn.list_credentials(active_only).map_err(Into::into)
-    } else {
-        Err(anyhow::anyhow!("Database not initialized").into())
-    }
-}
-
-#[tauri::command]
-async fn delete_credential(
-    state: State<'_, AppState>,
-    platform: String,
-) -> Result<()> {
-    let db = state.db.lock().await;
-    if let Some(db) = &*db {
-        let conn = db.get_connection();
-        conn.delete_credential(&platform)?;
-        Ok(())
-    } else {
-        Err(anyhow::anyhow!("Database not initialized").into())
-    }
+    run_auto_apply_logic(
+        state.db.clone(),
+        app_dir,
+        query.unwrap_or_else(|| "remote senior backend engineer".to_string()),
+        max_applications.unwrap_or(10),
+        dry_run.unwrap_or(false),
+    )
+    .await
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -1551,75 +788,146 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_store::Builder::default().build())
+        .plugin(tauri_plugin_notification::init())
         .invoke_handler(tauri::generate_handler![
             // Job commands
-            get_jobs,
-            get_job,
-            create_job,
-            update_job,
-            delete_job,
-            scrape_jobs,
-            scrape_jobs_selected,
-            
+            commands::jobs::get_jobs,
+            commands::jobs::get_job,
+            commands::jobs::create_job,
+            commands::jobs::update_job,
+            commands::jobs::delete_job,
+            commands::jobs::scrape_jobs,
+            commands::jobs::scrape_jobs_selected,
             // Application commands
-            get_applications,
-            create_application,
-            update_application,
-            delete_application,
-            
+            commands::applications::get_applications,
+            commands::applications::create_application,
+            commands::applications::update_application,
+            commands::applications::delete_application,
             // Contact commands
-            get_contacts,
-            create_contact,
-            update_contact,
-            delete_contact,
-            
+            commands::entities::get_contacts,
+            commands::entities::create_contact,
+            commands::entities::update_contact,
+            commands::entities::delete_contact,
             // Interview commands
-            get_interviews,
-            create_interview,
-            update_interview,
-            delete_interview,
-            
+            commands::entities::get_interviews,
+            commands::entities::create_interview,
+            commands::entities::update_interview,
+            commands::entities::delete_interview,
             // Document commands
-            get_documents,
-            create_document,
-            update_document,
-            delete_document,
-            
+            commands::entities::get_documents,
+            commands::entities::create_document,
+            commands::entities::update_document,
+            commands::entities::delete_document,
             // Activity commands
-            get_activities,
-            
+            commands::user::get_activities,
             // Credential commands
-            get_credential,
-            create_credential,
-            update_credential,
-            list_credentials,
-            delete_credential,
-            
+            commands::user::get_credential,
+            commands::user::create_credential,
+            commands::user::update_credential,
+            commands::user::list_credentials,
+            commands::user::delete_credential,
             // User Profile commands
-            save_user_profile,
-            get_user_profile,
-            
+            commands::user::save_user_profile,
+            commands::user::get_user_profile,
+            // Authentication commands
+            commands::user::auth_get_status,
+            commands::user::auth_setup,
+            commands::user::auth_login,
+            commands::user::auth_logout,
             // Document Generation commands
-            generate_resume,
-            generate_cover_letter,
-            generate_email_version,
-            export_document_to_pdf,
-            get_available_resume_templates,
-            get_available_cover_letter_templates,
-            analyze_job_for_profile,
-            
+            commands::documents::generate_resume,
+            commands::documents::generate_cover_letter,
+            commands::documents::generate_email_version,
+            commands::documents::export_document_to_pdf,
+            commands::documents::get_available_resume_templates,
+            commands::documents::get_available_cover_letter_templates,
+            commands::documents::analyze_job_for_profile,
+            // Enhanced Generation Agent commands
+            commands::documents::optimize_document_for_ats,
+            commands::documents::check_ats_compatibility,
+            commands::documents::score_document_quality,
+            commands::documents::list_ai_providers,
+            commands::documents::generate_resume_with_provider,
+            commands::documents::generate_bulk_documents,
+            commands::documents::create_document_version,
+            commands::documents::get_document_versions,
+            commands::documents::restore_document_version,
+            commands::documents::translate_document,
+            commands::documents::get_available_languages,
             // Job Matching commands
-            calculate_job_match_score,
-            match_jobs_for_profile,
-            update_job_match_scores,
-            
+            commands::matching::calculate_job_match_score,
+            commands::matching::match_jobs_for_profile,
+            commands::matching::update_job_match_scores,
+            // Recommendation & Insights commands
+            commands::matching::get_recommended_jobs,
+            commands::matching::get_trending_jobs,
+            commands::matching::get_similar_jobs,
+            commands::matching::track_job_interaction,
+            commands::documents::get_resume_environment_status,
+            commands::matching::get_market_insights,
+            automation_health_check,
             // Email Notification commands
-            test_email_connection,
-            send_test_email,
-            send_job_match_email_with_result,
-            send_new_jobs_notification_email,
-            extract_emails_from_jobs,
-            create_contacts_from_jobs,
+            commands::notifications::test_email_connection,
+            commands::notifications::send_test_email,
+            commands::notifications::send_job_match_email_with_result,
+            commands::notifications::send_new_jobs_notification_email,
+            commands::notifications::extract_emails_from_jobs,
+            commands::notifications::create_contacts_from_jobs,
+            // Desktop Notification commands
+            commands::notifications::send_desktop_notification,
+            commands::notifications::send_desktop_job_match,
+            commands::notifications::send_desktop_new_jobs,
+            commands::notifications::send_desktop_application_status,
+            commands::notifications::send_desktop_application_success,
+            commands::notifications::request_notification_permission,
+            // Scheduler Commands
+            commands::scheduler::get_scheduler_config,
+            commands::scheduler::update_scheduler_config,
+            commands::scheduler::start_scheduler,
+            commands::scheduler::stop_scheduler,
+            commands::scheduler::get_scheduler_status,
+            // Persona commands
+            commands::persona::list_personas_catalog,
+            commands::persona::load_test_persona,
+            commands::persona::persona_dry_run,
+            // ATS Suggestions
+            commands::system::get_ats_suggestions,
+            // Resume Analysis
+            commands::documents::analyze_resume,
+            // Auto-apply command
+            auto_apply_to_jobs,
+            // Automation Pipeline commands
+            commands::automation::init_automation,
+            commands::automation::run_automation_pipeline,
+            commands::automation::run_automation_with_config,
+            commands::automation::get_automation_status,
+            commands::automation::get_automation_config,
+            commands::automation::update_automation_config,
+            commands::automation::stop_automation,
+            commands::automation::is_automation_running,
+            commands::automation::quick_start_automation,
+            commands::automation::get_default_automation_config,
+            // Auto-pilot commands (full end-to-end automation)
+            commands::automation::init_autopilot,
+            commands::automation::start_autopilot,
+            commands::automation::stop_autopilot,
+            commands::automation::get_autopilot_status,
+            commands::automation::get_autopilot_config,
+            commands::automation::update_autopilot_config,
+            commands::automation::autopilot_run_now,
+            commands::automation::process_email,
+            commands::automation::get_default_autopilot_config,
+            commands::automation::dismiss_autopilot_alert,
+            // Apply mode commands
+            commands::automation::get_apply_modes,
+            commands::automation::get_current_apply_mode,
+            commands::automation::set_apply_mode,
+            commands::automation::check_apply_compatibility,
+            // Testing commands
+            commands::testing::run_system_tests,
+            commands::testing::test_automation_pipeline,
+            commands::testing::test_email_sending,
+            commands::testing::test_classify_email,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,7 +1,7 @@
 use crate::db::models::Job;
 use crate::generator::{
-    GeneratedDocument, DocumentFormat, DocumentMetadata,
-    UserProfile, JobAnalysis, GenerationResult, TemplateManager, AIIntegration
+    AIIntegration, DocumentFormat, DocumentMetadata, GeneratedDocument, GenerationResult,
+    JobAnalysis, TemplateManager, UserProfile,
 };
 use anyhow::Result;
 
@@ -41,10 +41,17 @@ impl CoverLetterGenerator {
 
         // Improve profile with AI if requested and API key is available
         let final_profile = if improve_with_ai && self.ai_integration.has_api_key() {
-            match self.ai_integration.improve_profile(profile, &job_analysis).await {
+            match self
+                .ai_integration
+                .improve_profile(profile, &job_analysis)
+                .await
+            {
                 Ok(improved) => improved,
                 Err(e) => {
-                    eprintln!("AI profile improvement failed: {}, using original profile", e);
+                    eprintln!(
+                        "AI profile improvement failed: {}, using original profile",
+                        e
+                    );
                     profile.clone()
                 }
             }
@@ -54,14 +61,21 @@ impl CoverLetterGenerator {
 
         // Generate cover letter content (always works, uses templates)
         let template_name = template_name.unwrap_or("cover_letter_professional");
-        let content = self.template_manager.render_cover_letter(&final_profile, &job_analysis, template_name)?;
+        let content = self.template_manager.render_cover_letter(
+            &final_profile,
+            &job_analysis,
+            template_name,
+        )?;
 
         // Calculate word count
         let word_count = content.split_whitespace().count();
 
         // Create metadata
         let metadata = DocumentMetadata {
-            title: format!("Cover Letter - {} for {}", final_profile.personal_info.name, job.title),
+            title: format!(
+                "Cover Letter - {} for {}",
+                final_profile.personal_info.name, job.title
+            ),
             job_title: job.title.clone(),
             company: job.company.clone(),
             generated_at: chrono::Utc::now(),
@@ -84,14 +98,19 @@ impl CoverLetterGenerator {
     ) -> GenerationResult {
         // Generate cover letter content with pre-computed analysis
         let template_name = template_name.unwrap_or("cover_letter_professional");
-        let content = self.template_manager.render_cover_letter(profile, job_analysis, template_name)?;
+        let content =
+            self.template_manager
+                .render_cover_letter(profile, job_analysis, template_name)?;
 
         // Calculate word count
         let word_count = content.split_whitespace().count();
 
         // Create metadata
         let metadata = DocumentMetadata {
-            title: format!("Cover Letter - {} for {}", profile.personal_info.name, job_analysis.job_title),
+            title: format!(
+                "Cover Letter - {} for {}",
+                profile.personal_info.name, job_analysis.job_title
+            ),
             job_title: job_analysis.job_title.clone(),
             company: job_analysis.company.clone(),
             generated_at: chrono::Utc::now(),
@@ -107,7 +126,8 @@ impl CoverLetterGenerator {
     }
 
     pub fn list_available_templates(&self) -> Vec<String> {
-        self.template_manager.list_templates()
+        self.template_manager
+            .list_templates()
             .into_iter()
             .filter(|name| name.starts_with("cover_letter_"))
             .collect()
@@ -115,6 +135,103 @@ impl CoverLetterGenerator {
 
     pub fn add_custom_template(&mut self, name: String, template: String) -> Result<()> {
         self.template_manager.add_custom_template(name, template)
+    }
+
+    /// Preview a template with sample data
+    pub async fn preview_template(&self, template_name: &str) -> Result<GeneratedDocument> {
+        // Create sample profile for preview
+        let sample_profile = UserProfile {
+            personal_info: crate::generator::PersonalInfo {
+                name: "Jane Smith".to_string(),
+                email: "jane.smith@example.com".to_string(),
+                phone: Some("+1 (555) 987-6543".to_string()),
+                location: Some("New York, NY".to_string()),
+                linkedin: Some("linkedin.com/in/janesmith".to_string()),
+                github: Some("github.com/janesmith".to_string()),
+                portfolio: Some("janesmith.dev".to_string()),
+            },
+            summary: "Creative product designer with 7+ years of experience in UX/UI design, user research, and product strategy. Passionate about creating intuitive user experiences.".to_string(),
+            skills: crate::generator::SkillsProfile {
+                technical_skills: vec![
+                    "Figma".to_string(),
+                    "Sketch".to_string(),
+                    "Adobe XD".to_string(),
+                    "Prototyping".to_string(),
+                ],
+                soft_skills: vec![
+                    "User Research".to_string(),
+                    "Collaboration".to_string(),
+                    "Design Thinking".to_string(),
+                ],
+                experience_years: std::collections::HashMap::new(),
+                proficiency_levels: std::collections::HashMap::new(),
+            },
+            experience: vec![
+                crate::generator::ExperienceEntry {
+                    company: "Design Studio".to_string(),
+                    position: "Senior Product Designer".to_string(),
+                    duration: "2019 - Present".to_string(),
+                    description: vec![
+                        "Designed mobile app with 500K+ active users".to_string(),
+                        "Led design system implementation".to_string(),
+                    ],
+                    technologies: vec!["Figma", "Sketch"].into_iter().map(String::from).collect(),
+                },
+            ],
+            education: vec![
+                crate::generator::EducationEntry {
+                    institution: "Design Institute".to_string(),
+                    degree: "B.F.A. Graphic Design".to_string(),
+                    year: "2016".to_string(),
+                    details: None,
+                },
+            ],
+            projects: vec![],
+        };
+
+        // Create sample job analysis
+        let sample_job_analysis = JobAnalysis {
+            extracted_keywords: vec!["UX Design", "Product Design", "Figma"]
+                .into_iter()
+                .map(String::from)
+                .collect(),
+            required_skills: vec!["Figma", "UX Design"]
+                .into_iter()
+                .map(String::from)
+                .collect(),
+            preferred_skills: vec!["Prototyping"].into_iter().map(String::from).collect(),
+            experience_level: "Senior".to_string(),
+            company_tone: "Creative and collaborative".to_string(),
+            key_responsibilities: vec![
+                "Design user interfaces".to_string(),
+                "Conduct user research".to_string(),
+            ],
+            match_score: 90.0,
+            job_title: "Senior UX Designer".to_string(),
+            company: "Creative Agency".to_string(),
+        };
+
+        // Generate preview content
+        let content = self.template_manager.render_cover_letter(
+            &sample_profile,
+            &sample_job_analysis,
+            template_name,
+        )?;
+
+        let word_count = content.split_whitespace().count();
+
+        Ok(GeneratedDocument {
+            content,
+            format: DocumentFormat::Markdown,
+            metadata: DocumentMetadata {
+                title: format!("Preview - {}", template_name),
+                job_title: sample_job_analysis.job_title,
+                company: sample_job_analysis.company,
+                generated_at: chrono::Utc::now(),
+                template_used: template_name.to_string(),
+                word_count,
+            },
+        })
     }
 
     pub async fn generate_email_version(
@@ -125,8 +242,10 @@ impl CoverLetterGenerator {
         improve_with_ai: bool,
     ) -> GenerationResult {
         // Generate the cover letter first
-        let cover_letter = self.generate_cover_letter(profile, job, template_name, improve_with_ai).await?;
-        
+        let cover_letter = self
+            .generate_cover_letter(profile, job, template_name, improve_with_ai)
+            .await?;
+
         // Convert to email format (more concise, email-friendly)
         let email_content = self.convert_to_email_format(&cover_letter.content);
 
@@ -136,7 +255,9 @@ impl CoverLetterGenerator {
             job_title: job.title.clone(),
             company: job.company.clone(),
             generated_at: chrono::Utc::now(),
-            template_used: template_name.unwrap_or("cover_letter_professional").to_string(),
+            template_used: template_name
+                .unwrap_or("cover_letter_professional")
+                .to_string(),
             word_count: email_content.split_whitespace().count(),
         };
 
@@ -154,17 +275,17 @@ impl CoverLetterGenerator {
 
         for line in lines {
             let trimmed = line.trim();
-            
+
             // Skip header sections and convert to email format
             if trimmed.starts_with("# ") || trimmed.starts_with("## ") {
                 continue;
             }
-            
+
             if trimmed.is_empty() && !in_body {
                 in_body = true;
                 continue;
             }
-            
+
             if in_body {
                 // Convert formal letter to email format
                 let email_line = if trimmed.starts_with("Dear Hiring Manager,") {
@@ -174,7 +295,7 @@ impl CoverLetterGenerator {
                 } else {
                     trimmed.to_string()
                 };
-                
+
                 if !email_line.is_empty() {
                     email_lines.push(email_line);
                 }
@@ -194,9 +315,7 @@ impl Default for CoverLetterGenerator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::generator::{
-        PersonalInfo, SkillsProfile, ExperienceEntry, EducationEntry
-    };
+    use crate::generator::{EducationEntry, ExperienceEntry, PersonalInfo, SkillsProfile};
 
     fn create_test_profile() -> UserProfile {
         UserProfile {
@@ -225,29 +344,23 @@ mod tests {
                 experience_years: std::collections::HashMap::new(),
                 proficiency_levels: std::collections::HashMap::new(),
             },
-            experience: vec![
-                ExperienceEntry {
-                    company: "Design Agency".to_string(),
-                    position: "Front-end Developer".to_string(),
-                    duration: "2021-2023".to_string(),
-                    description: vec![
-                        "Developed responsive web applications".to_string(),
-                        "Collaborated with design team".to_string(),
-                    ],
-                    technologies: vec!["React".to_string(), "CSS".to_string()],
-                },
-            ],
-            education: vec![
-                EducationEntry {
-                    institution: "Design School".to_string(),
-                    degree: "Bachelor of Design".to_string(),
-                    year: "2021".to_string(),
-                    details: Some("Focused on UI/UX design".to_string()),
-                },
-            ],
-            projects: vec![
-                "Portfolio website with React animations".to_string(),
-            ],
+            experience: vec![ExperienceEntry {
+                company: "Design Agency".to_string(),
+                position: "Front-end Developer".to_string(),
+                duration: "2021-2023".to_string(),
+                description: vec![
+                    "Developed responsive web applications".to_string(),
+                    "Collaborated with design team".to_string(),
+                ],
+                technologies: vec!["React".to_string(), "CSS".to_string()],
+            }],
+            education: vec![EducationEntry {
+                institution: "Design School".to_string(),
+                degree: "Bachelor of Design".to_string(),
+                year: "2021".to_string(),
+                details: Some("Focused on UI/UX design".to_string()),
+            }],
+            projects: vec!["Portfolio website with React animations".to_string()],
         }
     }
 
@@ -275,7 +388,9 @@ mod tests {
         let profile = create_test_profile();
         let job = create_test_job();
 
-        let result = generator.generate_cover_letter(&profile, &job, None, false).await;
+        let result = generator
+            .generate_cover_letter(&profile, &job, None, false)
+            .await;
         assert!(result.is_ok());
 
         let document = result.unwrap();
@@ -291,7 +406,9 @@ mod tests {
         let profile = create_test_profile();
         let job = create_test_job();
 
-        let result = generator.generate_email_version(&profile, &job, None, false).await;
+        let result = generator
+            .generate_email_version(&profile, &job, None, false)
+            .await;
         assert!(result.is_ok());
 
         let document = result.unwrap();

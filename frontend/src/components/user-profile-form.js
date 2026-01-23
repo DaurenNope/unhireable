@@ -47,7 +47,7 @@ export function UserProfileForm({ profile, onSave, isLoading }) {
         }));
     };
     const updateSkills = (field, value) => {
-        setFormData(prev => ({
+        setFormData((prev) => ({
             ...prev,
             skills: {
                 ...prev.skills,
@@ -89,7 +89,7 @@ export function UserProfileForm({ profile, onSave, isLoading }) {
         }));
     };
     const updateExperience = (index, field, value) => {
-        setFormData(prev => ({
+        setFormData((prev) => ({
             ...prev,
             experience: prev.experience.map((exp, i) => i === index ? { ...exp, [field]: value } : exp),
         }));
@@ -115,7 +115,7 @@ export function UserProfileForm({ profile, onSave, isLoading }) {
         }));
     };
     const updateEducation = (index, field, value) => {
-        setFormData(prev => ({
+        setFormData((prev) => ({
             ...prev,
             education: prev.education.map((edu, i) => i === index ? { ...edu, [field]: value } : edu),
         }));

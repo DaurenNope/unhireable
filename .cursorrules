@@ -1,0 +1,33 @@
+# Cursor Repository Guardrails
+
+## Canonical Layout
+
+- `frontend/` – React + Vite app (TypeScript only, no `allowJs`)
+- `src-tauri/` – Rust shell, migrations, assets (no `target/` or packaged binaries committed)
+- `docs/` – All documentation (product, tech, process, testing, tickets)
+- `tools/` – Scripts and helper utilities (`tools/scripts/*` for shell/Node helpers)
+- `labs/` – Archived experiments or research references only
+
+Root-level markdown is limited to `README.md`, `RUN_APP.md`, and `TESTING_GUIDE.md`.
+
+## Allowed Content
+
+- Frontend code must be `.ts`/`.tsx`. Delete any generated `.js` artifacts.
+- Tauri backend uses SQLite by default; other database configs require approval and documentation in `docs/process/`.
+- Tickets live under `docs/tickets/` and use `ticket-<slug>.md` filenames.
+- Experiments, automation agents, and exploratory write-ups move to `labs/` (or are deleted).
+
+## Off-Limits Without Approval
+
+- Reintroducing the Python `intelligence-agent` microservice.
+- Adding Docker Compose stacks, Grafana, Prometheus, or other infra directories.
+- Checking in build outputs (`node_modules`, `dist`, `target`, `*.db`, logs).
+- Creating new top-level folders or scattering docs outside `docs/`.
+
+## Contributor Expectations
+
+- Follow `docs/process/repo-structure.md` when adding files or folders.
+- Place new scripts in `tools/scripts/` and document usage if needed.
+- Keep documentation organized under `docs/` using kebab-case filenames.
+- When in doubt, ask before expanding the scope beyond the desktop Tauri app + React frontend.
+

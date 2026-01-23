@@ -1,0 +1,322 @@
+    Checking jobez v0.1.0 (/Users/mac/Documents/Development/jobez/src-tauri)
+warning: unexpected `cfg` condition value: `postgres`
+  --> src/lib.rs:27:7
+   |
+27 | #[cfg(feature = "postgres")]
+   |       ^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: expected values for `feature` are: `custom-protocol`, `default`, and `sentry`
+   = help: consider adding `postgres` as a feature in `Cargo.toml`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: `#[warn(unexpected_cfgs)]` on by default
+
+warning: unused import: `Context`
+ --> src/applicator/retry.rs:1:14
+  |
+1 | use anyhow::{Context, Result};
+  |              ^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `Context` and `Result`
+ --> src/applicator/templates.rs:3:14
+  |
+3 | use anyhow::{Context, Result};
+  |              ^^^^^^^  ^^^^^^
+
+warning: unused import: `RetryConfig`
+ --> src/applicator/workflow.rs:1:44
+  |
+1 | use crate::applicator::{ApplicationResult, RetryConfig, RetryExecutor};
+  |                                            ^^^^^^^^^^^
+
+warning: unused import: `serde_json::json`
+ --> src/applicator/workflow.rs:7:5
+  |
+7 | use serde_json::json;
+  |     ^^^^^^^^^^^^^^^^
+
+warning: unused imports: `Deserialize` and `Serialize`
+ --> src/channel.rs:2:13
+  |
+2 | use serde::{Deserialize, Serialize};
+  |             ^^^^^^^^^^^  ^^^^^^^^^
+
+warning: unexpected `cfg` condition value: `postgres`
+ --> src/db/mod.rs:8:7
+  |
+8 | #[cfg(feature = "postgres")]
+  |       ^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: expected values for `feature` are: `custom-protocol`, `default`, and `sentry`
+  = help: consider adding `postgres` as a feature in `Cargo.toml`
+  = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unused import: `HashMap`
+ --> src/generator/ats_optimizer.rs:5:24
+  |
+5 | use std::collections::{HashMap, HashSet};
+  |                        ^^^^^^^
+
+warning: unnecessary parentheses around assigned value
+   --> src/generator/ats_optimizer.rs:203:29
+    |
+203 |         let overall_score = (keyword_score * 0.6 + formatting_score * 0.4);
+    |                             ^                                            ^
+    |
+    = note: `#[warn(unused_parens)]` (part of `#[warn(unused)]`) on by default
+help: remove these parentheses
+    |
+203 -         let overall_score = (keyword_score * 0.6 + formatting_score * 0.4);
+203 +         let overall_score = keyword_score * 0.6 + formatting_score * 0.4;
+    |
+
+warning: unnecessary parentheses around assigned value
+   --> src/generator/ats_optimizer.rs:304:29
+    |
+304 |         let overall_score = (keyword_score * 0.4 + formatting_score * 0.3 + structure_score * 0.3);
+    |                             ^                                                                    ^
+    |
+help: remove these parentheses
+    |
+304 -         let overall_score = (keyword_score * 0.4 + formatting_score * 0.3 + structure_score * 0.3);
+304 +         let overall_score = keyword_score * 0.4 + formatting_score * 0.3 + structure_score * 0.3;
+    |
+
+warning: unused import: `GeneratedDocument`
+ --> src/generator/event_handler.rs:3:39
+  |
+3 | use crate::generator::{DocumentCache, GeneratedDocument, ResumeGenerator, UserProfile};
+  |                                       ^^^^^^^^^^^^^^^^^
+
+warning: unused import: `UserProfile`
+ --> src/generator/multi_provider_ai.rs:2:37
+  |
+2 | use crate::generator::{JobAnalysis, UserProfile};
+  |                                     ^^^^^^^^^^^
+
+warning: unused imports: `BulkGenerationResult` and `ResumeGenerator`
+ --> src/generator/queue_processor.rs:1:47
+  |
+1 | use crate::generator::{BulkGenerationRequest, BulkGenerationResult, ResumeGenerator};
+  |                                               ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^
+
+warning: unused import: `Queue`
+ --> src/generator/queue_processor.rs:2:20
+  |
+2 | use crate::queue::{Queue, QueueJob, QueueManager};
+  |                    ^^^^^
+
+warning: unused import: `tokio::sync::Mutex`
+ --> src/generator/queue_processor.rs:7:5
+  |
+7 | use tokio::sync::Mutex;
+  |     ^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `Deserialize` and `Serialize`
+ --> src/intelligence/mod.rs:5:13
+  |
+5 | use serde::{Deserialize, Serialize};
+  |             ^^^^^^^^^^^  ^^^^^^^^^
+
+warning: unused import: `Encoder`
+ --> src/metrics.rs:1:48
+  |
+1 | use prometheus::{Counter, Histogram, Registry, Encoder, TextEncoder};
+  |                                                ^^^^^^^
+
+warning: unused import: `std::sync::Arc`
+ --> src/metrics.rs:2:5
+  |
+2 | use std::sync::Arc;
+  |     ^^^^^^^^^^^^^^
+
+warning: unused import: `tokio::sync::Mutex`
+ --> src/metrics.rs:3:5
+  |
+3 | use tokio::sync::Mutex;
+  |     ^^^^^^^^^^^^^^^^^^
+
+warning: unexpected `cfg` condition value: `postgres`
+   --> src/lib.rs:110:15
+    |
+110 |         #[cfg(feature = "postgres")]
+    |               ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `custom-protocol`, `default`, and `sentry`
+    = help: consider adding `postgres` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `postgres`
+   --> src/lib.rs:119:19
+    |
+119 |         #[cfg(not(feature = "postgres"))]
+    |                   ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `custom-protocol`, `default`, and `sentry`
+    = help: consider adding `postgres` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: variable does not need to be mutable
+   --> src/applicator/workflow.rs:169:13
+    |
+169 |         let mut step_map: HashMap<String, &WorkflowStep> = workflow
+    |             ----^^^^^^^^
+    |             |
+    |             help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `duration`
+   --> src/applicator/mod.rs:159:21
+    |
+159 |                 let duration = automation_start_time.elapsed().as_secs_f64();
+    |                     ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_duration`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `application`
+  --> src/generator/event_handler.rs:40:13
+   |
+40 |         let application = get_application(application_id)?
+   |             ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_application`
+
+warning: unused variable: `cached_doc`
+  --> src/generator/event_handler.rs:60:21
+   |
+60 |         if let Some(cached_doc) = cache.get(&cache_key) {
+   |                     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_cached_doc`
+
+warning: use of deprecated method `sha2::digest::generic_array::GenericArray::<T, N>::as_slice`: please upgrade to generic-array 1.x
+   --> src/security.rs:184:50
+    |
+184 |         Ok(general_purpose::STANDARD.encode(hash.as_slice()))
+    |                                                  ^^^^^^^^
+    |
+    = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated method `sha2::digest::generic_array::GenericArray::<T, N>::as_slice`: please upgrade to generic-array 1.x
+   --> src/security.rs:219:42
+    |
+219 |         combined.extend_from_slice(&hash.as_slice());
+    |                                          ^^^^^^^^
+
+warning: use of deprecated method `sha2::digest::generic_array::GenericArray::<T, N>::as_slice`: please upgrade to generic-array 1.x
+   --> src/security.rs:244:26
+    |
+244 |         Ok(computed_hash.as_slice() == stored_hash)
+    |                          ^^^^^^^^
+
+warning: unused variable: `profile`
+   --> src/generator/ats_optimizer.rs:127:9
+    |
+127 |         profile: &UserProfile,
+    |         ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_profile`
+
+warning: unused variable: `name`
+   --> src/generator/quality_scorer.rs:138:23
+    |
+138 |         for (keyword, name) in required_sections {
+    |                       ^^^^ help: if this is intentional, prefix it with an underscore: `_name`
+
+warning: unused variable: `profile`
+   --> src/generator/quality_scorer.rs:226:9
+    |
+226 |         profile: &UserProfile,
+    |         ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_profile`
+
+warning: fields `scheduler`, `queue_manager`, `channel_manager`, and `rate_limiter` are never read
+  --> src/lib.rs:54:5
+   |
+52 | pub struct AppState {
+   |            -------- fields in this struct
+53 |     db: Arc<Mutex<Option<Database>>>,
+54 |     scheduler: Arc<Mutex<Option<scheduler::JobScheduler>>>,
+   |     ^^^^^^^^^
+...
+61 |     queue_manager: Arc<queue::QueueManager>,
+   |     ^^^^^^^^^^^^^
+62 |     channel_manager: Arc<channel::ChannelManager>,
+   |     ^^^^^^^^^^^^^^^
+63 |     rate_limiter: Arc<security::RateLimiter>,
+   |     ^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `get_scheduler_config` is never used
+    --> src/lib.rs:1900:10
+     |
+1900 | async fn get_scheduler_config() -> Result<scheduler::SchedulerConfig> {
+     |          ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `update_scheduler_config` is never used
+    --> src/lib.rs:1907:10
+     |
+1907 | async fn update_scheduler_config(
+     |          ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `start_scheduler` is never used
+    --> src/lib.rs:1934:10
+     |
+1934 | async fn start_scheduler(state: State<'_, AppState>) -> Result<String> {
+     |          ^^^^^^^^^^^^^^^
+
+warning: function `stop_scheduler` is never used
+    --> src/lib.rs:1959:10
+     |
+1959 | async fn stop_scheduler(state: State<'_, AppState>) -> Result<String> {
+     |          ^^^^^^^^^^^^^^
+
+warning: function `get_scheduler_status` is never used
+    --> src/lib.rs:1971:10
+     |
+1971 | async fn get_scheduler_status(state: State<'_, AppState>) -> Result<serde_json::Value> {
+     |          ^^^^^^^^^^^^^^^^^^^^
+
+warning: field `browser` is never read
+   --> src/applicator/workflow.rs:109:5
+    |
+108 | struct BrowserContext {
+    |        -------------- field in this struct
+109 |     browser: Arc<Browser>,
+    |     ^^^^^^^
+
+warning: field `issue_type` is never read
+  --> src/generator/ats_optimizer.rs:43:5
+   |
+41 | struct FormattingRule {
+   |        -------------- field in this struct
+42 |     pattern: Regex,
+43 |     issue_type: String,
+   |     ^^^^^^^^^^
+
+warning: field `processing` is never read
+  --> src/queue.rs:19:5
+   |
+17 | pub struct Queue {
+   |            ----- field in this struct
+18 |     jobs: Arc<Mutex<VecDeque<QueueJob>>>,
+19 |     processing: Arc<Mutex<bool>>,
+   |     ^^^^^^^^^^
+   |
+   = note: `Queue` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: calls to `std::mem::drop` with a reference instead of an owned value does nothing
+    --> src/lib.rs:2411:9
+     |
+2411 |         drop(db);
+     |         ^^^^^--^
+     |              |
+     |              argument has type `&Database`
+     |
+     = note: `#[warn(dropping_references)]` on by default
+help: use `let _ = ...` to ignore the expression or result
+     |
+2411 -         drop(db);
+2411 +         let _ = db;
+     |
+
+warning: `jobez` (lib) generated 41 warnings (run `cargo fix --lib -p jobez` to apply 18 suggestions)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 9.49s
+warning: the following packages contain code that will be rejected by a future version of Rust: redis v0.24.0
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`

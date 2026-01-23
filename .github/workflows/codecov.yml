@@ -1,0 +1,10 @@
+# Codecov configuration
+codecov:
+  notify:
+    wait_for_ci: true
+  flags:
+    unittests:
+      paths:
+        - src-tauri/src/
+      carryforward: true
+

@@ -1,4 +1,4 @@
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, Result};
 use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
@@ -45,7 +45,7 @@ impl FirecrawlClient {
 
     pub fn scrape_url(&self, url: &str, options: Option<FirecrawlOptions>) -> Result<String> {
         let endpoint = format!("{}/scrape", self.base_url);
-        
+
         let mut payload = serde_json::json!({
             "url": url
         });
@@ -74,11 +74,7 @@ impl FirecrawlClient {
         if !response.status().is_success() {
             let status = response.status();
             let error_text = response.text().unwrap_or_default();
-            return Err(anyhow!(
-                "Firecrawl API error ({}): {}",
-                status,
-                error_text
-            ));
+            return Err(anyhow!("Firecrawl API error ({}): {}", status, error_text));
         }
 
         let firecrawl_response: FirecrawlResponse = response
@@ -88,7 +84,9 @@ impl FirecrawlClient {
         if !firecrawl_response.success {
             return Err(anyhow!(
                 "Firecrawl API returned error: {}",
-                firecrawl_response.error.unwrap_or_else(|| "Unknown error".to_string())
+                firecrawl_response
+                    .error
+                    .unwrap_or_else(|| "Unknown error".to_string())
             ));
         }
 
@@ -155,4 +153,3 @@ mod tests {
         assert_eq!(client.base_url, "https://api.firecrawl.dev/v1");
     }
 }
-

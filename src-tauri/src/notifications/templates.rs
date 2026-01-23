@@ -20,7 +20,9 @@ impl EmailTemplate {
         let matched_skills_list = if match_result.matched_skills.is_empty() {
             "<li>None</li>".to_string()
         } else {
-            match_result.matched_skills.iter()
+            match_result
+                .matched_skills
+                .iter()
                 .map(|skill| format!("<li>{}</li>", html_escape(skill)))
                 .collect::<Vec<_>>()
                 .join("\n")
@@ -29,7 +31,9 @@ impl EmailTemplate {
         let missing_skills_list = if match_result.missing_skills.is_empty() {
             "<li>None - You have all required skills!</li>".to_string()
         } else {
-            match_result.missing_skills.iter()
+            match_result
+                .missing_skills
+                .iter()
                 .map(|skill| format!("<li>{}</li>", html_escape(skill)))
                 .collect::<Vec<_>>()
                 .join("\n")
@@ -98,13 +102,21 @@ impl EmailTemplate {
             quality_badge,
             html_escape(&job.title),
             html_escape(&job.company),
-            job.location.as_ref().map(|l| html_escape(l)).unwrap_or_else(|| "Not specified".to_string()),
+            job.location
+                .as_ref()
+                .map(|l| html_escape(l))
+                .unwrap_or_else(|| "Not specified".to_string()),
             match_result.experience_level,
-            job.salary.as_ref().map(|s| format!("<p><strong>Salary:</strong> {}</p>", html_escape(s))).unwrap_or_default(),
+            job.salary
+                .as_ref()
+                .map(|s| format!("<p><strong>Salary:</strong> {}</p>", html_escape(s)))
+                .unwrap_or_default(),
             match_result.match_score,
             matched_skills_list,
             missing_skills_list,
-            match_result.match_reasons.iter()
+            match_result
+                .match_reasons
+                .iter()
                 .map(|reason| format!("<li>{}</li>", html_escape(reason)))
                 .collect::<Vec<_>>()
                 .join("\n"),
@@ -138,9 +150,14 @@ View Job: {}
             quality_badge,
             job.title,
             job.company,
-            job.location.as_ref().unwrap_or(&"Not specified".to_string()),
+            job.location
+                .as_ref()
+                .unwrap_or(&"Not specified".to_string()),
             match_result.experience_level,
-            job.salary.as_ref().map(|s| format!("Salary: {}\n", s)).unwrap_or_default(),
+            job.salary
+                .as_ref()
+                .map(|s| format!("Salary: {}\n", s))
+                .unwrap_or_default(),
             match_result.match_score,
             match_result.matched_skills.join(", "),
             if match_result.missing_skills.is_empty() {
@@ -161,7 +178,7 @@ View Job: {}
             let match_info = match_results.and_then(|results| {
                 results.iter().find(|r| r.job_id == job.id)
             });
-            
+
             let match_badge = match_info.map(|m| {
                 format!("<span style='color: {}; font-weight: bold;'>{:.0}% Match</span>",
                     match m.match_score {
@@ -238,15 +255,22 @@ View Job: {}
 
             "#,
             jobs.len(),
-            jobs.iter().enumerate().map(|(i, job)| {
-                format!("{}. {} at {}\n   Location: {}\n   URL: {}\n",
-                    i + 1,
-                    job.title,
-                    job.company,
-                    job.location.as_ref().unwrap_or(&"Not specified".to_string()),
-                    job.url
-                )
-            }).collect::<Vec<_>>().join("\n")
+            jobs.iter()
+                .enumerate()
+                .map(|(i, job)| {
+                    format!(
+                        "{}. {} at {}\n   Location: {}\n   URL: {}\n",
+                        i + 1,
+                        job.title,
+                        job.company,
+                        job.location
+                            .as_ref()
+                            .unwrap_or(&"Not specified".to_string()),
+                        job.url
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join("\n")
         );
 
         Self { html, text }
@@ -381,12 +405,12 @@ mod tests {
         let job = create_test_job();
         let match_result = create_test_match_result();
         let template = EmailTemplate::job_match_notification(&job, &match_result);
-        
+
         // Check that template contains job information
         assert!(template.html.contains("Senior React Developer"));
         assert!(template.html.contains("Tech Corp"));
         assert!(template.html.contains("85"));
-        
+
         // Check text version
         assert!(template.text.contains("Senior React Developer"));
         assert!(template.text.contains("Tech Corp"));
@@ -396,11 +420,11 @@ mod tests {
     fn test_new_jobs_notification_template() {
         let jobs = vec![create_test_job()];
         let template = EmailTemplate::new_jobs_notification(&jobs, None);
-        
+
         // Check that template contains job information
         assert!(template.html.contains("Senior React Developer"));
         assert!(template.html.contains("Tech Corp"));
-        
+
         // Check text version
         assert!(template.text.contains("Senior React Developer"));
     }
@@ -410,7 +434,7 @@ mod tests {
         let jobs = vec![create_test_job()];
         let match_results = vec![create_test_match_result()];
         let template = EmailTemplate::new_jobs_notification(&jobs, Some(&match_results));
-        
+
         // Check that template contains match information
         assert!(template.html.contains("85"));
         assert!(template.html.contains("Senior React Developer"));
@@ -422,7 +446,7 @@ mod tests {
         job.company = "Tech & Co <script>alert('xss')</script>".to_string();
         let match_result = create_test_match_result();
         let template = EmailTemplate::job_match_notification(&job, &match_result);
-        
+
         // HTML should be escaped (no script tags)
         assert!(!template.html.contains("<script>"));
         // But should contain escaped version
@@ -444,4 +468,3 @@ fn html_escape(text: &str) -> String {
         .replace('"', "&quot;")
         .replace('\'', "&#x27;")
 }
-

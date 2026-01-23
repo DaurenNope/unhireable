@@ -1,9 +1,10 @@
-import { jsx as _jsx } from "react/jsx-runtime";
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import * as React from "react";
 import * as ToastPrimitives from "@radix-ui/react-toast";
 import { cva } from "class-variance-authority";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/components/ui/use-toast";
 const ToastProvider = ToastPrimitives.Provider;
 const ToastViewport = React.forwardRef(({ className, ...props }, ref) => (_jsx(ToastPrimitives.Viewport, { ref: ref, className: cn("fixed top-0 z-[100] flex max-h-screen w-full flex-col-reverse p-4 sm:bottom-0 sm:right-0 sm:top-auto sm:flex-col md:max-w-[420px]", className), ...props })));
 ToastViewport.displayName = ToastPrimitives.Viewport.displayName;
@@ -30,8 +31,10 @@ const ToastTitle = React.forwardRef(({ className, ...props }, ref) => (_jsx(Toas
 ToastTitle.displayName = ToastPrimitives.Title.displayName;
 const ToastDescription = React.forwardRef(({ className, ...props }, ref) => (_jsx(ToastPrimitives.Description, { ref: ref, className: cn("text-sm opacity-90", className), ...props })));
 ToastDescription.displayName = ToastPrimitives.Description.displayName;
-// Toaster component that renders toast notifications
 function Toaster() {
-    return (_jsx(ToastProvider, { children: _jsx(ToastViewport, {}) }));
+    const { toasts } = useToast();
+    return (_jsxs(ToastProvider, { children: [toasts.map(function ({ id, title, description, action, ...props }) {
+                return (_jsxs(Toast, { ...props, children: [_jsxs("div", { className: "grid gap-1", children: [title && _jsx(ToastTitle, { children: title }), description && _jsx(ToastDescription, { children: description })] }), action, _jsx(ToastClose, {})] }, id));
+            }), _jsx(ToastViewport, {})] }));
 }
 export { Toaster, ToastProvider, ToastViewport, Toast, ToastTitle, ToastDescription, ToastClose, ToastAction, };

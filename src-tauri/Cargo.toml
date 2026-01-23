@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Unhireable - Neural Career System"
 authors = ["You"]
 edition = "2021"
+default-run = "jobez"
 
 [lib]
 name = "jobez_lib"
@@ -12,6 +13,9 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 [features]
 default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]
+sentry = ["dep:sentry"]
+# PostgreSQL support temporarily disabled due to dependency conflict
+# postgres = ["dep:sqlx"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
@@ -24,9 +28,13 @@ tauri-plugin-dialog = "2"
 tauri-plugin-http = "2"
 tauri-plugin-store = "2"
 tauri-plugin-opener = "2"
+tauri-plugin-notification = "2"
 
 # Database
 rusqlite = { version = "0.31", features = ["bundled", "chrono"] }
+# sqlx temporarily removed due to libsqlite3-sys version conflict with rusqlite
+# To re-enable PostgreSQL support, use a compatible version or separate workspace
+# sqlx = { version = "0.7", optional = true, default-features = false, features = ["runtime-tokio-native-tls", "postgres", "chrono", "uuid"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 chrono = { version = "0.4", features = ["serde"] }
@@ -35,19 +43,31 @@ anyhow = "1.0"
 log = "0.4"
 env_logger = "0.11"
 
+# Structured logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# Redis for session persistence
+redis = { version = "0.24", features = ["tokio-comp", "connection-manager"] }
+
+# Metrics and monitoring
+prometheus = "0.13"
+lazy_static = "1.4"
+
 # Async runtime
 tokio = { version = "1.0", features = ["full"] }
 
-# Web scraping
-reqwest = { version = "0.12", features = ["json", "blocking"] }
+# Web scraping and HTTP client
+reqwest = { version = "0.12", features = ["json", "blocking", "rustls-tls"] }
 scraper = "0.13"
 urlencoding = "2.1"
 rand = "0.8"
 uuid = { version = "1.0", features = ["v4"] }
 regex = "1.10"
+once_cell = "1.19"
 
-# Browser automation (optional - for headless Chrome)
-# headless_chrome = { version = "0.9", optional = true }
+# Browser automation (Rust-native via Chrome DevTools)
+headless_chrome = "0.9"
 
 # Configuration
 config = "0.14"
@@ -58,6 +78,8 @@ clap = { version = "4.0", features = ["derive"] }
 # File system operations
 walkdir = "2.3"
 dirs = "5.0"
+tempfile = "3.8"
+which = "6.0"
 
 # Testing
 mockall = "0.12"
@@ -68,12 +90,24 @@ serde_yaml = "0.9"
 
 # PDF Generation
 printpdf = "0.7"
+# PDF Parsing
+lopdf = "0.32"
+# DOCX Generation
+docx-rs = "0.4"
 
 # AI Integration (tokio already included above)
 
 # Email Notifications
 lettre = { version = "0.11", features = ["smtp-transport", "native-tls"] }
+base64 = "0.22"
+
+# Security & Cryptography
+sha2 = "0.10"
+url = "2.5"
+
+# Error Reporting (optional - only used if SENTRY_DSN is set)
+sentry = { version = "0.32", optional = true }
+async-trait = "0.1.89"
 
 [dev-dependencies]
-tempfile = "3.8"
 mockito = "0.31"

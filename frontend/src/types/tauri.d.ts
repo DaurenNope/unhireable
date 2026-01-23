@@ -4,7 +4,7 @@ declare module '@tauri-apps/api/tauri' {
   /**
    * Invoke a Tauri command
    */
-  export function invoke<T = any>(cmd: string, args?: any): Promise<T>;
+  export function invoke<T = unknown>(cmd: string, args?: unknown): Promise<T>;
   
   // Add other Tauri API functions as needed
   // For example:
@@ -20,7 +20,7 @@ declare module '@tauri-apps/api/tauri' {
 // Global Tauri API
 declare interface Window {
   __TAURI__: {
-    invoke: <T = any>(cmd: string, args?: any) => Promise<T>;
+    invoke: <T = unknown>(cmd: string, args?: unknown) => Promise<T>;
     // Add other Tauri window APIs as needed
   };
 }
