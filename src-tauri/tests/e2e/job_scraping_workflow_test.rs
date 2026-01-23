@@ -1,6 +1,6 @@
 // E2E tests for complete job scraping workflow
 
-use jobez_lib::db::{Database, models::JobStatus};
+use unhireable_lib::db::{Database, models::JobStatus};
 use tempfile::TempDir;
 
 #[tokio::test]
@@ -14,7 +14,7 @@ async fn test_job_scraping_to_database_flow() {
     // For now, we test the database operations part
     
     // Create a mock job
-    let mut job = jobez_lib::db::models::Job {
+    let mut job = unhireable_lib::db::models::Job {
         id: None,
         title: "Test Software Engineer".to_string(),
         company: "Test Company".to_string(),
@@ -62,7 +62,7 @@ async fn test_job_deduplication() {
     let url = "https://example.com/job/duplicate".to_string();
     
     // Create first job
-    let mut job1 = jobez_lib::db::models::Job {
+    let mut job1 = unhireable_lib::db::models::Job {
         id: None,
         title: "First Job".to_string(),
         company: "Company A".to_string(),
@@ -84,7 +84,7 @@ async fn test_job_deduplication() {
     }
     
     // Try to create duplicate job with same URL
-    let mut job2 = jobez_lib::db::models::Job {
+    let mut job2 = unhireable_lib::db::models::Job {
         id: None,
         title: "Second Job".to_string(),
         company: "Company B".to_string(),

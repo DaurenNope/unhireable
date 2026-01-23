@@ -1,7 +1,7 @@
 //! Find a fresh job with Lever or Greenhouse ATS
 
-use jobez_lib::scraper::ScraperManager;
-use jobez_lib::applicator::AtsDetector;
+use unhireable_lib::scraper::ScraperManager;
+use unhireable_lib::applicator::AtsDetector;
 
 fn main() {
     println!("🔍 Searching for fresh jobs with Lever/Greenhouse ATS...");

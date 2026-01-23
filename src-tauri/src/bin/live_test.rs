@@ -1,11 +1,11 @@
 //! Live Test - Real job scraping and matching
 //! Tests the complete pipeline with actual job data
 
-use jobez_lib::db::queries::JobQueries;
-use jobez_lib::db::Database;
-use jobez_lib::generator::{ResumeGenerator, CoverLetterGenerator, UserProfile};
-use jobez_lib::matching::JobMatcher;
-use jobez_lib::applicator::AtsDetector;
+use unhireable_lib::db::queries::JobQueries;
+use unhireable_lib::db::Database;
+use unhireable_lib::generator::{ResumeGenerator, CoverLetterGenerator, UserProfile};
+use unhireable_lib::matching::JobMatcher;
+use unhireable_lib::applicator::AtsDetector;
 use std::path::PathBuf;
 
 fn main() {
@@ -83,7 +83,7 @@ async fn run_live_test() {
         let query_str = query.to_string();
         
         let result = tokio::task::spawn_blocking(move || {
-            let scraper = jobez_lib::scraper::ScraperManager::new();
+            let scraper = unhireable_lib::scraper::ScraperManager::new();
             scraper.scrape_selected(&[source_str], &query_str)
         }).await;
 

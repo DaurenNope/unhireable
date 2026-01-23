@@ -1,17 +1,17 @@
 //! End-to-End Test Runner
 //! Tests the complete automation pipeline from resume generation to job application
 
-use jobez_lib::automation::{AutomationConfig, EmailClassifier};
-use jobez_lib::db::models::{Job, JobStatus};
-use jobez_lib::db::queries::JobQueries;
-use jobez_lib::db::Database;
-use jobez_lib::generator::{
+use unhireable_lib::automation::{AutomationConfig, EmailClassifier};
+use unhireable_lib::db::models::{Job, JobStatus};
+use unhireable_lib::db::queries::JobQueries;
+use unhireable_lib::db::Database;
+use unhireable_lib::generator::{
     CoverLetterGenerator, ResumeGenerator, UserProfile, PersonalInfo, 
     SkillsProfile, ExperienceEntry, EducationEntry,
 };
-use jobez_lib::matching::JobMatcher;
-use jobez_lib::scraper::ScraperManager;
-use jobez_lib::applicator::AtsDetector;
+use unhireable_lib::matching::JobMatcher;
+use unhireable_lib::scraper::ScraperManager;
+use unhireable_lib::applicator::AtsDetector;
 use std::collections::HashMap;
 use std::path::PathBuf;
 

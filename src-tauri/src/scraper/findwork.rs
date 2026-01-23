@@ -119,7 +119,7 @@ impl JobScraper for FindworkScraper {
 
         let client = Client::builder()
             .timeout(Duration::from_secs(config.timeout_secs))
-            .user_agent("Mozilla/5.0 (compatible; JobezBot/1.0)")
+            .user_agent("Mozilla/5.0 (compatible; UnhireableBot/1.0)")
             .build()
             .context("Failed to build HTTP client for Findwork")?;
 

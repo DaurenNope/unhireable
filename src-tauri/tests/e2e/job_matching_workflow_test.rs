@@ -1,10 +1,10 @@
 // E2E tests for job matching workflow
 
-use jobez_lib::matching::JobMatcher;
-use jobez_lib::db::models::{Job, JobStatus};
+use unhireable_lib::matching::JobMatcher;
+use unhireable_lib::db::models::{Job, JobStatus};
 use chrono::Utc;
 use std::collections::HashMap;
-use jobez_lib::generator::{UserProfile, PersonalInfo, SkillsProfile, ExperienceEntry};
+use unhireable_lib::generator::{UserProfile, PersonalInfo, SkillsProfile, ExperienceEntry};
 
 fn create_test_profile() -> UserProfile {
     UserProfile {
@@ -168,18 +168,18 @@ fn test_complete_matching_workflow() {
     for result in &results {
         let quality = result.get_match_quality();
         match quality {
-            jobez_lib::matching::MatchQuality::Excellent => {
+            unhireable_lib::matching::MatchQuality::Excellent => {
                 assert!(result.match_score >= 80.0, "Excellent should be >= 80%");
             }
-            jobez_lib::matching::MatchQuality::Good => {
+            unhireable_lib::matching::MatchQuality::Good => {
                 assert!(result.match_score >= 60.0 && result.match_score < 80.0, 
                        "Good should be 60-79%");
             }
-            jobez_lib::matching::MatchQuality::Fair => {
+            unhireable_lib::matching::MatchQuality::Fair => {
                 assert!(result.match_score >= 40.0 && result.match_score < 60.0, 
                        "Fair should be 40-59%");
             }
-            jobez_lib::matching::MatchQuality::Poor => {
+            unhireable_lib::matching::MatchQuality::Poor => {
                 assert!(result.match_score < 40.0, "Poor should be < 40%");
             }
         }

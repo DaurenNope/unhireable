@@ -1,8 +1,8 @@
 // Integration tests for document generation flow
 
-use jobez_lib::db::models::Job;
-use jobez_lib::generator::{ResumeGenerator, CoverLetterGenerator, UserProfile};
-use jobez_lib::db::models::JobStatus;
+use unhireable_lib::db::models::Job;
+use unhireable_lib::generator::{ResumeGenerator, CoverLetterGenerator, UserProfile};
+use unhireable_lib::db::models::JobStatus;
 use chrono::Utc;
 
 fn create_test_job() -> Job {
@@ -33,7 +33,7 @@ fn create_test_job() -> Job {
 }
 
 fn create_test_profile() -> UserProfile {
-    use jobez_lib::generator::{PersonalInfo, SkillsProfile, ExperienceEntry};
+    use unhireable_lib::generator::{PersonalInfo, SkillsProfile, ExperienceEntry};
     use std::collections::HashMap;
     
     UserProfile {
@@ -97,7 +97,7 @@ async fn test_resume_generation_flow() {
     let document = result.unwrap();
     
     assert!(!document.content.is_empty(), "Resume content should not be empty");
-    assert_eq!(document.format, jobez_lib::generator::DocumentFormat::Markdown);
+    assert_eq!(document.format, unhireable_lib::generator::DocumentFormat::Markdown);
     assert!(!document.metadata.title.is_empty(), "Resume should have a title");
     assert!(document.metadata.word_count > 0, "Resume should have word count");
 }
@@ -116,7 +116,7 @@ async fn test_cover_letter_generation_flow() {
     let document = result.unwrap();
     
     assert!(!document.content.is_empty(), "Cover letter content should not be empty");
-    assert_eq!(document.format, jobez_lib::generator::DocumentFormat::Markdown);
+    assert_eq!(document.format, unhireable_lib::generator::DocumentFormat::Markdown);
     assert!(!document.metadata.title.is_empty(), "Cover letter should have a title");
     assert!(document.metadata.word_count > 0, "Cover letter should have word count");
 }

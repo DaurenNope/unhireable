@@ -1,5 +1,5 @@
 use anyhow::Context;
-use jobez_lib::resume_analyzer::{analyzer::ResumeAnalyzer, parser::ResumeParser};
+use unhireable_lib::resume_analyzer::{analyzer::ResumeAnalyzer, parser::ResumeParser};
 use std::env;
 
 fn main() -> anyhow::Result<()> {

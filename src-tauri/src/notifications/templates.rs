@@ -1,7 +1,9 @@
 use crate::db::models::Job;
 use crate::matching::JobMatchResult;
+use serde::{Deserialize, Serialize};
 
 /// Email template with HTML and plain text versions
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EmailTemplate {
     pub html: String,
     pub text: String,
@@ -354,6 +356,265 @@ Interviews Scheduled: {}
             stats.high_match_jobs_count,
             stats.applications_submitted,
             stats.interviews_scheduled
+        );
+
+        Self { html, text }
+    }
+
+    /// Create a thank-you follow-up email after interview
+    pub fn interview_thank_you(
+        company: &str,
+        recruiter_name: Option<&str>,
+        interview_type: &str,
+        custom_message: Option<&str>,
+    ) -> Self {
+        let greeting = if let Some(name) = recruiter_name {
+            format!("Dear {},", name)
+        } else {
+            "Dear Hiring Team,".to_string()
+        };
+
+        let custom_section = custom_message
+            .map(|msg| format!("\n\n{}", msg))
+            .unwrap_or_default();
+
+        let html = format!(
+            r#"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+        .content {{ background: #f9f9f9; padding: 20px; border: 1px solid #ddd; }}
+        .signature {{ margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; }}
+        .footer {{ text-align: center; padding: 20px; color: #666; font-size: 12px; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="content">
+            <p>{}</p>
+
+            <p>Thank you for taking the time to interview me for the position at {}. I enjoyed learning more about the team and the exciting work being done at {}.</p>
+
+            <p>The {} interview was particularly insightful, and I'm even more enthusiastic about the opportunity to contribute to your organization's success.{}</p>
+
+            <p>I'm looking forward to hearing from you regarding next steps in the process. Please don't hesitate to reach out if you need any additional information.</p>
+
+            <p>Best regards,<br>
+            [Your Name]</p>
+
+            <div class="signature">
+                <p>Sent via Unhireable - Neural Career System</p>
+            </div>
+        </div>
+        <div class="footer">
+            <p>This follow-up email was automatically generated and sent.</p>
+        </div>
+    </div>
+</body>
+</html>
+            "#,
+            greeting, company, company, interview_type, custom_section
+        );
+
+        let text = format!(
+            r#"
+{}
+
+Thank you for taking the time to interview me for the position at {}. I enjoyed learning more about the team and the exciting work being done at {}.
+
+The {} interview was particularly insightful, and I'm even more enthusiastic about the opportunity to contribute to your organization's success.{}
+
+I'm looking forward to hearing from you regarding next steps in the process. Please don't hesitate to reach out if you need any additional information.
+
+Best regards,
+[Your Name]
+
+Sent via Unhireable - Neural Career System
+            "#,
+            greeting, company, company, interview_type, custom_section
+        );
+
+        Self { html, text }
+    }
+
+    /// Create a status check-in follow-up email
+    pub fn status_check_in(
+        company: &str,
+        recruiter_name: Option<&str>,
+        days_since_application: u32,
+        position_title: &str,
+    ) -> Self {
+        let greeting = if let Some(name) = recruiter_name {
+            format!("Dear {},", name)
+        } else {
+            "Dear Hiring Team,".to_string()
+        };
+
+        let html = format!(
+            r#"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+        .content {{ background: #f9f9f9; padding: 20px; border: 1px solid #ddd; }}
+        .signature {{ margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; }}
+        .footer {{ text-align: center; padding: 20px; color: #666; font-size: 12px; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="content">
+            <p>{}</p>
+
+            <p>I hope this email finds you well. I'm writing to follow up on my application for the {} position at {}, which I submitted {} days ago.</p>
+
+            <p>I'm very interested in this opportunity and would appreciate any updates you can provide regarding the status of my application. I'm particularly excited about the possibility of contributing to {}'s mission.</p>
+
+            <p>Thank you for your time and consideration. I look forward to hearing from you.</p>
+
+            <p>Best regards,<br>
+            [Your Name]</p>
+
+            <div class="signature">
+                <p>Sent via Unhireable - Neural Career System</p>
+            </div>
+        </div>
+        <div class="footer">
+            <p>This follow-up email was automatically generated and sent.</p>
+        </div>
+    </div>
+</body>
+</html>
+            "#,
+            greeting, position_title, company, days_since_application, company
+        );
+
+        let text = format!(
+            r#"
+{}
+
+I hope this email finds you well. I'm writing to follow up on my application for the {} position at {}, which I submitted {} days ago.
+
+I'm very interested in this opportunity and would appreciate any updates you can provide regarding the status of my application. I'm particularly excited about the possibility of contributing to {}'s mission.
+
+Thank you for your time and consideration. I look forward to hearing from you.
+
+Best regards,
+[Your Name]
+
+Sent via Unhireable - Neural Career System
+            "#,
+            greeting, position_title, company, days_since_application, company
+        );
+
+        Self { html, text }
+    }
+
+    /// Create an interview confirmation follow-up email
+    pub fn interview_confirmation(
+        company: &str,
+        recruiter_name: Option<&str>,
+        interview_date: &str,
+        interview_time: &str,
+        interview_type: &str,
+        calendar_link: Option<&str>,
+    ) -> Self {
+        let greeting = if let Some(name) = recruiter_name {
+            format!("Dear {},", name)
+        } else {
+            "Dear Hiring Team,".to_string()
+        };
+
+        let calendar_section = calendar_link
+            .map(|link| format!("\n\n<p>Calendar Link: <a href='{}'>{}</a></p>", link, link))
+            .unwrap_or_default();
+
+        let html = format!(
+            r#"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+        .content {{ background: #f9f9f9; padding: 20px; border: 1px solid #ddd; }}
+        .interview-details {{ background: white; padding: 15px; margin: 15px 0; border-left: 4px solid #667eea; }}
+        .signature {{ margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; }}
+        .footer {{ text-align: center; padding: 20px; color: #666; font-size: 12px; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="content">
+            <p>{}</p>
+
+            <p>Thank you for scheduling the {} interview. I'm confirming the details below and looking forward to speaking with you.</p>
+
+            <div class="interview-details">
+                <strong>Interview Details:</strong><br>
+                Date: {}<br>
+                Time: {}<br>
+                Type: {}{}
+            </div>
+
+            <p>Please let me know if there's anything I should prepare or any information I should have ready for our conversation.</p>
+
+            <p>Best regards,<br>
+            [Your Name]</p>
+
+            <div class="signature">
+                <p>Sent via Unhireable - Neural Career System</p>
+            </div>
+        </div>
+        <div class="footer">
+            <p>This confirmation email was automatically generated and sent.</p>
+        </div>
+    </div>
+</body>
+</html>
+            "#,
+            greeting,
+            interview_type,
+            interview_date,
+            interview_time,
+            interview_type,
+            calendar_section
+        );
+
+        let text = format!(
+            r#"
+{}
+
+Thank you for scheduling the {} interview. I'm confirming the details below and looking forward to speaking with you.
+
+Interview Details:
+Date: {}
+Time: {}
+Type: {}{}
+
+Please let me know if there's anything I should prepare or any information I should have ready for our conversation.
+
+Best regards,
+[Your Name]
+
+Sent via Unhireable - Neural Career System
+            "#,
+            greeting,
+            interview_type,
+            interview_date,
+            interview_time,
+            interview_type,
+            calendar_link
+                .map(|link| format!("\nCalendar Link: {}", link))
+                .unwrap_or_default()
         );
 
         Self { html, text }

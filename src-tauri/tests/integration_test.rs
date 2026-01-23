@@ -1,8 +1,8 @@
 // Integration tests for job matching
 use chrono::Utc;
-use jobez_lib::db::models::{Job, JobStatus};
-use jobez_lib::generator::{ExperienceEntry, PersonalInfo, SkillsProfile, UserProfile};
-use jobez_lib::matching::JobMatcher;
+use unhireable_lib::db::models::{Job, JobStatus};
+use unhireable_lib::generator::{ExperienceEntry, PersonalInfo, SkillsProfile, UserProfile};
+use unhireable_lib::matching::JobMatcher;
 use std::collections::HashMap;
 
 fn create_test_job() -> Job {
@@ -128,8 +128,8 @@ fn test_job_match_integration() {
     // Check match quality
     let quality = result.get_match_quality();
     assert!(
-        matches!(quality, jobez_lib::matching::MatchQuality::Good)
-            || matches!(quality, jobez_lib::matching::MatchQuality::Excellent),
+        matches!(quality, unhireable_lib::matching::MatchQuality::Good)
+            || matches!(quality, unhireable_lib::matching::MatchQuality::Excellent),
         "Match quality should be Good or Excellent for this profile"
     );
 

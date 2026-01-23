@@ -1,9 +1,9 @@
 //! Real Apply Test
 //! Tests actual form filling on a Greenhouse job (without submitting)
 
-use jobez_lib::applicator::{ApplicationConfig, JobApplicator};
-use jobez_lib::db::models::{Job, JobStatus};
-use jobez_lib::generator::{PersonalInfo, SkillsProfile, UserProfile};
+use unhireable_lib::applicator::{ApplicationConfig, JobApplicator};
+use unhireable_lib::db::models::{Job, JobStatus};
+use unhireable_lib::generator::{PersonalInfo, SkillsProfile, UserProfile};
 use std::collections::HashMap;
 
 #[tokio::main]

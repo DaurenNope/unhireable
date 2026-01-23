@@ -85,10 +85,10 @@ pub fn get_reliability(ats_type: &Option<AtsType>) -> ReliabilityTier {
         Some(AtsType::JobDiva) => ReliabilityTier::Low,
 
         // VERY LOW RELIABILITY - Enterprise complexity, heavy anti-automation
-        Some(AtsType::Workday) => ReliabilityTier::VeryLow,           // Multi-page, auth required
+        Some(AtsType::Workday) => ReliabilityTier::VeryLow, // Multi-page, auth required
         Some(AtsType::LinkedInEasyApply) => ReliabilityTier::VeryLow, // Rate limits, CAPTCHA
-        Some(AtsType::ICIMS) => ReliabilityTier::VeryLow,             // Complex enterprise
-        Some(AtsType::Taleo) => ReliabilityTier::VeryLow,             // Legacy, inconsistent
+        Some(AtsType::ICIMS) => ReliabilityTier::VeryLow,   // Complex enterprise
+        Some(AtsType::Taleo) => ReliabilityTier::VeryLow,   // Legacy, inconsistent
         Some(AtsType::OracleTaleo) => ReliabilityTier::VeryLow,
         Some(AtsType::SuccessFactors) => ReliabilityTier::VeryLow,
         Some(AtsType::SAPSuccessFactors) => ReliabilityTier::VeryLow,
@@ -96,6 +96,15 @@ pub fn get_reliability(ats_type: &Option<AtsType>) -> ReliabilityTier {
 
         // Catch-all for any other ATS types
         Some(AtsType::RecruiteeBoard) => ReliabilityTier::Medium,
+        Some(AtsType::Indeed) => ReliabilityTier::Medium, // Popular, but form variations
+        Some(AtsType::Glassdoor) => ReliabilityTier::Medium, // Good forms, some complexity
+        Some(AtsType::Monster) => ReliabilityTier::Low,   // Older system, inconsistent
+        Some(AtsType::ZipRecruiter) => ReliabilityTier::Medium, // Decent forms
+        Some(AtsType::SimplyHired) => ReliabilityTier::Low, // Basic forms, some issues
+        Some(AtsType::Snagajob) => ReliabilityTier::Low,  // Entry-level focus, simpler
+        Some(AtsType::CareerBuilder) => ReliabilityTier::Low, // Legacy system
+        Some(AtsType::Dice) => ReliabilityTier::Medium,   // Tech-focused, decent
+        Some(AtsType::USAJobs) => ReliabilityTier::VeryLow, // Government, complex
         Some(AtsType::Generic) => ReliabilityTier::Unknown,
 
         // Unknown - might work, might not
@@ -186,14 +195,8 @@ impl Default for SmartApplyConfig {
             max_daily_applications: 50,
             delay_between_applications: 30,
             create_drafts_for_low_reliability: true,
-            skip_ats_types: vec![
-                "LinkedInEasyApply".to_string(),
-                "Workday".to_string(),
-            ],
-            force_allow_ats_types: vec![
-                "Greenhouse".to_string(),
-                "Lever".to_string(),
-            ],
+            skip_ats_types: vec!["LinkedInEasyApply".to_string(), "Workday".to_string()],
+            force_allow_ats_types: vec!["Greenhouse".to_string(), "Lever".to_string()],
         }
     }
 }

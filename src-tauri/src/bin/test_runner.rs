@@ -1,9 +1,9 @@
 //! CLI Test Runner - Run system tests from command line
 
-use jobez_lib::automation::{AutomationConfig, AutoPilotConfig, EmailClassifier};
-use jobez_lib::db::{Database, models::JobStatus};
-use jobez_lib::db::queries::JobQueries;
-use jobez_lib::matching::JobMatcher;
+use unhireable_lib::automation::{AutomationConfig, AutoPilotConfig, EmailClassifier};
+use unhireable_lib::db::{Database, models::JobStatus};
+use unhireable_lib::db::queries::JobQueries;
+use unhireable_lib::matching::JobMatcher;
 use std::path::PathBuf;
 
 fn main() {
@@ -82,8 +82,8 @@ fn test_database() -> Result<String, String> {
 }
 
 fn test_job_matcher() -> Result<String, String> {
-    use jobez_lib::db::models::Job;
-    use jobez_lib::generator::{UserProfile, PersonalInfo, SkillsProfile};
+    use unhireable_lib::db::models::Job;
+    use unhireable_lib::generator::{UserProfile, PersonalInfo, SkillsProfile};
     use std::collections::HashMap;
 
     let test_job = Job {
@@ -169,6 +169,6 @@ fn test_automation_config() -> Result<String, String> {
 }
 
 fn test_scraper() -> Result<String, String> {
-    let _scraper = jobez_lib::scraper::ScraperManager::new();
+    let _scraper = unhireable_lib::scraper::ScraperManager::new();
     Ok("Scraper initialized (sources: remoteok, wellfound, remotive, linkedin, hh_kz)".to_string())
 }

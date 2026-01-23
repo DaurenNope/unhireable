@@ -7,7 +7,7 @@ pub enum AtsType {
     Workday,
     Workable,
     LinkedInEasyApply,
-    // Additional ATS systems (20+ total)
+    // Additional ATS systems (30+ total)
     BambooHR,
     SmartRecruiters,
     ICIMS,
@@ -33,6 +33,16 @@ pub enum AtsType {
     OracleTaleo,
     Cornerstone,
     JobDiva,
+    // New additions for enhanced coverage
+    Indeed,
+    Glassdoor,
+    Monster,
+    ZipRecruiter,
+    SimplyHired,
+    Snagajob,
+    CareerBuilder,
+    Dice,
+    USAJobs,
     Generic,
 }
 
@@ -75,22 +85,32 @@ impl AtsDetector {
         }
 
         // SmartRecruiters
-        if url_lower.contains("smartrecruiters.com") || url_lower.contains("apply.smartrecruiters.com") {
+        if url_lower.contains("smartrecruiters.com")
+            || url_lower.contains("apply.smartrecruiters.com")
+        {
             return Some(AtsType::SmartRecruiters);
         }
 
         // ICIMS
-        if url_lower.contains("icims.com") || url_lower.contains("careers") && url_lower.contains("icims") {
+        if url_lower.contains("icims.com")
+            || url_lower.contains("careers") && url_lower.contains("icims")
+        {
             return Some(AtsType::ICIMS);
         }
 
         // Taleo / Oracle Taleo
-        if url_lower.contains("taleo.net") || url_lower.contains("taleo.com") || url_lower.contains("oracletaleo") {
+        if url_lower.contains("taleo.net")
+            || url_lower.contains("taleo.com")
+            || url_lower.contains("oracletaleo")
+        {
             return Some(AtsType::Taleo);
         }
 
         // SAP SuccessFactors
-        if url_lower.contains("successfactors.eu") || url_lower.contains("sfbobs") || url_lower.contains("successfactors.com") {
+        if url_lower.contains("successfactors.eu")
+            || url_lower.contains("sfbobs")
+            || url_lower.contains("successfactors.com")
+        {
             return Some(AtsType::SuccessFactors);
         }
 
@@ -145,7 +165,8 @@ impl AtsDetector {
         }
 
         // Recruiterflow
-        if url_lower.contains("recruiterflow.com") || url_lower.contains("apply.recruiterflow.com") {
+        if url_lower.contains("recruiterflow.com") || url_lower.contains("apply.recruiterflow.com")
+        {
             return Some(AtsType::Recruiterflow);
         }
 
@@ -165,7 +186,8 @@ impl AtsDetector {
         }
 
         // PeopleFluent
-        if url_lower.contains("peoplefluent.com") || url_lower.contains("careers.peoplefluent.com") {
+        if url_lower.contains("peoplefluent.com") || url_lower.contains("careers.peoplefluent.com")
+        {
             return Some(AtsType::PeopleFluent);
         }
 
@@ -184,6 +206,52 @@ impl AtsDetector {
             return Some(AtsType::JobDiva);
         }
 
+        // Indeed
+        if url_lower.contains("indeed.com") || url_lower.contains("apply.indeed.com") {
+            return Some(AtsType::Indeed);
+        }
+
+        // Glassdoor
+        if url_lower.contains("glassdoor.com") || url_lower.contains("apply.glassdoor.com") {
+            return Some(AtsType::Glassdoor);
+        }
+
+        // Monster
+        if url_lower.contains("monster.com") || url_lower.contains("apply.monster.com") {
+            return Some(AtsType::Monster);
+        }
+
+        // ZipRecruiter
+        if url_lower.contains("ziprecruiter.com") || url_lower.contains("apply.ziprecruiter.com") {
+            return Some(AtsType::ZipRecruiter);
+        }
+
+        // SimplyHired
+        if url_lower.contains("simplyhired.com") || url_lower.contains("apply.simplyhired.com") {
+            return Some(AtsType::SimplyHired);
+        }
+
+        // Snagajob
+        if url_lower.contains("snagajob.com") || url_lower.contains("apply.snagajob.com") {
+            return Some(AtsType::Snagajob);
+        }
+
+        // CareerBuilder
+        if url_lower.contains("careerbuilder.com") || url_lower.contains("apply.careerbuilder.com")
+        {
+            return Some(AtsType::CareerBuilder);
+        }
+
+        // Dice (additional check since we have dice scraper)
+        if url_lower.contains("dice.com") && url_lower.contains("apply") {
+            return Some(AtsType::Dice);
+        }
+
+        // USAJobs
+        if url_lower.contains("usajobs.gov") || url_lower.contains("apply.usajobs.gov") {
+            return Some(AtsType::USAJobs);
+        }
+
         // Default to generic if no specific ATS detected
         None
     }
@@ -200,7 +268,9 @@ impl AtsDetector {
             Some(AtsType::SmartRecruiters) => FieldSelectors::smartrecruiters(),
             Some(AtsType::ICIMS) => FieldSelectors::icims(),
             Some(AtsType::Taleo) | Some(AtsType::OracleTaleo) => FieldSelectors::taleo(),
-            Some(AtsType::SuccessFactors) | Some(AtsType::SAPSuccessFactors) => FieldSelectors::successfactors(),
+            Some(AtsType::SuccessFactors) | Some(AtsType::SAPSuccessFactors) => {
+                FieldSelectors::successfactors()
+            }
             Some(AtsType::Jobvite) => FieldSelectors::jobvite(),
             Some(AtsType::Bullhorn) => FieldSelectors::bullhorn(),
             Some(AtsType::ZohoRecruit) => FieldSelectors::zohorecruit(),
@@ -218,6 +288,15 @@ impl AtsDetector {
             Some(AtsType::PeopleFluent) => FieldSelectors::peoplefluent(),
             Some(AtsType::Cornerstone) => FieldSelectors::cornerstone(),
             Some(AtsType::JobDiva) => FieldSelectors::jobdiva(),
+            Some(AtsType::Indeed) => FieldSelectors::indeed(),
+            Some(AtsType::Glassdoor) => FieldSelectors::glassdoor(),
+            Some(AtsType::Monster) => FieldSelectors::monster(),
+            Some(AtsType::ZipRecruiter) => FieldSelectors::ziprecruiter(),
+            Some(AtsType::SimplyHired) => FieldSelectors::simplyhired(),
+            Some(AtsType::Snagajob) => FieldSelectors::snagajob(),
+            Some(AtsType::CareerBuilder) => FieldSelectors::careerbuilder(),
+            Some(AtsType::Dice) => FieldSelectors::dice_ats(),
+            Some(AtsType::USAJobs) => FieldSelectors::usajobs(),
             _ => FieldSelectors::generic(),
         }
     }
@@ -562,28 +641,64 @@ impl FieldSelectors {
     // Additional ATS field selectors (20+ systems)
     pub fn bamboohr() -> Self {
         Self {
-            first_name: vec!["input[name*='firstName']".to_string(), "input[id*='firstName']".to_string()],
-            last_name: vec!["input[name*='lastName']".to_string(), "input[id*='lastName']".to_string()],
-            email: vec!["input[type='email']".to_string(), "input[name*='email']".to_string()],
-            phone: vec!["input[type='tel']".to_string(), "input[name*='phone']".to_string()],
-            location: vec!["input[name*='location']".to_string(), "input[name*='city']".to_string()],
+            first_name: vec![
+                "input[name*='firstName']".to_string(),
+                "input[id*='firstName']".to_string(),
+            ],
+            last_name: vec![
+                "input[name*='lastName']".to_string(),
+                "input[id*='lastName']".to_string(),
+            ],
+            email: vec![
+                "input[type='email']".to_string(),
+                "input[name*='email']".to_string(),
+            ],
+            phone: vec![
+                "input[type='tel']".to_string(),
+                "input[name*='phone']".to_string(),
+            ],
+            location: vec![
+                "input[name*='location']".to_string(),
+                "input[name*='city']".to_string(),
+            ],
             linkedin: vec!["input[name*='linkedin']".to_string()],
             github: vec!["input[name*='github']".to_string()],
-            portfolio: vec!["input[name*='portfolio']".to_string(), "input[name*='website']".to_string()],
-            resume_upload: vec!["input[type='file'][name*='resume']".to_string(), "input[type='file']".to_string()],
+            portfolio: vec![
+                "input[name*='portfolio']".to_string(),
+                "input[name*='website']".to_string(),
+            ],
+            resume_upload: vec![
+                "input[type='file'][name*='resume']".to_string(),
+                "input[type='file']".to_string(),
+            ],
             cover_letter_upload: vec!["input[type='file'][name*='cover']".to_string()],
             cover_letter_text: vec!["textarea[name*='cover']".to_string()],
-            submit_button: vec!["button[type='submit']".to_string(), "button:contains('Submit')".to_string()],
+            submit_button: vec![
+                "button[type='submit']".to_string(),
+                "button:contains('Submit')".to_string(),
+            ],
             consent_checkbox: vec!["input[type='checkbox'][name*='consent']".to_string()],
         }
     }
 
     pub fn smartrecruiters() -> Self {
         Self {
-            first_name: vec!["input[name='firstname']".to_string(), "input[data-testid='firstname']".to_string()],
-            last_name: vec!["input[name='lastname']".to_string(), "input[data-testid='lastname']".to_string()],
-            email: vec!["input[type='email']".to_string(), "input[name='email']".to_string()],
-            phone: vec!["input[type='tel']".to_string(), "input[name='phone']".to_string()],
+            first_name: vec![
+                "input[name='firstname']".to_string(),
+                "input[data-testid='firstname']".to_string(),
+            ],
+            last_name: vec![
+                "input[name='lastname']".to_string(),
+                "input[data-testid='lastname']".to_string(),
+            ],
+            email: vec![
+                "input[type='email']".to_string(),
+                "input[name='email']".to_string(),
+            ],
+            phone: vec![
+                "input[type='tel']".to_string(),
+                "input[name='phone']".to_string(),
+            ],
             location: vec!["input[name='location']".to_string()],
             linkedin: vec!["input[name='linkedin']".to_string()],
             github: vec!["input[name='github']".to_string()],
@@ -591,17 +706,32 @@ impl FieldSelectors {
             resume_upload: vec!["input[type='file'][name='resume']".to_string()],
             cover_letter_upload: vec!["input[type='file'][name='cover']".to_string()],
             cover_letter_text: vec!["textarea[name='coverLetter']".to_string()],
-            submit_button: vec!["button[type='submit']".to_string(), "button[data-testid='submit']".to_string()],
+            submit_button: vec![
+                "button[type='submit']".to_string(),
+                "button[data-testid='submit']".to_string(),
+            ],
             consent_checkbox: vec!["input[type='checkbox'][name*='consent']".to_string()],
         }
     }
 
     pub fn icims() -> Self {
         Self {
-            first_name: vec!["input[name*='firstName']".to_string(), "input[id*='firstName']".to_string()],
-            last_name: vec!["input[name*='lastName']".to_string(), "input[id*='lastName']".to_string()],
-            email: vec!["input[type='email']".to_string(), "input[name*='email']".to_string()],
-            phone: vec!["input[type='tel']".to_string(), "input[name*='phone']".to_string()],
+            first_name: vec![
+                "input[name*='firstName']".to_string(),
+                "input[id*='firstName']".to_string(),
+            ],
+            last_name: vec![
+                "input[name*='lastName']".to_string(),
+                "input[id*='lastName']".to_string(),
+            ],
+            email: vec![
+                "input[type='email']".to_string(),
+                "input[name*='email']".to_string(),
+            ],
+            phone: vec![
+                "input[type='tel']".to_string(),
+                "input[name*='phone']".to_string(),
+            ],
             location: vec!["input[name*='location']".to_string()],
             linkedin: vec!["input[name*='linkedin']".to_string()],
             github: vec!["input[name*='github']".to_string()],
@@ -609,17 +739,32 @@ impl FieldSelectors {
             resume_upload: vec!["input[type='file'][name*='resume']".to_string()],
             cover_letter_upload: vec!["input[type='file'][name*='cover']".to_string()],
             cover_letter_text: vec!["textarea[name*='cover']".to_string()],
-            submit_button: vec!["button[type='submit']".to_string(), "input[type='submit']".to_string()],
+            submit_button: vec![
+                "button[type='submit']".to_string(),
+                "input[type='submit']".to_string(),
+            ],
             consent_checkbox: vec!["input[type='checkbox'][name*='consent']".to_string()],
         }
     }
 
     pub fn taleo() -> Self {
         Self {
-            first_name: vec!["input[name*='firstName']".to_string(), "input[id*='firstName']".to_string()],
-            last_name: vec!["input[name*='lastName']".to_string(), "input[id*='lastName']".to_string()],
-            email: vec!["input[type='email']".to_string(), "input[name*='email']".to_string()],
-            phone: vec!["input[type='tel']".to_string(), "input[name*='phone']".to_string()],
+            first_name: vec![
+                "input[name*='firstName']".to_string(),
+                "input[id*='firstName']".to_string(),
+            ],
+            last_name: vec![
+                "input[name*='lastName']".to_string(),
+                "input[id*='lastName']".to_string(),
+            ],
+            email: vec![
+                "input[type='email']".to_string(),
+                "input[name*='email']".to_string(),
+            ],
+            phone: vec![
+                "input[type='tel']".to_string(),
+                "input[name*='phone']".to_string(),
+            ],
             location: vec!["input[name*='location']".to_string()],
             linkedin: vec!["input[name*='linkedin']".to_string()],
             github: vec!["input[name*='github']".to_string()],
@@ -627,17 +772,32 @@ impl FieldSelectors {
             resume_upload: vec!["input[type='file'][name*='resume']".to_string()],
             cover_letter_upload: vec!["input[type='file'][name*='cover']".to_string()],
             cover_letter_text: vec!["textarea[name*='cover']".to_string()],
-            submit_button: vec!["button[type='submit']".to_string(), "input[type='submit']".to_string()],
+            submit_button: vec![
+                "button[type='submit']".to_string(),
+                "input[type='submit']".to_string(),
+            ],
             consent_checkbox: vec!["input[type='checkbox'][name*='consent']".to_string()],
         }
     }
 
     pub fn successfactors() -> Self {
         Self {
-            first_name: vec!["input[name*='firstName']".to_string(), "input[data-automation-id='firstName']".to_string()],
-            last_name: vec!["input[name*='lastName']".to_string(), "input[data-automation-id='lastName']".to_string()],
-            email: vec!["input[type='email']".to_string(), "input[name*='email']".to_string()],
-            phone: vec!["input[type='tel']".to_string(), "input[name*='phone']".to_string()],
+            first_name: vec![
+                "input[name*='firstName']".to_string(),
+                "input[data-automation-id='firstName']".to_string(),
+            ],
+            last_name: vec![
+                "input[name*='lastName']".to_string(),
+                "input[data-automation-id='lastName']".to_string(),
+            ],
+            email: vec![
+                "input[type='email']".to_string(),
+                "input[name*='email']".to_string(),
+            ],
+            phone: vec![
+                "input[type='tel']".to_string(),
+                "input[name*='phone']".to_string(),
+            ],
             location: vec!["input[name*='location']".to_string()],
             linkedin: vec!["input[name*='linkedin']".to_string()],
             github: vec!["input[name*='github']".to_string()],
@@ -645,17 +805,32 @@ impl FieldSelectors {
             resume_upload: vec!["input[type='file'][name*='resume']".to_string()],
             cover_letter_upload: vec!["input[type='file'][name*='cover']".to_string()],
             cover_letter_text: vec!["textarea[name*='cover']".to_string()],
-            submit_button: vec!["button[type='submit']".to_string(), "button[data-automation-id='submit']".to_string()],
+            submit_button: vec![
+                "button[type='submit']".to_string(),
+                "button[data-automation-id='submit']".to_string(),
+            ],
             consent_checkbox: vec!["input[type='checkbox'][name*='consent']".to_string()],
         }
     }
 
     pub fn jobvite() -> Self {
         Self {
-            first_name: vec!["input[name='firstName']".to_string(), "input[id='firstName']".to_string()],
-            last_name: vec!["input[name='lastName']".to_string(), "input[id='lastName']".to_string()],
-            email: vec!["input[type='email']".to_string(), "input[name='email']".to_string()],
-            phone: vec!["input[type='tel']".to_string(), "input[name='phone']".to_string()],
+            first_name: vec![
+                "input[name='firstName']".to_string(),
+                "input[id='firstName']".to_string(),
+            ],
+            last_name: vec![
+                "input[name='lastName']".to_string(),
+                "input[id='lastName']".to_string(),
+            ],
+            email: vec![
+                "input[type='email']".to_string(),
+                "input[name='email']".to_string(),
+            ],
+            phone: vec![
+                "input[type='tel']".to_string(),
+                "input[name='phone']".to_string(),
+            ],
             location: vec!["input[name='location']".to_string()],
             linkedin: vec!["input[name='linkedin']".to_string()],
             github: vec!["input[name='github']".to_string()],
@@ -663,17 +838,32 @@ impl FieldSelectors {
             resume_upload: vec!["input[type='file'][name='resume']".to_string()],
             cover_letter_upload: vec!["input[type='file'][name='cover']".to_string()],
             cover_letter_text: vec!["textarea[name='coverLetter']".to_string()],
-            submit_button: vec!["button[type='submit']".to_string(), "button.jv-button-submit".to_string()],
+            submit_button: vec![
+                "button[type='submit']".to_string(),
+                "button.jv-button-submit".to_string(),
+            ],
             consent_checkbox: vec!["input[type='checkbox'][name*='consent']".to_string()],
         }
     }
 
     pub fn bullhorn() -> Self {
         Self {
-            first_name: vec!["input[name*='firstName']".to_string(), "input[id*='firstName']".to_string()],
-            last_name: vec!["input[name*='lastName']".to_string(), "input[id*='lastName']".to_string()],
-            email: vec!["input[type='email']".to_string(), "input[name*='email']".to_string()],
-            phone: vec!["input[type='tel']".to_string(), "input[name*='phone']".to_string()],
+            first_name: vec![
+                "input[name*='firstName']".to_string(),
+                "input[id*='firstName']".to_string(),
+            ],
+            last_name: vec![
+                "input[name*='lastName']".to_string(),
+                "input[id*='lastName']".to_string(),
+            ],
+            email: vec![
+                "input[type='email']".to_string(),
+                "input[name*='email']".to_string(),
+            ],
+            phone: vec![
+                "input[type='tel']".to_string(),
+                "input[name*='phone']".to_string(),
+            ],
             location: vec!["input[name*='location']".to_string()],
             linkedin: vec!["input[name*='linkedin']".to_string()],
             github: vec!["input[name*='github']".to_string()],
@@ -681,17 +871,32 @@ impl FieldSelectors {
             resume_upload: vec!["input[type='file'][name*='resume']".to_string()],
             cover_letter_upload: vec!["input[type='file'][name*='cover']".to_string()],
             cover_letter_text: vec!["textarea[name*='cover']".to_string()],
-            submit_button: vec!["button[type='submit']".to_string(), "input[type='submit']".to_string()],
+            submit_button: vec![
+                "button[type='submit']".to_string(),
+                "input[type='submit']".to_string(),
+            ],
             consent_checkbox: vec!["input[type='checkbox'][name*='consent']".to_string()],
         }
     }
 
     pub fn zohorecruit() -> Self {
         Self {
-            first_name: vec!["input[name*='firstName']".to_string(), "input[id*='firstName']".to_string()],
-            last_name: vec!["input[name*='lastName']".to_string(), "input[id*='lastName']".to_string()],
-            email: vec!["input[type='email']".to_string(), "input[name*='email']".to_string()],
-            phone: vec!["input[type='tel']".to_string(), "input[name*='phone']".to_string()],
+            first_name: vec![
+                "input[name*='firstName']".to_string(),
+                "input[id*='firstName']".to_string(),
+            ],
+            last_name: vec![
+                "input[name*='lastName']".to_string(),
+                "input[id*='lastName']".to_string(),
+            ],
+            email: vec![
+                "input[type='email']".to_string(),
+                "input[name*='email']".to_string(),
+            ],
+            phone: vec![
+                "input[type='tel']".to_string(),
+                "input[name*='phone']".to_string(),
+            ],
             location: vec!["input[name*='location']".to_string()],
             linkedin: vec!["input[name*='linkedin']".to_string()],
             github: vec!["input[name*='github']".to_string()],
@@ -699,17 +904,32 @@ impl FieldSelectors {
             resume_upload: vec!["input[type='file'][name*='resume']".to_string()],
             cover_letter_upload: vec!["input[type='file'][name*='cover']".to_string()],
             cover_letter_text: vec!["textarea[name*='cover']".to_string()],
-            submit_button: vec!["button[type='submit']".to_string(), "input[type='submit']".to_string()],
+            submit_button: vec![
+                "button[type='submit']".to_string(),
+                "input[type='submit']".to_string(),
+            ],
             consent_checkbox: vec!["input[type='checkbox'][name*='consent']".to_string()],
         }
     }
 
     pub fn recruitee() -> Self {
         Self {
-            first_name: vec!["input[name='firstName']".to_string(), "input[data-field='firstName']".to_string()],
-            last_name: vec!["input[name='lastName']".to_string(), "input[data-field='lastName']".to_string()],
-            email: vec!["input[type='email']".to_string(), "input[name='email']".to_string()],
-            phone: vec!["input[type='tel']".to_string(), "input[name='phone']".to_string()],
+            first_name: vec![
+                "input[name='firstName']".to_string(),
+                "input[data-field='firstName']".to_string(),
+            ],
+            last_name: vec![
+                "input[name='lastName']".to_string(),
+                "input[data-field='lastName']".to_string(),
+            ],
+            email: vec![
+                "input[type='email']".to_string(),
+                "input[name='email']".to_string(),
+            ],
+            phone: vec![
+                "input[type='tel']".to_string(),
+                "input[name='phone']".to_string(),
+            ],
             location: vec!["input[name='location']".to_string()],
             linkedin: vec!["input[name='linkedin']".to_string()],
             github: vec!["input[name='github']".to_string()],
@@ -717,17 +937,32 @@ impl FieldSelectors {
             resume_upload: vec!["input[type='file'][name='resume']".to_string()],
             cover_letter_upload: vec!["input[type='file'][name='cover']".to_string()],
             cover_letter_text: vec!["textarea[name='coverLetter']".to_string()],
-            submit_button: vec!["button[type='submit']".to_string(), "button.recruitee-submit".to_string()],
+            submit_button: vec![
+                "button[type='submit']".to_string(),
+                "button.recruitee-submit".to_string(),
+            ],
             consent_checkbox: vec!["input[type='checkbox'][name*='consent']".to_string()],
         }
     }
 
     pub fn jazzhr() -> Self {
         Self {
-            first_name: vec!["input[name='firstName']".to_string(), "input[id='firstName']".to_string()],
-            last_name: vec!["input[name='lastName']".to_string(), "input[id='lastName']".to_string()],
-            email: vec!["input[type='email']".to_string(), "input[name='email']".to_string()],
-            phone: vec!["input[type='tel']".to_string(), "input[name='phone']".to_string()],
+            first_name: vec![
+                "input[name='firstName']".to_string(),
+                "input[id='firstName']".to_string(),
+            ],
+            last_name: vec![
+                "input[name='lastName']".to_string(),
+                "input[id='lastName']".to_string(),
+            ],
+            email: vec![
+                "input[type='email']".to_string(),
+                "input[name='email']".to_string(),
+            ],
+            phone: vec![
+                "input[type='tel']".to_string(),
+                "input[name='phone']".to_string(),
+            ],
             location: vec!["input[name='location']".to_string()],
             linkedin: vec!["input[name='linkedin']".to_string()],
             github: vec!["input[name='github']".to_string()],
@@ -735,17 +970,32 @@ impl FieldSelectors {
             resume_upload: vec!["input[type='file'][name='resume']".to_string()],
             cover_letter_upload: vec!["input[type='file'][name='cover']".to_string()],
             cover_letter_text: vec!["textarea[name='coverLetter']".to_string()],
-            submit_button: vec!["button[type='submit']".to_string(), "button.jazz-submit".to_string()],
+            submit_button: vec![
+                "button[type='submit']".to_string(),
+                "button.jazz-submit".to_string(),
+            ],
             consent_checkbox: vec!["input[type='checkbox'][name*='consent']".to_string()],
         }
     }
 
     pub fn personio() -> Self {
         Self {
-            first_name: vec!["input[name='firstName']".to_string(), "input[data-field='firstName']".to_string()],
-            last_name: vec!["input[name='lastName']".to_string(), "input[data-field='lastName']".to_string()],
-            email: vec!["input[type='email']".to_string(), "input[name='email']".to_string()],
-            phone: vec!["input[type='tel']".to_string(), "input[name='phone']".to_string()],
+            first_name: vec![
+                "input[name='firstName']".to_string(),
+                "input[data-field='firstName']".to_string(),
+            ],
+            last_name: vec![
+                "input[name='lastName']".to_string(),
+                "input[data-field='lastName']".to_string(),
+            ],
+            email: vec![
+                "input[type='email']".to_string(),
+                "input[name='email']".to_string(),
+            ],
+            phone: vec![
+                "input[type='tel']".to_string(),
+                "input[name='phone']".to_string(),
+            ],
             location: vec!["input[name='location']".to_string()],
             linkedin: vec!["input[name='linkedin']".to_string()],
             github: vec!["input[name='github']".to_string()],
@@ -753,7 +1003,10 @@ impl FieldSelectors {
             resume_upload: vec!["input[type='file'][name='resume']".to_string()],
             cover_letter_upload: vec!["input[type='file'][name='cover']".to_string()],
             cover_letter_text: vec!["textarea[name='coverLetter']".to_string()],
-            submit_button: vec!["button[type='submit']".to_string(), "button.personio-submit".to_string()],
+            submit_button: vec![
+                "button[type='submit']".to_string(),
+                "button.personio-submit".to_string(),
+            ],
             consent_checkbox: vec!["input[type='checkbox'][name*='consent']".to_string()],
         }
     }
@@ -762,8 +1015,14 @@ impl FieldSelectors {
         Self {
             first_name: vec!["input[name='firstName']".to_string()],
             last_name: vec!["input[name='lastName']".to_string()],
-            email: vec!["input[type='email']".to_string(), "input[name='email']".to_string()],
-            phone: vec!["input[type='tel']".to_string(), "input[name='phone']".to_string()],
+            email: vec![
+                "input[type='email']".to_string(),
+                "input[name='email']".to_string(),
+            ],
+            phone: vec![
+                "input[type='tel']".to_string(),
+                "input[name='phone']".to_string(),
+            ],
             location: vec!["input[name='location']".to_string()],
             linkedin: vec!["input[name='linkedin']".to_string()],
             github: vec!["input[name='github']".to_string()],
@@ -780,8 +1039,14 @@ impl FieldSelectors {
         Self {
             first_name: vec!["input[name='firstName']".to_string()],
             last_name: vec!["input[name='lastName']".to_string()],
-            email: vec!["input[type='email']".to_string(), "input[name='email']".to_string()],
-            phone: vec!["input[type='tel']".to_string(), "input[name='phone']".to_string()],
+            email: vec![
+                "input[type='email']".to_string(),
+                "input[name='email']".to_string(),
+            ],
+            phone: vec![
+                "input[type='tel']".to_string(),
+                "input[name='phone']".to_string(),
+            ],
             location: vec!["input[name='location']".to_string()],
             linkedin: vec!["input[name='linkedin']".to_string()],
             github: vec!["input[name='github']".to_string()],
@@ -798,8 +1063,14 @@ impl FieldSelectors {
         Self {
             first_name: vec!["input[name='firstName']".to_string()],
             last_name: vec!["input[name='lastName']".to_string()],
-            email: vec!["input[type='email']".to_string(), "input[name='email']".to_string()],
-            phone: vec!["input[type='tel']".to_string(), "input[name='phone']".to_string()],
+            email: vec![
+                "input[type='email']".to_string(),
+                "input[name='email']".to_string(),
+            ],
+            phone: vec![
+                "input[type='tel']".to_string(),
+                "input[name='phone']".to_string(),
+            ],
             location: vec!["input[name='location']".to_string()],
             linkedin: vec!["input[name='linkedin']".to_string()],
             github: vec!["input[name='github']".to_string()],
@@ -816,8 +1087,14 @@ impl FieldSelectors {
         Self {
             first_name: vec!["input[name='firstName']".to_string()],
             last_name: vec!["input[name='lastName']".to_string()],
-            email: vec!["input[type='email']".to_string(), "input[name='email']".to_string()],
-            phone: vec!["input[type='tel']".to_string(), "input[name='phone']".to_string()],
+            email: vec![
+                "input[type='email']".to_string(),
+                "input[name='email']".to_string(),
+            ],
+            phone: vec![
+                "input[type='tel']".to_string(),
+                "input[name='phone']".to_string(),
+            ],
             location: vec!["input[name='location']".to_string()],
             linkedin: vec!["input[name='linkedin']".to_string()],
             github: vec!["input[name='github']".to_string()],
@@ -834,8 +1111,14 @@ impl FieldSelectors {
         Self {
             first_name: vec!["input[name='firstName']".to_string()],
             last_name: vec!["input[name='lastName']".to_string()],
-            email: vec!["input[type='email']".to_string(), "input[name='email']".to_string()],
-            phone: vec!["input[type='tel']".to_string(), "input[name='phone']".to_string()],
+            email: vec![
+                "input[type='email']".to_string(),
+                "input[name='email']".to_string(),
+            ],
+            phone: vec![
+                "input[type='tel']".to_string(),
+                "input[name='phone']".to_string(),
+            ],
             location: vec!["input[name='location']".to_string()],
             linkedin: vec!["input[name='linkedin']".to_string()],
             github: vec!["input[name='github']".to_string()],
@@ -852,8 +1135,14 @@ impl FieldSelectors {
         Self {
             first_name: vec!["input[name='firstName']".to_string()],
             last_name: vec!["input[name='lastName']".to_string()],
-            email: vec!["input[type='email']".to_string(), "input[name='email']".to_string()],
-            phone: vec!["input[type='tel']".to_string(), "input[name='phone']".to_string()],
+            email: vec![
+                "input[type='email']".to_string(),
+                "input[name='email']".to_string(),
+            ],
+            phone: vec![
+                "input[type='tel']".to_string(),
+                "input[name='phone']".to_string(),
+            ],
             location: vec!["input[name='location']".to_string()],
             linkedin: vec!["input[name='linkedin']".to_string()],
             github: vec!["input[name='github']".to_string()],
@@ -870,8 +1159,14 @@ impl FieldSelectors {
         Self {
             first_name: vec!["input[name='firstName']".to_string()],
             last_name: vec!["input[name='lastName']".to_string()],
-            email: vec!["input[type='email']".to_string(), "input[name='email']".to_string()],
-            phone: vec!["input[type='tel']".to_string(), "input[name='phone']".to_string()],
+            email: vec![
+                "input[type='email']".to_string(),
+                "input[name='email']".to_string(),
+            ],
+            phone: vec![
+                "input[type='tel']".to_string(),
+                "input[name='phone']".to_string(),
+            ],
             location: vec!["input[name='location']".to_string()],
             linkedin: vec!["input[name='linkedin']".to_string()],
             github: vec!["input[name='github']".to_string()],
@@ -888,8 +1183,14 @@ impl FieldSelectors {
         Self {
             first_name: vec!["input[name='firstName']".to_string()],
             last_name: vec!["input[name='lastName']".to_string()],
-            email: vec!["input[type='email']".to_string(), "input[name='email']".to_string()],
-            phone: vec!["input[type='tel']".to_string(), "input[name='phone']".to_string()],
+            email: vec![
+                "input[type='email']".to_string(),
+                "input[name='email']".to_string(),
+            ],
+            phone: vec![
+                "input[type='tel']".to_string(),
+                "input[name='phone']".to_string(),
+            ],
             location: vec!["input[name='location']".to_string()],
             linkedin: vec!["input[name='linkedin']".to_string()],
             github: vec!["input[name='github']".to_string()],
@@ -906,8 +1207,14 @@ impl FieldSelectors {
         Self {
             first_name: vec!["input[name='firstName']".to_string()],
             last_name: vec!["input[name='lastName']".to_string()],
-            email: vec!["input[type='email']".to_string(), "input[name='email']".to_string()],
-            phone: vec!["input[type='tel']".to_string(), "input[name='phone']".to_string()],
+            email: vec![
+                "input[type='email']".to_string(),
+                "input[name='email']".to_string(),
+            ],
+            phone: vec![
+                "input[type='tel']".to_string(),
+                "input[name='phone']".to_string(),
+            ],
             location: vec!["input[name='location']".to_string()],
             linkedin: vec!["input[name='linkedin']".to_string()],
             github: vec!["input[name='github']".to_string()],
@@ -924,8 +1231,14 @@ impl FieldSelectors {
         Self {
             first_name: vec!["input[name='firstName']".to_string()],
             last_name: vec!["input[name='lastName']".to_string()],
-            email: vec!["input[type='email']".to_string(), "input[name='email']".to_string()],
-            phone: vec!["input[type='tel']".to_string(), "input[name='phone']".to_string()],
+            email: vec![
+                "input[type='email']".to_string(),
+                "input[name='email']".to_string(),
+            ],
+            phone: vec![
+                "input[type='tel']".to_string(),
+                "input[name='phone']".to_string(),
+            ],
             location: vec!["input[name='location']".to_string()],
             linkedin: vec!["input[name='linkedin']".to_string()],
             github: vec!["input[name='github']".to_string()],
@@ -942,14 +1255,280 @@ impl FieldSelectors {
         Self {
             first_name: vec!["input[name='firstName']".to_string()],
             last_name: vec!["input[name='lastName']".to_string()],
-            email: vec!["input[type='email']".to_string(), "input[name='email']".to_string()],
-            phone: vec!["input[type='tel']".to_string(), "input[name='phone']".to_string()],
+            email: vec![
+                "input[type='email']".to_string(),
+                "input[name='email']".to_string(),
+            ],
+            phone: vec![
+                "input[type='tel']".to_string(),
+                "input[name='phone']".to_string(),
+            ],
             location: vec!["input[name='location']".to_string()],
             linkedin: vec!["input[name='linkedin']".to_string()],
             github: vec!["input[name='github']".to_string()],
             portfolio: vec!["input[name='portfolio']".to_string()],
             resume_upload: vec!["input[type='file'][name='resume']".to_string()],
             cover_letter_upload: vec!["input[type='file'][name='cover']".to_string()],
+            cover_letter_text: vec!["textarea[name='coverLetter']".to_string()],
+            submit_button: vec!["button[type='submit']".to_string()],
+            consent_checkbox: vec!["input[type='checkbox'][name*='consent']".to_string()],
+        }
+    }
+
+    pub fn indeed() -> Self {
+        Self {
+            first_name: vec![
+                "input[name='firstName']".to_string(),
+                "input[id='input-firstName']".to_string(),
+                "input[data-testid='firstName']".to_string(),
+            ],
+            last_name: vec![
+                "input[name='lastName']".to_string(),
+                "input[id='input-lastName']".to_string(),
+                "input[data-testid='lastName']".to_string(),
+            ],
+            email: vec![
+                "input[type='email']".to_string(),
+                "input[name='email']".to_string(),
+                "input[data-testid='email']".to_string(),
+            ],
+            phone: vec![
+                "input[type='tel']".to_string(),
+                "input[name='phone']".to_string(),
+                "input[data-testid='phone']".to_string(),
+            ],
+            location: vec![
+                "input[name='location']".to_string(),
+                "input[data-testid='location']".to_string(),
+            ],
+            linkedin: vec!["input[name='linkedin']".to_string()],
+            github: vec!["input[name='github']".to_string()],
+            portfolio: vec!["input[name='website']".to_string()],
+            resume_upload: vec![
+                "input[type='file'][name='resume']".to_string(),
+                "input[type='file'][data-testid='resume']".to_string(),
+            ],
+            cover_letter_upload: vec!["input[type='file'][name='coverLetter']".to_string()],
+            cover_letter_text: vec![
+                "textarea[name='coverLetter']".to_string(),
+                "textarea[data-testid='coverLetter']".to_string(),
+            ],
+            submit_button: vec![
+                "button[type='submit']".to_string(),
+                "button[data-testid='submit']".to_string(),
+                "button:contains('Apply now')".to_string(),
+            ],
+            consent_checkbox: vec!["input[type='checkbox'][name*='consent']".to_string()],
+        }
+    }
+
+    pub fn glassdoor() -> Self {
+        Self {
+            first_name: vec![
+                "input[name='firstName']".to_string(),
+                "input[data-test='firstName']".to_string(),
+            ],
+            last_name: vec![
+                "input[name='lastName']".to_string(),
+                "input[data-test='lastName']".to_string(),
+            ],
+            email: vec![
+                "input[type='email']".to_string(),
+                "input[name='email']".to_string(),
+                "input[data-test='email']".to_string(),
+            ],
+            phone: vec![
+                "input[type='tel']".to_string(),
+                "input[name='phone']".to_string(),
+                "input[data-test='phone']".to_string(),
+            ],
+            location: vec![
+                "input[name='location']".to_string(),
+                "input[data-test='location']".to_string(),
+            ],
+            linkedin: vec!["input[name='linkedin']".to_string()],
+            github: vec!["input[name='github']".to_string()],
+            portfolio: vec!["input[name='website']".to_string()],
+            resume_upload: vec![
+                "input[type='file'][name='resume']".to_string(),
+                "input[type='file'][data-test='resume']".to_string(),
+            ],
+            cover_letter_upload: vec!["input[type='file'][name='coverLetter']".to_string()],
+            cover_letter_text: vec![
+                "textarea[name='coverLetter']".to_string(),
+                "textarea[data-test='coverLetter']".to_string(),
+            ],
+            submit_button: vec![
+                "button[type='submit']".to_string(),
+                "button[data-test='submit']".to_string(),
+                "button:contains('Apply')".to_string(),
+            ],
+            consent_checkbox: vec!["input[type='checkbox'][name*='consent']".to_string()],
+        }
+    }
+
+    pub fn monster() -> Self {
+        Self {
+            first_name: vec!["input[name='firstName']".to_string()],
+            last_name: vec!["input[name='lastName']".to_string()],
+            email: vec![
+                "input[type='email']".to_string(),
+                "input[name='email']".to_string(),
+            ],
+            phone: vec![
+                "input[type='tel']".to_string(),
+                "input[name='phone']".to_string(),
+            ],
+            location: vec!["input[name='location']".to_string()],
+            linkedin: vec!["input[name='linkedin']".to_string()],
+            github: vec!["input[name='github']".to_string()],
+            portfolio: vec!["input[name='website']".to_string()],
+            resume_upload: vec!["input[type='file'][name='resume']".to_string()],
+            cover_letter_upload: vec!["input[type='file'][name='coverLetter']".to_string()],
+            cover_letter_text: vec!["textarea[name='coverLetter']".to_string()],
+            submit_button: vec!["button[type='submit']".to_string()],
+            consent_checkbox: vec!["input[type='checkbox'][name*='consent']".to_string()],
+        }
+    }
+
+    pub fn ziprecruiter() -> Self {
+        Self {
+            first_name: vec!["input[name='firstName']".to_string()],
+            last_name: vec!["input[name='lastName']".to_string()],
+            email: vec![
+                "input[type='email']".to_string(),
+                "input[name='email']".to_string(),
+            ],
+            phone: vec![
+                "input[type='tel']".to_string(),
+                "input[name='phone']".to_string(),
+            ],
+            location: vec!["input[name='location']".to_string()],
+            linkedin: vec!["input[name='linkedin']".to_string()],
+            github: vec!["input[name='github']".to_string()],
+            portfolio: vec!["input[name='website']".to_string()],
+            resume_upload: vec!["input[type='file'][name='resume']".to_string()],
+            cover_letter_upload: vec!["input[type='file'][name='coverLetter']".to_string()],
+            cover_letter_text: vec!["textarea[name='coverLetter']".to_string()],
+            submit_button: vec!["button[type='submit']".to_string()],
+            consent_checkbox: vec!["input[type='checkbox'][name*='consent']".to_string()],
+        }
+    }
+
+    pub fn simplyhired() -> Self {
+        Self {
+            first_name: vec!["input[name='firstName']".to_string()],
+            last_name: vec!["input[name='lastName']".to_string()],
+            email: vec![
+                "input[type='email']".to_string(),
+                "input[name='email']".to_string(),
+            ],
+            phone: vec![
+                "input[type='tel']".to_string(),
+                "input[name='phone']".to_string(),
+            ],
+            location: vec!["input[name='location']".to_string()],
+            linkedin: vec!["input[name='linkedin']".to_string()],
+            github: vec!["input[name='github']".to_string()],
+            portfolio: vec!["input[name='website']".to_string()],
+            resume_upload: vec!["input[type='file'][name='resume']".to_string()],
+            cover_letter_upload: vec!["input[type='file'][name='coverLetter']".to_string()],
+            cover_letter_text: vec!["textarea[name='coverLetter']".to_string()],
+            submit_button: vec!["button[type='submit']".to_string()],
+            consent_checkbox: vec!["input[type='checkbox'][name*='consent']".to_string()],
+        }
+    }
+
+    pub fn snagajob() -> Self {
+        Self {
+            first_name: vec!["input[name='firstName']".to_string()],
+            last_name: vec!["input[name='lastName']".to_string()],
+            email: vec![
+                "input[type='email']".to_string(),
+                "input[name='email']".to_string(),
+            ],
+            phone: vec![
+                "input[type='tel']".to_string(),
+                "input[name='phone']".to_string(),
+            ],
+            location: vec!["input[name='location']".to_string()],
+            linkedin: vec!["input[name='linkedin']".to_string()],
+            github: vec!["input[name='github']".to_string()],
+            portfolio: vec!["input[name='website']".to_string()],
+            resume_upload: vec!["input[type='file'][name='resume']".to_string()],
+            cover_letter_upload: vec!["input[type='file'][name='coverLetter']".to_string()],
+            cover_letter_text: vec!["textarea[name='coverLetter']".to_string()],
+            submit_button: vec!["button[type='submit']".to_string()],
+            consent_checkbox: vec!["input[type='checkbox'][name*='consent']".to_string()],
+        }
+    }
+
+    pub fn careerbuilder() -> Self {
+        Self {
+            first_name: vec!["input[name='firstName']".to_string()],
+            last_name: vec!["input[name='lastName']".to_string()],
+            email: vec![
+                "input[type='email']".to_string(),
+                "input[name='email']".to_string(),
+            ],
+            phone: vec![
+                "input[type='tel']".to_string(),
+                "input[name='phone']".to_string(),
+            ],
+            location: vec!["input[name='location']".to_string()],
+            linkedin: vec!["input[name='linkedin']".to_string()],
+            github: vec!["input[name='github']".to_string()],
+            portfolio: vec!["input[name='website']".to_string()],
+            resume_upload: vec!["input[type='file'][name='resume']".to_string()],
+            cover_letter_upload: vec!["input[type='file'][name='coverLetter']".to_string()],
+            cover_letter_text: vec!["textarea[name='coverLetter']".to_string()],
+            submit_button: vec!["button[type='submit']".to_string()],
+            consent_checkbox: vec!["input[type='checkbox'][name*='consent']".to_string()],
+        }
+    }
+
+    pub fn dice_ats() -> Self {
+        Self {
+            first_name: vec!["input[name='firstName']".to_string()],
+            last_name: vec!["input[name='lastName']".to_string()],
+            email: vec![
+                "input[type='email']".to_string(),
+                "input[name='email']".to_string(),
+            ],
+            phone: vec![
+                "input[type='tel']".to_string(),
+                "input[name='phone']".to_string(),
+            ],
+            location: vec!["input[name='location']".to_string()],
+            linkedin: vec!["input[name='linkedin']".to_string()],
+            github: vec!["input[name='github']".to_string()],
+            portfolio: vec!["input[name='website']".to_string()],
+            resume_upload: vec!["input[type='file'][name='resume']".to_string()],
+            cover_letter_upload: vec!["input[type='file'][name='coverLetter']".to_string()],
+            cover_letter_text: vec!["textarea[name='coverLetter']".to_string()],
+            submit_button: vec!["button[type='submit']".to_string()],
+            consent_checkbox: vec!["input[type='checkbox'][name*='consent']".to_string()],
+        }
+    }
+
+    pub fn usajobs() -> Self {
+        Self {
+            first_name: vec!["input[name='firstName']".to_string()],
+            last_name: vec!["input[name='lastName']".to_string()],
+            email: vec![
+                "input[type='email']".to_string(),
+                "input[name='email']".to_string(),
+            ],
+            phone: vec![
+                "input[type='tel']".to_string(),
+                "input[name='phone']".to_string(),
+            ],
+            location: vec!["input[name='location']".to_string()],
+            linkedin: vec!["input[name='linkedin']".to_string()],
+            github: vec!["input[name='github']".to_string()],
+            portfolio: vec!["input[name='website']".to_string()],
+            resume_upload: vec!["input[type='file'][name='resume']".to_string()],
+            cover_letter_upload: vec!["input[type='file'][name='coverLetter']".to_string()],
             cover_letter_text: vec!["textarea[name='coverLetter']".to_string()],
             submit_button: vec!["button[type='submit']".to_string()],
             consent_checkbox: vec!["input[type='checkbox'][name*='consent']".to_string()],

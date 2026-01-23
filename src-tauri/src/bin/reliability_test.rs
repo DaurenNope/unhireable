@@ -1,7 +1,7 @@
 //! Reliability Filter Test
 //! Tests the smart auto-apply system with real job URLs
 
-use jobez_lib::applicator::{
+use unhireable_lib::applicator::{
     get_reliability, is_safe_for_auto_apply, AutoApplyInfo, AtsDetector, SmartApplyConfig,
 };
 

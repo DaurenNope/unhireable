@@ -1,8 +1,8 @@
 //! Visible Browser Application
 //! Opens a VISIBLE browser window so you can WATCH the form being filled
 
-use jobez_lib::applicator::{FormFiller, AtsType};
-use jobez_lib::generator::{UserProfile, PersonalInfo, SkillsProfile};
+use unhireable_lib::applicator::{FormFiller, AtsType};
+use unhireable_lib::generator::{UserProfile, PersonalInfo, SkillsProfile};
 use std::collections::HashMap;
 
 fn main() {

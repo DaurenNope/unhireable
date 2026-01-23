@@ -1,8 +1,8 @@
-use jobez_lib::db::Database;
-use jobez_lib::generator::{
+use unhireable_lib::db::Database;
+use unhireable_lib::generator::{
     EducationEntry, ExperienceEntry, PersonalInfo, SkillsProfile, UserProfile,
 };
-use jobez_lib::run_auto_apply_logic;
+use unhireable_lib::run_auto_apply_logic;
 use rusqlite::params;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -30,7 +30,7 @@ async fn main() {
     // 2. Set up app directory with the user's resume
     let app_dir = db_path.parent().unwrap().to_path_buf();
     let resume_source = std::path::Path::new(
-        "/Users/mac/Documents/Development/jobez/labs/resources/maksut-beksultan-cv.pdf",
+        "/Users/mac/Documents/Development/unhireable/labs/resources/maksut-beksultan-cv.pdf",
     );
     let resume_dest = app_dir.join("resume.pdf");
 

@@ -1,6 +1,6 @@
 // E2E tests for complete application workflow
 
-use jobez_lib::db::{Database, models::{JobStatus, ApplicationStatus}};
+use unhireable_lib::db::{Database, models::{JobStatus, ApplicationStatus}};
 use tempfile::TempDir;
 
 #[tokio::test]
@@ -11,7 +11,7 @@ async fn test_application_workflow_end_to_end() {
     let db = Database::new(&db_path).expect("Failed to create test database");
     
     // Step 1: Create a job
-    let mut job = jobez_lib::db::models::Job {
+    let mut job = unhireable_lib::db::models::Job {
         id: None,
         title: "Senior Developer".to_string(),
         company: "Tech Corp".to_string(),
@@ -35,7 +35,7 @@ async fn test_application_workflow_end_to_end() {
     let job_id = job.id.expect("Job should have an ID");
     
     // Step 2: Create an application
-    let mut application = jobez_lib::db::models::Application {
+    let mut application = unhireable_lib::db::models::Application {
         id: None,
         job_id,
         status: ApplicationStatus::Pending,
@@ -106,7 +106,7 @@ async fn test_job_to_application_linking() {
         let conn = db.get_connection();
         let mut ids = Vec::new();
         for i in 0..3 {
-            let mut job = jobez_lib::db::models::Job {
+            let mut job = unhireable_lib::db::models::Job {
                 id: None,
                 title: format!("Job {}", i + 1),
                 company: format!("Company {}", i + 1),
@@ -133,7 +133,7 @@ async fn test_job_to_application_linking() {
     {
         let conn = db.get_connection();
         for job_id in &job_ids[0..2] {
-            let mut application = jobez_lib::db::models::Application {
+            let mut application = unhireable_lib::db::models::Application {
                 id: None,
                 job_id: *job_id,
                 status: ApplicationStatus::Pending,

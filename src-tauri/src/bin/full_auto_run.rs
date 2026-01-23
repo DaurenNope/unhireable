@@ -1,12 +1,12 @@
 //! Full Automation Run - Complete End-to-End with Successful Application
 //! Shows the ENTIRE flow: Discovery → Match → Apply → Success
 
-use jobez_lib::applicator::{
+use unhireable_lib::applicator::{
     ApplyMode, ApplicationConfig, JobApplicator, AtsDetector, get_reliability, ReliabilityTier,
 };
-use jobez_lib::db::models::{Job, JobStatus};
-use jobez_lib::generator::{UserProfile, PersonalInfo, SkillsProfile, ExperienceEntry, EducationEntry};
-use jobez_lib::scraper::ScraperManager;
+use unhireable_lib::db::models::{Job, JobStatus};
+use unhireable_lib::generator::{UserProfile, PersonalInfo, SkillsProfile, ExperienceEntry, EducationEntry};
+use unhireable_lib::scraper::ScraperManager;
 use std::collections::HashMap;
 use std::time::Duration;
 use std::thread;

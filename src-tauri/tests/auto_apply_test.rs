@@ -1,8 +1,8 @@
-use jobez_lib::db::Database;
-use jobez_lib::generator::{
+use unhireable_lib::db::Database;
+use unhireable_lib::generator::{
     EducationEntry, ExperienceEntry, PersonalInfo, SkillsProfile, UserProfile,
 };
-use jobez_lib::run_auto_apply_logic;
+use unhireable_lib::run_auto_apply_logic;
 use rusqlite::params;
 use std::collections::HashMap;
 use std::sync::Arc;

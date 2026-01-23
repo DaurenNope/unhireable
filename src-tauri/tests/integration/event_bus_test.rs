@@ -1,7 +1,7 @@
 // Integration tests for event bus pub/sub functionality
 
-use jobez_lib::events::{Event, EventBus};
-use jobez_lib::events::event_types;
+use unhireable_lib::events::{Event, EventBus};
+use unhireable_lib::events::event_types;
 use serde_json::json;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};

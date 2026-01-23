@@ -1,8 +1,8 @@
 // End-to-end test for job matching workflow
 use chrono::Utc;
-use jobez_lib::db::models::{Job, JobStatus};
-use jobez_lib::generator::{ExperienceEntry, PersonalInfo, SkillsProfile, UserProfile};
-use jobez_lib::matching::JobMatcher;
+use unhireable_lib::db::models::{Job, JobStatus};
+use unhireable_lib::generator::{ExperienceEntry, PersonalInfo, SkillsProfile, UserProfile};
+use unhireable_lib::matching::JobMatcher;
 use std::collections::HashMap;
 
 #[test]

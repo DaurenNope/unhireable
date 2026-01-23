@@ -1,8 +1,8 @@
 // Test utilities for comprehensive testing
 
-use jobez_lib::db::models::{Job, JobStatus, Application, ApplicationStatus};
-use jobez_lib::generator::{UserProfile, PersonalInfo, SkillsProfile, ExperienceEntry};
-use jobez_lib::events::{Event, EventBus};
+use unhireable_lib::db::models::{Job, JobStatus, Application, ApplicationStatus};
+use unhireable_lib::generator::{UserProfile, PersonalInfo, SkillsProfile, ExperienceEntry};
+use unhireable_lib::events::{Event, EventBus};
 use chrono::Utc;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -11,10 +11,10 @@ use tokio::sync::Mutex;
 use std::collections::HashMap;
 
 /// Create a temporary database for testing
-pub fn create_test_db() -> (jobez_lib::db::Database, TempDir) {
+pub fn create_test_db() -> (unhireable_lib::db::Database, TempDir) {
     let temp_dir = tempfile::tempdir().expect("Failed to create temp directory");
     let db_path = temp_dir.path().join("test.db");
-    let db = jobez_lib::db::Database::new(&db_path).expect("Failed to create test database");
+    let db = unhireable_lib::db::Database::new(&db_path).expect("Failed to create test database");
     (db, temp_dir)
 }
 

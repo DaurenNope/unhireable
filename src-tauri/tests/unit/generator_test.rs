@@ -1,7 +1,7 @@
 // Unit tests for document generation modules
 
-use jobez_lib::generator::{ResumeGenerator, CoverLetterGenerator, TemplateManager};
-use jobez_lib::db::models::{Job, JobStatus};
+use unhireable_lib::generator::{ResumeGenerator, CoverLetterGenerator, TemplateManager};
+use unhireable_lib::db::models::{Job, JobStatus};
 use chrono::Utc;
 
 fn create_test_job() -> Job {
@@ -31,11 +31,11 @@ fn create_test_job() -> Job {
     }
 }
 
-fn create_test_profile() -> jobez_lib::generator::UserProfile {
-    use jobez_lib::generator::{PersonalInfo, SkillsProfile, ExperienceEntry};
+fn create_test_profile() -> unhireable_lib::generator::UserProfile {
+    use unhireable_lib::generator::{PersonalInfo, SkillsProfile, ExperienceEntry};
     use std::collections::HashMap;
     
-    jobez_lib::generator::UserProfile {
+    unhireable_lib::generator::UserProfile {
         personal_info: PersonalInfo {
             name: "John Doe".to_string(),
             email: "john@example.com".to_string(),

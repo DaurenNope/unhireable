@@ -923,6 +923,10 @@ pub fn run() {
             commands::automation::get_current_apply_mode,
             commands::automation::set_apply_mode,
             commands::automation::check_apply_compatibility,
+            // Email monitoring commands
+            commands::automation::check_emails,
+            commands::automation::get_email_monitor_status,
+            commands::automation::classify_email,
             // Testing commands
             commands::testing::run_system_tests,
             commands::testing::test_automation_pipeline,

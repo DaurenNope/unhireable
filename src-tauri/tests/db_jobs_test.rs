@@ -1,6 +1,6 @@
-use jobez_lib::db::models::{Application, ApplicationStatus, Job, JobStatus};
-use jobez_lib::db::queries::{ApplicationQueries, JobQueries};
-use jobez_lib::db::Database;
+use unhireable_lib::db::models::{Application, ApplicationStatus, Job, JobStatus};
+use unhireable_lib::db::queries::{ApplicationQueries, JobQueries};
+use unhireable_lib::db::Database;
 use tempfile::tempdir;
 
 #[test]

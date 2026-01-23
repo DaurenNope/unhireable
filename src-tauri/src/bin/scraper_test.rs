@@ -1,7 +1,7 @@
 //! Scraper Test - Check all job sources
 //! Tests which scrapers are working and which fail
 
-use jobez_lib::scraper::ScraperManager;
+use unhireable_lib::scraper::ScraperManager;
 
 fn main() {
     println!("\n");

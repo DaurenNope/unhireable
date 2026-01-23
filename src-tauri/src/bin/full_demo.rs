@@ -1,13 +1,13 @@
 //! Full Automation Demo
 //! End-to-end demonstration: Job Discovery → Application → Response Handling
 
-use jobez_lib::applicator::{
+use unhireable_lib::applicator::{
     ApplyMode, ApplicationConfig, JobApplicator, PreApplyCheck, 
     get_reliability, AtsDetector,
 };
-use jobez_lib::db::models::{Job, JobStatus};
-use jobez_lib::generator::{UserProfile, PersonalInfo, SkillsProfile, ExperienceEntry, EducationEntry};
-use jobez_lib::scraper::ScraperManager;
+use unhireable_lib::db::models::{Job, JobStatus};
+use unhireable_lib::generator::{UserProfile, PersonalInfo, SkillsProfile, ExperienceEntry, EducationEntry};
+use unhireable_lib::scraper::ScraperManager;
 use std::collections::HashMap;
 
 fn main() {
@@ -104,11 +104,11 @@ fn main() {
         let reliability = get_reliability(&ats);
         
         match ats {
-            Some(jobez_lib::applicator::AtsType::Greenhouse) => greenhouse_jobs.push(job.clone()),
-            Some(jobez_lib::applicator::AtsType::Lever) => lever_jobs.push(job.clone()),
-            Some(jobez_lib::applicator::AtsType::Workable) |
-            Some(jobez_lib::applicator::AtsType::AshbyHQ) |
-            Some(jobez_lib::applicator::AtsType::SmartRecruiters) => other_reliable_jobs.push(job.clone()),
+            Some(unhireable_lib::applicator::AtsType::Greenhouse) => greenhouse_jobs.push(job.clone()),
+            Some(unhireable_lib::applicator::AtsType::Lever) => lever_jobs.push(job.clone()),
+            Some(unhireable_lib::applicator::AtsType::Workable) |
+            Some(unhireable_lib::applicator::AtsType::AshbyHQ) |
+            Some(unhireable_lib::applicator::AtsType::SmartRecruiters) => other_reliable_jobs.push(job.clone()),
             _ => manual_only_jobs.push(job.clone()),
         }
     }
@@ -266,7 +266,7 @@ fn create_demo_profile() -> UserProfile {
     UserProfile {
         personal_info: PersonalInfo {
             name: "Demo User".to_string(),
-            email: "demo@jobez.dev".to_string(),
+            email: "demo@unhireable.dev".to_string(),
             phone: Some("+1-555-0123".to_string()),
             location: Some("San Francisco, CA".to_string()),
             linkedin: Some("https://linkedin.com/in/demouser".to_string()),

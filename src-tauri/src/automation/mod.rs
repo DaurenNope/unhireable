@@ -13,6 +13,7 @@
 pub mod autopilot;
 pub mod config;
 pub mod email_monitor;
+pub mod follow_up;
 pub mod orchestrator;
 pub mod pipeline;
 pub mod scheduler;
@@ -21,6 +22,7 @@ pub mod status;
 pub use autopilot::{AutoPilot, AutoPilotConfig, AutoPilotStatus};
 pub use config::AutomationConfig;
 pub use email_monitor::{ClassifiedEmail, EmailCategory, EmailClassifier, EmailMonitorConfig};
+pub use follow_up::{FollowUpAutomation, FollowUpConfig, FollowUpType, PendingFollowUp};
 pub use orchestrator::AutomationOrchestrator;
 pub use pipeline::{PipelineResult, PipelineStage};
 pub use scheduler::{AutomationScheduler, ScheduleConfig, ScheduleMode, SchedulerStatus};

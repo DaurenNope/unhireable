@@ -1,10 +1,10 @@
 //! Live Apply Test - Actually submits to a real Greenhouse job
 //! Uses test data so company knows it's not a real application
 
-use jobez_lib::applicator::{ApplicationConfig, AutoApplyInfo, JobApplicator};
-use jobez_lib::db::models::{Job, JobStatus};
-use jobez_lib::generator::{PersonalInfo, SkillsProfile, UserProfile};
-use jobez_lib::scraper::ScraperManager;
+use unhireable_lib::applicator::{ApplicationConfig, AutoApplyInfo, JobApplicator};
+use unhireable_lib::db::models::{Job, JobStatus};
+use unhireable_lib::generator::{PersonalInfo, SkillsProfile, UserProfile};
+use unhireable_lib::scraper::ScraperManager;
 use std::collections::HashMap;
 
 #[tokio::main]
@@ -93,13 +93,13 @@ async fn main() {
 
     let profile = UserProfile {
         personal_info: PersonalInfo {
-            name: "[TEST] Jobez Bot".to_string(),
-            email: "test-automation@jobez.dev".to_string(),
+            name: "[TEST] Unhireable Bot".to_string(),
+            email: "test-automation@unhireable.dev".to_string(),
             phone: Some("+1-555-000-0000".to_string()),
             location: Some("Test City, TS".to_string()),
-            linkedin: Some("https://linkedin.com/in/test-jobez".to_string()),
-            github: Some("https://github.com/jobez-test".to_string()),
-            portfolio: Some("https://jobez.dev/test".to_string()),
+            linkedin: Some("https://linkedin.com/in/test-unhireable".to_string()),
+            github: Some("https://github.com/unhireable-test".to_string()),
+            portfolio: Some("https://unhireable.dev/test".to_string()),
         },
         skills: SkillsProfile {
             technical_skills: vec!["Testing".to_string(), "Automation".to_string()],
@@ -109,7 +109,7 @@ async fn main() {
         },
         experience: vec![],
         education: vec![],
-        summary: "[AUTOMATED TEST] This is a test application from Jobez automation testing. Please disregard.".to_string(),
+        summary: "[AUTOMATED TEST] This is a test application from Unhireable automation testing. Please disregard.".to_string(),
         projects: vec![],
     };
 

@@ -1,6 +1,6 @@
 // Integration tests for cache operations
 
-use jobez_lib::cache::Cache;
+use unhireable_lib::cache::Cache;
 use serde_json::json;
 use std::time::Duration;
 use tokio::time::sleep;

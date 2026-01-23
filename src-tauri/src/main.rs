@@ -3,7 +3,7 @@
 
 use anyhow::{anyhow, Context};
 use clap::{Arg, ArgAction, Command};
-use jobez_lib::{
+use unhireable_lib::{
     applicator::{ApplicationConfig, JobApplicator},
     db::{
         queries::{CredentialQueries, JobQueries},
@@ -86,7 +86,7 @@ fn main() -> anyhow::Result<()> {
         || std::env::args().any(|arg| arg.contains("tauri") || arg == "--no-default-features");
     
     if is_tauri {
-        return Ok(jobez_lib::run());
+        return Ok(unhireable_lib::run());
     }
     
     let matches = Command::new("unhireable")
@@ -597,5 +597,5 @@ fn main() -> anyhow::Result<()> {
     }
 
     // If no scraper arguments, run the Tauri app
-    Ok(jobez_lib::run())
+    Ok(unhireable_lib::run())
 }

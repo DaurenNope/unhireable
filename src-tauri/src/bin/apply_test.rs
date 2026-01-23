@@ -1,10 +1,10 @@
 //! Real Application Test
 //! Tests browser automation with a test endpoint (no real applications)
 
-use jobez_lib::db::Database;
-use jobez_lib::db::queries::JobQueries;
-use jobez_lib::generator::UserProfile;
-use jobez_lib::applicator::{JobApplicator, ApplicationConfig, AtsDetector};
+use unhireable_lib::db::Database;
+use unhireable_lib::db::queries::JobQueries;
+use unhireable_lib::generator::UserProfile;
+use unhireable_lib::applicator::{JobApplicator, ApplicationConfig, AtsDetector};
 use std::path::PathBuf;
 
 fn main() {

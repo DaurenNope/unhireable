@@ -1,10 +1,10 @@
 //! Mode Test - Demonstrates all 3 application modes
 //! Manual, Semi-Auto, and Full Autopilot
 
-use jobez_lib::applicator::{
+use unhireable_lib::applicator::{
     ApplyMode, ApplicationConfig, JobApplicator, PreApplyCheck, ReliabilityTier,
 };
-use jobez_lib::db::models::{Job, JobStatus};
+use unhireable_lib::db::models::{Job, JobStatus};
 
 fn main() {
     println!("\n");

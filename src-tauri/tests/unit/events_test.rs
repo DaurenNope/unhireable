@@ -1,6 +1,6 @@
 // Unit tests for event system
 
-use jobez_lib::events::{Event, event_types};
+use unhireable_lib::events::{Event, event_types};
 use serde_json::json;
 use chrono::Utc;
 

@@ -2,9 +2,9 @@
 //! Opens a VISIBLE browser and fills a REAL job application form
 //! You can watch the automation happen in real-time
 
-use jobez_lib::applicator::{FormFiller, AtsDetector, AtsType};
-use jobez_lib::generator::{UserProfile, PersonalInfo, SkillsProfile};
-use jobez_lib::scraper::ScraperManager;
+use unhireable_lib::applicator::{FormFiller, AtsDetector, AtsType};
+use unhireable_lib::generator::{UserProfile, PersonalInfo, SkillsProfile};
+use unhireable_lib::scraper::ScraperManager;
 use std::collections::HashMap;
 
 fn main() {
@@ -198,11 +198,11 @@ fn create_test_profile() -> UserProfile {
     UserProfile {
         personal_info: PersonalInfo {
             name: "[TEST] JobEZ Demo User".to_string(),
-            email: "test-demo@jobez.dev".to_string(),
+            email: "test-demo@unhireable.dev".to_string(),
             phone: Some("+1-555-000-TEST".to_string()),
             location: Some("San Francisco, CA".to_string()),
-            linkedin: Some("linkedin.com/in/test-jobez".to_string()),
-            github: Some("github.com/test-jobez".to_string()),
+            linkedin: Some("linkedin.com/in/test-unhireable".to_string()),
+            github: Some("github.com/test-unhireable".to_string()),
             portfolio: None,
         },
         summary: "This is a TEST application from JobEZ automation demo.".to_string(),

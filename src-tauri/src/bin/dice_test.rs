@@ -1,6 +1,6 @@
 //! Quick Dice scraper test
 
-use jobez_lib::scraper::ScraperManager;
+use unhireable_lib::scraper::ScraperManager;
 
 fn main() {
     println!("Testing Dice scraper...\n");

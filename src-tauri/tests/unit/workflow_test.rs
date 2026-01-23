@@ -1,6 +1,6 @@
 // Unit tests for workflow step executions
 
-use jobez_lib::applicator::workflow::{WorkflowStep, WorkflowStepType};
+use unhireable_lib::applicator::workflow::{WorkflowStep, WorkflowStepType};
 use serde_json::json;
 use std::collections::HashMap;
 

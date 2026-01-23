@@ -3,11 +3,13 @@
 use crate::automation::{
     AutomationConfig, AutomationOrchestrator, AutomationStatus, PipelineResult,
     AutoPilot, AutoPilotConfig, AutoPilotStatus, SchedulerStatus,
-    ClassifiedEmail,
+    ClassifiedEmail, EmailMonitorConfig,
 };
+use crate::automation::email_monitor::EmailMonitor;
 use crate::commands::user::load_user_profile_from_conn;
 use crate::error::Result;
 use crate::AppState;
+use chrono::Utc;
 use std::sync::Arc;
 use tauri::State;
 use tokio::sync::Mutex;
@@ -515,4 +517,59 @@ pub struct PreApplyCheckResult {
     pub can_proceed: bool,
     pub reason: String,
     pub recommended_mode: Option<String>,
+}
+
+// ==== Email Monitoring Commands ====
+
+/// Check emails and process recruiter responses
+#[tauri::command]
+pub async fn check_emails(
+    state: State<'_, AppState>,
+    config: EmailMonitorConfig,
+) -> Result<Vec<ClassifiedEmail>> {
+    let mut monitor = EmailMonitor::new(config);
+    let emails = monitor.check_emails().await.map_err(|e| anyhow::anyhow!("Email check failed: {}", e))?;
+
+    // Process each email and update database
+    let db_guard = state.db.lock().await;
+    if let Some(db) = &*db_guard {
+        for email in &emails {
+            if let Err(e) = monitor.update_application_status(email, db) {
+                eprintln!("Failed to update application status for email {}: {}", email.id, e);
+            }
+        }
+    }
+
+    Ok(emails)
+}
+
+/// Get email monitor status
+#[tauri::command]
+pub async fn get_email_monitor_status() -> Result<crate::automation::email_monitor::EmailMonitorStatus> {
+    // For now, return a default status since we don't maintain a global monitor instance
+    // In a full implementation, we'd have a global EmailMonitor instance
+    Ok(crate::automation::email_monitor::EmailMonitorStatus::default())
+}
+
+/// Classify a single email for testing
+#[tauri::command]
+pub async fn classify_email(subject: String, body: String) -> Result<ClassifiedEmail> {
+    let classifier = crate::automation::EmailClassifier::new();
+    let (category, confidence) = classifier.classify(&subject, &body);
+    let extracted_data = classifier.extract_data(&subject, &body);
+    let (requires_action, suggested_action) = classifier.requires_action(&category);
+
+    Ok(ClassifiedEmail {
+        id: "test".to_string(),
+        from: "test@example.com".to_string(),
+        to: "user@example.com".to_string(),
+        subject,
+        body_preview: body.chars().take(200).collect(),
+        received_at: Utc::now(),
+        category,
+        confidence,
+        extracted_data,
+        requires_action,
+        suggested_action,
+    })
 }

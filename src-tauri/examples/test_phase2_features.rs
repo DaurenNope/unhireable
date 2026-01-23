@@ -1,4 +1,4 @@
-use jobez_lib::db::Database;
+use unhireable_lib::db::Database;
 
 #[tokio::main]
 async fn main() {

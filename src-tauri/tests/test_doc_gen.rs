@@ -1,5 +1,5 @@
 // Quick test script for document generation
-use jobez_lib::generator::{
+use unhireable_lib::generator::{
     CoverLetterGenerator, DocumentFormat, DocumentMetadata, GeneratedDocument, PDFExporter,
     ResumeGenerator, UserProfile,
 };
@@ -11,7 +11,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Create a sample user profile
     let profile = UserProfile {
-        personal_info: jobez_lib::generator::PersonalInfo {
+        personal_info: unhireable_lib::generator::PersonalInfo {
             name: "John Doe".to_string(),
             email: "john.doe@example.com".to_string(),
             phone: Some("+1 (555) 123-4567".to_string()),
@@ -21,7 +21,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             portfolio: Some("johndoe.dev".to_string()),
         },
         summary: "Experienced software engineer with 5+ years building scalable web applications. Passionate about clean code, user experience, and continuous learning.".to_string(),
-        skills: jobez_lib::generator::SkillsProfile {
+        skills: unhireable_lib::generator::SkillsProfile {
             technical_skills: vec![
                 "React".to_string(),
                 "TypeScript".to_string(),
@@ -38,7 +38,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             proficiency_levels: std::collections::HashMap::new(),
         },
         experience: vec![
-            jobez_lib::generator::ExperienceEntry {
+            unhireable_lib::generator::ExperienceEntry {
                 company: "TechCorp".to_string(),
                 position: "Senior Software Engineer".to_string(),
                 duration: "2020 - Present".to_string(),
@@ -51,7 +51,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             },
         ],
         education: vec![
-            jobez_lib::generator::EducationEntry {
+            unhireable_lib::generator::EducationEntry {
                 institution: "University of Technology".to_string(),
                 degree: "BS in Computer Science".to_string(),
                 year: "2018".to_string(),
@@ -65,7 +65,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     // Create a sample job
-    let job = jobez_lib::db::models::Job {
+    let job = unhireable_lib::db::models::Job {
         id: Some(1),
         title: "Senior Full Stack Developer".to_string(),
         company: "Innovation Labs".to_string(),
@@ -75,7 +75,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         location: Some("Remote".to_string()),
         salary: Some("$120k - $150k".to_string()),
         source: "demo".to_string(),
-        status: jobez_lib::db::models::JobStatus::Saved,
+        status: unhireable_lib::db::models::JobStatus::Saved,
         match_score: Some(85.5),
         created_at: Some(chrono::Utc::now()),
         updated_at: Some(chrono::Utc::now()),
@@ -120,7 +120,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Test PDF export
     println!("\n3. Testing PDF export...");
     let pdf_exporter = PDFExporter::new();
-    let test_dir = std::path::Path::new("/tmp/jobez_test");
+    let test_dir = std::path::Path::new("/tmp/unhireable_test");
     std::fs::create_dir_all(test_dir)?;
     
     let resume_pdf = test_dir.join("test_resume.pdf");
@@ -134,7 +134,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Test DOCX export
     println!("\n4. Testing DOCX export...");
-    let docx_exporter = jobez_lib::generator::DOCXExporter::new();
+    let docx_exporter = unhireable_lib::generator::DOCXExporter::new();
     let cover_docx = test_dir.join("test_cover_letter.docx");
     docx_exporter.export_to_docx(&cover_doc, &cover_docx)?;
     println!("   ✅ DOCX exported: {}", cover_docx.display());

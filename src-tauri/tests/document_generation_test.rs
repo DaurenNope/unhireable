@@ -1,4 +1,4 @@
-use jobez_lib::generator::{
+use unhireable_lib::generator::{
     CoverLetterGenerator, DOCXExporter, DocumentFormat, PDFExporter, ResumeGenerator, UserProfile,
 };
 use tempfile::TempDir;
@@ -161,7 +161,7 @@ async fn test_docx_export() {
 
 fn create_sample_profile() -> UserProfile {
     UserProfile {
-        personal_info: jobez_lib::generator::PersonalInfo {
+        personal_info: unhireable_lib::generator::PersonalInfo {
             name: "Jane Smith".to_string(),
             email: "jane.smith@example.com".to_string(),
             phone: Some("+1 (555) 987-6543".to_string()),
@@ -171,7 +171,7 @@ fn create_sample_profile() -> UserProfile {
             portfolio: Some("janesmith.dev".to_string()),
         },
         summary: "Experienced software engineer specializing in full-stack development with a passion for building scalable applications.".to_string(),
-        skills: jobez_lib::generator::SkillsProfile {
+        skills: unhireable_lib::generator::SkillsProfile {
             technical_skills: vec![
                 "React".to_string(),
                 "TypeScript".to_string(),
@@ -189,7 +189,7 @@ fn create_sample_profile() -> UserProfile {
             proficiency_levels: std::collections::HashMap::new(),
         },
         experience: vec![
-            jobez_lib::generator::ExperienceEntry {
+            unhireable_lib::generator::ExperienceEntry {
                 company: "TechStart Inc".to_string(),
                 position: "Senior Software Engineer".to_string(),
                 duration: "2021 - Present".to_string(),
@@ -200,7 +200,7 @@ fn create_sample_profile() -> UserProfile {
                 ],
                 technologies: vec!["React".to_string(), "TypeScript".to_string(), "Node.js".to_string()],
             },
-            jobez_lib::generator::ExperienceEntry {
+            unhireable_lib::generator::ExperienceEntry {
                 company: "WebDev Solutions".to_string(),
                 position: "Software Engineer".to_string(),
                 duration: "2019 - 2021".to_string(),
@@ -212,7 +212,7 @@ fn create_sample_profile() -> UserProfile {
             },
         ],
         education: vec![
-            jobez_lib::generator::EducationEntry {
+            unhireable_lib::generator::EducationEntry {
                 institution: "State University".to_string(),
                 degree: "BS in Computer Science".to_string(),
                 year: "2019".to_string(),
@@ -226,8 +226,8 @@ fn create_sample_profile() -> UserProfile {
     }
 }
 
-fn create_sample_job() -> jobez_lib::db::models::Job {
-    jobez_lib::db::models::Job {
+fn create_sample_job() -> unhireable_lib::db::models::Job {
+    unhireable_lib::db::models::Job {
         id: Some(1),
         title: "Senior Full Stack Developer".to_string(),
         company: "Innovation Labs".to_string(),
@@ -247,7 +247,7 @@ fn create_sample_job() -> jobez_lib::db::models::Job {
         location: Some("Remote".to_string()),
         salary: Some("$120,000 - $150,000".to_string()),
         source: "demo".to_string(),
-        status: jobez_lib::db::models::JobStatus::Saved,
+        status: unhireable_lib::db::models::JobStatus::Saved,
         match_score: Some(87.5),
         created_at: Some(chrono::Utc::now()),
         updated_at: Some(chrono::Utc::now()),

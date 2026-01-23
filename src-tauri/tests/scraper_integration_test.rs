@@ -2,7 +2,7 @@
 // These tests actually hit real websites, so they're marked with #[ignore]
 // Run with: cargo test --test scraper_integration_test -- --ignored --nocapture
 
-use jobez_lib::scraper::ScraperManager;
+use unhireable_lib::scraper::ScraperManager;
 
 /// Integration test to verify scrapers work against real websites
 /// Run with: cargo test --test scraper_integration_test -- --ignored --nocapture

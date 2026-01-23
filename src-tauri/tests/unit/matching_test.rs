@@ -1,11 +1,11 @@
 // Unit tests for job matching modules
 
-use jobez_lib::matching::{JobMatcher, MatchWeights};
-use jobez_lib::db::models::{Job, JobStatus};
-use jobez_lib::generator::UserProfile;
+use unhireable_lib::matching::{JobMatcher, MatchWeights};
+use unhireable_lib::db::models::{Job, JobStatus};
+use unhireable_lib::generator::UserProfile;
 use chrono::Utc;
 use std::collections::HashMap;
-use jobez_lib::generator::{PersonalInfo, SkillsProfile, ExperienceEntry};
+use unhireable_lib::generator::{PersonalInfo, SkillsProfile, ExperienceEntry};
 
 fn create_test_profile() -> UserProfile {
     UserProfile {
