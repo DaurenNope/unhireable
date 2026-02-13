@@ -100,7 +100,8 @@ fn test_job_matcher() -> Result<String, String> {
         match_score: None,
         created_at: None,
         updated_at: None,
-    };
+                ..Default::default()
+        };
 
     let profile = UserProfile {
         personal_info: PersonalInfo {

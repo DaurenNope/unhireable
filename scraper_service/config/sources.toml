@@ -1,0 +1,127 @@
+# Job Board Sources Configuration
+# Each source has: name, url, type (json/html), parser config
+
+[[sources]]
+name = "remoteok"
+display_name = "RemoteOK"
+url = "https://remoteok.com/api"
+type = "json"
+enabled = true
+rate_limit_ms = 1000
+
+[sources.parser]
+root = "[]"  # Array at root
+skip_first = true  # Skip legal notice
+fields = { title = "position", company = "company", url = "url", location = "location", description = "description", salary_min = "salary_min", salary_max = "salary_max" }
+
+[[sources]]
+name = "remotive"
+display_name = "Remotive"
+url = "https://remotive.com/api/remote-jobs"
+type = "json"
+enabled = true
+rate_limit_ms = 1000
+
+[sources.parser]
+root = "jobs"
+fields = { title = "title", company = "company_name", url = "url", location = "candidate_required_location", description = "description", salary = "salary" }
+
+[[sources]]
+name = "jobicy"
+display_name = "Jobicy"
+url = "https://jobicy.com/api/v2/remote-jobs"
+type = "json"
+enabled = true
+rate_limit_ms = 1000
+
+[sources.parser]
+root = "jobs"
+fields = { title = "jobTitle", company = "companyName", url = "url", location = "jobGeo", description = "jobDescription", salary_min = "annualSalaryMin", salary_max = "annualSalaryMax" }
+
+[[sources]]
+name = "arbeitnow"
+display_name = "Arbeitnow"
+url = "https://www.arbeitnow.com/api/job-board-api"
+type = "json"
+enabled = true
+rate_limit_ms = 1000
+
+[sources.parser]
+root = "data"
+fields = { title = "title", company = "company_name", url = "url", location = "location", description = "description", tags = "tags" }
+
+[[sources]]
+name = "themuse"
+display_name = "TheMuse"
+url = "https://www.themuse.com/api/public/jobs?page=1"
+type = "json"
+enabled = true
+rate_limit_ms = 2000
+
+[sources.parser]
+root = "results"
+fields = { title = "name", company = "company.name", url = "refs.landing_page", location = "locations[0].name", description = "contents" }
+
+[[sources]]
+name = "hackernews"
+display_name = "HackerNews Who's Hiring"
+url = "https://news.ycombinator.com/item?id=42575537"
+type = "html"
+enabled = true
+rate_limit_ms = 3000
+requires_browser = true
+
+[sources.parser]
+selector = ".comment"
+fields = { content = "text" }
+
+[[sources]]
+name = "web3career"
+display_name = "Web3.Career"
+url = "https://web3.career/remote-jobs"
+type = "html"
+enabled = true
+rate_limit_ms = 3000
+requires_browser = true
+
+[sources.parser]
+selector = ".job-card"
+fields = { title = "h2", company = ".company", url = "a@href" }
+
+[[sources]]
+name = "weworkremotely"
+display_name = "WeWorkRemotely"
+url = "https://weworkremotely.com/remote-jobs"
+type = "html"
+enabled = true
+rate_limit_ms = 3000
+requires_browser = true
+
+[sources.parser]
+selector = ".job"
+fields = { title = ".title", company = ".company", url = "a@href" }
+
+# Crypto-specific job boards
+[[sources]]
+name = "cryptocurrencyjobs"
+display_name = "CryptocurrencyJobs"
+url = "https://cryptocurrencyjobs.co/api/jobs"
+type = "json"
+enabled = true
+rate_limit_ms = 2000
+
+[sources.parser]
+root = "jobs"
+fields = { title = "title", company = "company", url = "url", location = "location" }
+
+[[sources]]
+name = "remote3"
+display_name = "Remote3"
+url = "https://remote3.co/api/jobs"
+type = "json"
+enabled = true
+rate_limit_ms = 2000
+
+[sources.parser]
+root = "jobs"
+fields = { title = "title", company = "company", url = "url" }

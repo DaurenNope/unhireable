@@ -102,6 +102,18 @@ impl Database {
                 .is_ok()
             };
 
+            // Check if answer_cache table exists (for migration 0013)
+            let answer_cache_exists = {
+                let mut stmt = conn.prepare(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name='answer_cache'",
+                )?;
+                stmt.query_row([], |row| {
+                    let _: String = row.get(0)?;
+                    Ok(())
+                })
+                .is_ok()
+            };
+
             for entry in migration_files {
                 let migration_sql = std::fs::read_to_string(entry.path())?;
                 let file_name = entry.file_name().to_string_lossy().to_string();
@@ -150,6 +162,12 @@ impl Database {
 
                 // Skip migration 0011 if user_auth table already exists
                 if file_name.contains("0011_add_user_auth") && user_auth_exists {
+                    println!("Skipping migration {} - table already exists", file_name);
+                    continue;
+                }
+
+                // Skip migration 0013 if answer_cache table already exists
+                if file_name.contains("0013_add_answer_cache") && answer_cache_exists {
                     println!("Skipping migration {} - table already exists", file_name);
                     continue;
                 }
@@ -257,6 +275,8 @@ impl Database {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::db::models::AnswerCacheEntry;
+    use crate::db::queries::AnswerCacheQueries;
     use tempfile::tempdir;
 
     #[test]
@@ -276,5 +296,176 @@ mod tests {
             .unwrap();
 
         assert_eq!(table_exists, 1);
+    }
+
+    #[test]
+    fn test_answer_cache_table_created() {
+        let dir = tempdir().unwrap();
+        let db_path = dir.path().join("test.db");
+        let db = Database::new(&db_path).unwrap();
+        let conn = db.get_connection();
+
+        let table_exists: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='answer_cache'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        assert_eq!(
+            table_exists, 1,
+            "answer_cache table should exist after migrations"
+        );
+    }
+
+    #[test]
+    fn test_answer_cache_upsert_and_list() {
+        let dir = tempdir().unwrap();
+        let db_path = dir.path().join("test.db");
+        let db = Database::new(&db_path).unwrap();
+        let conn = db.get_connection();
+
+        // Insert an entry
+        let entry = AnswerCacheEntry {
+            id: None,
+            normalized_key: "years_of_experience".to_string(),
+            question: "How many years of experience do you have?".to_string(),
+            answer: "5".to_string(),
+            field_type: Some("text".to_string()),
+            source: Some("pattern".to_string()),
+            confidence: Some("high".to_string()),
+            hit_count: 1,
+            persona_id: None,
+            created_at: None,
+            updated_at: None,
+        };
+
+        conn.upsert_answer_cache(&entry).unwrap();
+
+        // List and verify
+        let entries = conn.list_answer_cache(None).unwrap();
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].normalized_key, "years_of_experience");
+        assert_eq!(entries[0].answer, "5");
+        assert_eq!(
+            entries[0].question,
+            "How many years of experience do you have?"
+        );
+        assert_eq!(entries[0].field_type.as_deref(), Some("text"));
+        assert_eq!(entries[0].source.as_deref(), Some("pattern"));
+        assert_eq!(entries[0].confidence.as_deref(), Some("high"));
+        assert!(
+            entries[0].created_at.is_some(),
+            "created_at should be auto-set"
+        );
+        assert!(
+            entries[0].updated_at.is_some(),
+            "updated_at should be auto-set"
+        );
+    }
+
+    #[test]
+    fn test_answer_cache_upsert_conflict_increments_hit_count() {
+        let dir = tempdir().unwrap();
+        let db_path = dir.path().join("test.db");
+        let db = Database::new(&db_path).unwrap();
+        let conn = db.get_connection();
+
+        let entry = AnswerCacheEntry {
+            id: None,
+            normalized_key: "sponsor_visa".to_string(),
+            question: "Do you require sponsorship?".to_string(),
+            answer: "No".to_string(),
+            field_type: Some("select".to_string()),
+            source: Some("llm".to_string()),
+            confidence: Some("medium".to_string()),
+            hit_count: 1,
+            persona_id: None,
+            created_at: None,
+            updated_at: None,
+        };
+
+        // Insert twice with same key
+        conn.upsert_answer_cache(&entry).unwrap();
+        conn.upsert_answer_cache(&entry).unwrap();
+
+        let entries = conn.list_answer_cache(None).unwrap();
+        assert_eq!(entries.len(), 1, "should still be one entry after conflict");
+        assert_eq!(
+            entries[0].hit_count, 2,
+            "hit_count should be incremented on conflict"
+        );
+    }
+
+    #[test]
+    fn test_answer_cache_delete() {
+        let dir = tempdir().unwrap();
+        let db_path = dir.path().join("test.db");
+        let db = Database::new(&db_path).unwrap();
+        let conn = db.get_connection();
+
+        // Insert two entries
+        for key in &["key_a", "key_b"] {
+            conn.upsert_answer_cache(&AnswerCacheEntry {
+                normalized_key: key.to_string(),
+                question: format!("Question for {}", key),
+                answer: "Answer".to_string(),
+                ..Default::default()
+            })
+            .unwrap();
+        }
+
+        assert_eq!(conn.list_answer_cache(None).unwrap().len(), 2);
+
+        // Delete one
+        conn.delete_answer_cache("key_a").unwrap();
+
+        let remaining = conn.list_answer_cache(None).unwrap();
+        assert_eq!(remaining.len(), 1);
+        assert_eq!(remaining[0].normalized_key, "key_b");
+    }
+
+    #[test]
+    fn test_answer_cache_bulk_upsert() {
+        let dir = tempdir().unwrap();
+        let db_path = dir.path().join("test.db");
+        let db = Database::new(&db_path).unwrap();
+        let conn = db.get_connection();
+
+        // Simulate a bulk sync (like the POST /api/answer-cache endpoint)
+        let entries: Vec<AnswerCacheEntry> = (0..20)
+            .map(|i| AnswerCacheEntry {
+                normalized_key: format!("bulk_key_{}", i),
+                question: format!("Bulk question {}", i),
+                answer: format!("Answer {}", i),
+                field_type: Some("text".to_string()),
+                source: Some("llm".to_string()),
+                confidence: Some("medium".to_string()),
+                hit_count: 1,
+                ..Default::default()
+            })
+            .collect();
+
+        let mut upserted = 0;
+        for entry in &entries {
+            conn.upsert_answer_cache(entry).unwrap();
+            upserted += 1;
+        }
+
+        assert_eq!(upserted, 20);
+        assert_eq!(conn.list_answer_cache(None).unwrap().len(), 20);
+
+        // Re-sync all (conflict path) — should not create duplicates
+        for entry in &entries {
+            conn.upsert_answer_cache(entry).unwrap();
+        }
+
+        let all = conn.list_answer_cache(None).unwrap();
+        assert_eq!(all.len(), 20, "no duplicates after re-sync");
+        assert!(
+            all.iter().all(|e| e.hit_count == 2),
+            "all hit_counts should be 2 after re-sync"
+        );
     }
 }

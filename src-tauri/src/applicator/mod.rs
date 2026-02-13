@@ -228,19 +228,19 @@ impl JobApplicator {
         // Mode-based check
         let mode = self.config.mode;
         let min_reliability = mode.minimum_reliability();
-        
+
         if reliability < min_reliability {
             println!(
                 "⚠️  MODE CHECK: {} mode requires {:?}+ reliability, but this is {:?}",
                 mode, min_reliability, reliability
             );
-            
+
             let recommended = if reliability <= ReliabilityTier::Low {
                 ApplyMode::Manual
             } else {
                 ApplyMode::SemiAuto
             };
-            
+
             return Ok(ApplicationResult {
                 success: false,
                 application_id: None,
@@ -250,7 +250,10 @@ impl JobApplicator {
                 ),
                 applied_at: None,
                 ats_type: ats_type.map(|a| format!("{:?}", a)),
-                errors: vec![format!("Reliability {:?} below {:?} minimum", reliability, min_reliability)],
+                errors: vec![format!(
+                    "Reliability {:?} below {:?} minimum",
+                    reliability, min_reliability
+                )],
             });
         }
 
@@ -265,7 +268,7 @@ impl JobApplicator {
 
         // Record metrics: start timing for automation operation
         let automation_start_time = std::time::Instant::now();
-        
+
         // Fill form and submit
         match form_filler
             .fill_and_submit(&job.url, profile, resume_path, cover_letter_path, &ats_type)
@@ -273,16 +276,21 @@ impl JobApplicator {
         {
             Ok(_) => {
                 let _duration = automation_start_time.elapsed().as_secs_f64();
-                
+
                 // Record success metrics
                 crate::metrics::APPLICATIONS_CREATED.inc();
-                
+
                 let message = match mode {
-                    ApplyMode::Manual => "Form filled - browser open for your review. Click Submit when ready.".to_string(),
-                    ApplyMode::SemiAuto => "Form filled - awaiting your confirmation to submit.".to_string(),
+                    ApplyMode::Manual => {
+                        "Form filled - browser open for your review. Click Submit when ready."
+                            .to_string()
+                    }
+                    ApplyMode::SemiAuto => {
+                        "Form filled - awaiting your confirmation to submit.".to_string()
+                    }
                     ApplyMode::Autopilot => "Application submitted automatically!".to_string(),
                 };
-                
+
                 println!("✅ {}", message);
                 Ok(ApplicationResult {
                     success: true,

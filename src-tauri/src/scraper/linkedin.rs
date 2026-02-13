@@ -135,7 +135,8 @@ fn parse_linkedin_html(html: &str) -> Result<Vec<Job>> {
                     match_score: None,
                     created_at: None,
                     updated_at: None,
-                };
+                            ..Default::default()
+        };
 
                 jobs.push(job);
             }

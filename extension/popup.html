@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Unhireable Auto-Apply</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      width: 360px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: #fff;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 20px;
+      text-align: center;
+    }
+    
+    .header h1 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    
+    .header .subtitle {
+      font-size: 12px;
+      opacity: 0.9;
+    }
+    
+    .ats-badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.2);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-top: 8px;
+      text-transform: uppercase;
+    }
+    
+    .content {
+      padding: 20px;
+    }
+    
+    .btn-fill {
+      width: 100%;
+      padding: 14px 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      border-radius: 10px;
+      color: white;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    
+    .btn-fill:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn-fill:active {
+      transform: translateY(0);
+    }
+    
+    .btn-fill:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .status {
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      display: none;
+    }
+    
+    .status.success {
+      display: block;
+      background: rgba(46, 213, 115, 0.2);
+      border: 1px solid rgba(46, 213, 115, 0.3);
+      color: #2ed573;
+    }
+    
+    .status.error {
+      display: block;
+      background: rgba(255, 71, 87, 0.2);
+      border: 1px solid rgba(255, 71, 87, 0.3);
+      color: #ff4757;
+    }
+    
+    .profile-section {
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .profile-section h3 {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      opacity: 0.6;
+      margin-bottom: 12px;
+    }
+    
+    .profile-field {
+      margin-bottom: 12px;
+    }
+    
+    .profile-field label {
+      display: block;
+      font-size: 11px;
+      opacity: 0.7;
+      margin-bottom: 4px;
+    }
+    
+    .profile-field input {
+      width: 100%;
+      padding: 10px 12px;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 6px;
+      color: white;
+      font-size: 13px;
+    }
+    
+    .profile-field input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    
+    .footer {
+      padding: 12px 20px;
+      text-align: center;
+      font-size: 11px;
+      opacity: 0.5;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🚀 Unhireable</h1>
+    <div class="subtitle">Auto-Apply Assistant</div>
+    <div class="ats-badge" id="ats-type">Detecting...</div>
+  </div>
+  
+  <div class="content">
+    <button class="btn-fill" id="btn-fill">
+      <span>✨</span>
+      <span>Auto-Fill Application</span>
+    </button>
+    
+    <div class="status" id="status"></div>
+    
+    <div class="profile-section">
+      <h3>Your Profile</h3>
+      
+      <div class="profile-field">
+        <label>Full Name</label>
+        <input type="text" id="profile-name" placeholder="Dauren Nurseitov">
+      </div>
+      
+      <div class="profile-field">
+        <label>Email</label>
+        <input type="email" id="profile-email" placeholder="dauren.nope@gmail.com">
+      </div>
+      
+      <div class="profile-field">
+        <label>LinkedIn URL</label>
+        <input type="text" id="profile-linkedin" placeholder="https://linkedin.com/in/...">
+      </div>
+      
+      <div class="profile-field">
+        <label>GitHub URL</label>
+        <input type="text" id="profile-github" placeholder="https://github.com/...">
+      </div>
+    </div>
+  </div>
+  
+  <div class="footer">
+    v1.0.0 • Click the button to auto-fill the form
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>

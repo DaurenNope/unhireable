@@ -152,7 +152,8 @@ async fn main() {
         match_score: None,
         created_at: None,
         updated_at: None,
-    };
+                ..Default::default()
+        };
     let mut job2 = Job {
         id: None,
         title: "Full Stack Engineer".to_string(),
@@ -167,7 +168,8 @@ async fn main() {
         match_score: None,
         created_at: None,
         updated_at: None,
-    };
+                ..Default::default()
+        };
     let mut job3 = Job {
         id: None,
         title: "Backend Engineer - Rust/Go".to_string(),
@@ -182,7 +184,8 @@ async fn main() {
         match_score: None,
         created_at: None,
         updated_at: None,
-    };
+                ..Default::default()
+        };
     let _ = conn.create_job(&mut job1);
     let _ = conn.create_job(&mut job2);
     let _ = conn.create_job(&mut job3);
@@ -477,7 +480,8 @@ fn create_test_job() -> Job {
         match_score: None,
         created_at: None,
         updated_at: None,
-    }
+                ..Default::default()
+        }
 }
 
 fn truncate(s: &str, max_len: usize) -> String {

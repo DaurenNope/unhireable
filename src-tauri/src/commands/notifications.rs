@@ -189,6 +189,7 @@ pub async fn create_contacts_from_jobs(
                             notes: Some("Automatically extracted from job description".to_string()),
                             created_at: None,
                             updated_at: None,
+                            ..Default::default()
                         };
                         conn.create_contact(&mut contact)?;
                         contacts_created += 1;

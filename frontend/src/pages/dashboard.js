@@ -38,7 +38,7 @@ const getMatchMood = (score) => {
     };
 };
 const friendlyName = (profile) => {
-    const raw = profile?.personal_info.name?.trim();
+    const raw = profile?.personal_info?.name?.trim();
     if (!raw)
         return 'friend';
     const first = raw.split(' ')[0];

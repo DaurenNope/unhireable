@@ -394,7 +394,8 @@ fn parse_wellfound_html(html: &str) -> Result<Vec<Job>> {
                 match_score: None,
                 created_at: None,
                 updated_at: None,
-            };
+                        ..Default::default()
+        };
 
             jobs.push(job);
         }
@@ -532,6 +533,7 @@ fn parse_job_links_from_elements(
             match_score: None,
             created_at: None,
             updated_at: None,
+                    ..Default::default()
         });
     }
 

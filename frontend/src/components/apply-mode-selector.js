@@ -29,7 +29,7 @@ export function ApplyModeSelector({ currentMode, onModeChange, compact = false }
         queryFn: () => invoke('get_apply_modes'),
     });
     // Fetch current mode
-    const { data: activeMode, refetch: refetchMode } = useQuery({
+    const { data: activeMode } = useQuery({
         queryKey: ['current-apply-mode'],
         queryFn: () => invoke('get_current_apply_mode'),
         enabled: !currentMode, // Only fetch if not provided via props

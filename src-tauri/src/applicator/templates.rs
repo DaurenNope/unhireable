@@ -62,8 +62,8 @@ impl ApplicationTemplate {
 
         // Check ATS type match
         if let Some(template_ats) = &self.ats_type {
-            let job_ats = crate::applicator::AtsDetector::detect_ats(&job.url)
-                .map(|a| format!("{:?}", a));
+            let job_ats =
+                crate::applicator::AtsDetector::detect_ats(&job.url).map(|a| format!("{:?}", a));
             if let Some(job_ats_str) = job_ats {
                 if !job_ats_str.eq_ignore_ascii_case(template_ats) {
                     return false;
@@ -92,8 +92,7 @@ impl ApplicationTemplate {
             self.config.resume_path = Some(resume_path.to_string());
         }
 
-        if let Some(cover_letter_path) =
-            variables.get("cover_letter_path").and_then(|v| v.as_str())
+        if let Some(cover_letter_path) = variables.get("cover_letter_path").and_then(|v| v.as_str())
         {
             self.config.cover_letter_path = Some(cover_letter_path.to_string());
         }
@@ -137,10 +136,8 @@ impl TemplateManager {
         manager.add_template(greenhouse_template);
 
         // Lever template
-        let mut lever_template = ApplicationTemplate::new(
-            "lever-default".to_string(),
-            "Lever Default".to_string(),
-        );
+        let mut lever_template =
+            ApplicationTemplate::new("lever-default".to_string(), "Lever Default".to_string());
         lever_template.description = Some("Default template for Lever ATS".to_string());
         lever_template.ats_type = Some("Lever".to_string());
         lever_template.config.auto_submit = false;
@@ -198,15 +195,14 @@ impl TemplateManager {
     /// Find matching template for a job
     pub fn find_matching_template(&self, job: &Job) -> Option<&ApplicationTemplate> {
         // First, try exact ATS match
-        let ats_type = crate::applicator::AtsDetector::detect_ats(&job.url)
-            .map(|a| format!("{:?}", a));
+        let ats_type =
+            crate::applicator::AtsDetector::detect_ats(&job.url).map(|a| format!("{:?}", a));
 
         if let Some(ats_str) = &ats_type {
-            if let Some(template) = self
-                .templates
-                .iter()
-                .find(|t| t.ats_type.as_ref().map(|a| a.eq_ignore_ascii_case(ats_str)) == Some(true) && t.matches_job(job))
-            {
+            if let Some(template) = self.templates.iter().find(|t| {
+                t.ats_type.as_ref().map(|a| a.eq_ignore_ascii_case(ats_str)) == Some(true)
+                    && t.matches_job(job)
+            }) {
                 return Some(template);
             }
         }
@@ -254,18 +250,20 @@ mod tests {
             match_score: None,
             created_at: None,
             updated_at: None,
+            ..Default::default()
         }
     }
 
     #[test]
     fn test_template_matches_job() {
-        let mut template = ApplicationTemplate::new(
-            "test-template".to_string(),
-            "Test Template".to_string(),
-        );
+        let mut template =
+            ApplicationTemplate::new("test-template".to_string(), "Test Template".to_string());
         template.ats_type = Some("Greenhouse".to_string());
 
-        let job = create_test_job("https://boards.greenhouse.io/company/job/123", "Test Company");
+        let job = create_test_job(
+            "https://boards.greenhouse.io/company/job/123",
+            "Test Company",
+        );
         assert!(template.matches_job(&job));
 
         let job2 = create_test_job("https://lever.co/company/job/123", "Test Company");
@@ -287,13 +285,14 @@ mod tests {
 
     #[test]
     fn test_template_apply_variables() {
-        let mut template = ApplicationTemplate::new(
-            "test-template".to_string(),
-            "Test Template".to_string(),
-        );
+        let mut template =
+            ApplicationTemplate::new("test-template".to_string(), "Test Template".to_string());
 
         let mut variables = HashMap::new();
-        variables.insert("resume_path".to_string(), serde_json::json!("/path/to/resume.pdf"));
+        variables.insert(
+            "resume_path".to_string(),
+            serde_json::json!("/path/to/resume.pdf"),
+        );
         variables.insert("auto_submit".to_string(), serde_json::json!(true));
 
         template.apply_variables(&variables);
@@ -305,16 +304,3 @@ mod tests {
         assert!(template.config.auto_submit);
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-

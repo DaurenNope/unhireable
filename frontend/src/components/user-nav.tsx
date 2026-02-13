@@ -73,7 +73,7 @@ export function UserNav() {
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={handleLogout}>
           <LogOut className="mr-2 h-4 w-4" />
-          <span>{logoutMutation.isLoading ? 'Logging out...' : 'Log out'}</span>
+          <span>{logoutMutation.isPending ? 'Logging out...' : 'Log out'}</span>
           <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
         </DropdownMenuItem>
       </DropdownMenuContent>

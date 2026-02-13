@@ -2,136 +2,100 @@
   "personal_info": {
     "name": "Atlas Ward",
     "email": "atlas.ward@example.com",
-    "phone": "+1 (415) 555-0112",
-    "location": "Remote • Austin, TX",
-    "linkedin": "https://www.linkedin.com/in/atlasward",
+    "phone": "+1-555-0123",
+    "location": "San Francisco, CA",
+    "linkedin": "https://linkedin.com/in/atlasward",
     "github": "https://github.com/atlasward",
-    "portfolio": "https://www.atlasbuilds.ai"
+    "portfolio": "https://atlasward.dev"
   },
-  "summary": "Staff-level software engineer and AI solution architect with 8+ years of experience designing resilient, data-intensive web platforms. Blends pragmatic full-stack skills (React, TypeScript, Node, Go) with hands-on machine-learning deployments to ship customer-facing features quickly without sacrificing reliability.",
+  "summary": "Staff-level full-stack engineer with 8+ years building AI-powered platforms, resilient data pipelines, and developer tooling at scale.",
   "skills": {
     "technical_skills": [
       "React",
       "TypeScript",
-      "Next.js",
+      "Python",
       "Node.js",
-      "Go",
       "GraphQL",
       "PostgreSQL",
-      "Prisma",
-      "AWS",
-      "Terraform",
+      "Redis",
       "Docker",
       "Kubernetes",
+      "AWS",
       "LangChain",
-      "Vector Search",
-      "OpenAI API",
-      "CI/CD"
+      "LLM Integration"
     ],
     "soft_skills": [
-      "Technical leadership",
-      "Cross-functional collaboration",
-      "System design",
-      "Product thinking",
-      "Mentorship",
-      "Stakeholder communication"
+      "Technical Leadership",
+      "System Design",
+      "Mentoring",
+      "Cross-functional Collaboration"
     ],
     "experience_years": {
-      "React": 7,
-      "TypeScript": 6,
-      "Node.js": 7,
-      "Go": 4,
-      "AWS": 6,
-      "Machine learning": 3
+      "React": 6,
+      "TypeScript": 5,
+      "Python": 8,
+      "Node.js": 6,
+      "AWS": 5,
+      "Docker": 4,
+      "Kubernetes": 3
     },
     "proficiency_levels": {
-      "React": "Expert",
-      "TypeScript": "Expert",
-      "Node.js": "Expert",
-      "Go": "Advanced",
-      "AWS": "Advanced",
-      "Machine learning": "Intermediate"
+      "React": "expert",
+      "TypeScript": "expert",
+      "Python": "expert",
+      "GraphQL": "advanced",
+      "LangChain": "intermediate"
     }
   },
   "experience": [
     {
-      "company": "Northstar Labs",
-      "position": "Staff Software Engineer • AI Platform",
-      "duration": "Mar 2022 – Present",
+      "company": "Nexus AI",
+      "position": "Staff Software Engineer",
+      "duration": "2022 - Present",
       "description": [
-        "Led a cross-functional squad that delivered an AI-assisted workflow builder used daily by 1.2k+ enterprise users.",
-        "Architected a multi-tenant event pipeline (Rust + Kafka + ClickHouse) that processes 500M events/day with <200ms query latency.",
-        "Rolled out an internal LLM service mesh powered by LangChain and managed fine-tuning jobs that reduced support response time by 42%.",
-        "Mentored six engineers, instituted RFC-driven design reviews, and partnered with product to balance velocity with guardrails."
+        "Architected AI-powered developer tools serving 50k+ developers",
+        "Built real-time collaboration features using WebSockets and CRDTs",
+        "Led migration to microservices, reducing deployment time by 80%"
       ],
       "technologies": [
         "React",
         "TypeScript",
-        "Node.js",
-        "Go",
-        "Rust",
-        "GraphQL",
-        "PostgreSQL",
-        "Kafka",
-        "ClickHouse",
-        "AWS",
-        "Terraform",
-        "LangChain",
-        "OpenAI"
-      ]
-    },
-    {
-      "company": "Quill Systems",
-      "position": "Senior Full-Stack Engineer",
-      "duration": "Jan 2019 – Feb 2022",
-      "description": [
-        "Shipped the company's first real-time collaboration suite, enabling a new $6M ARR product line.",
-        "Introduced feature flagging + automated canary releases that cut failed deploys by 75%.",
-        "Partnered with design to build a component system in React + Storybook that accelerated delivery of marketing experiments."
-      ],
-      "technologies": [
-        "React",
-        "Next.js",
-        "Node.js",
-        "GraphQL",
-        "Redis",
-        "PostgreSQL",
-        "Docker",
-        "Kubernetes",
-        "CircleCI"
-      ]
-    },
-    {
-      "company": "Bluebird Analytics",
-      "position": "Full-Stack Engineer",
-      "duration": "Jul 2016 – Dec 2018",
-      "description": [
-        "Implemented analytics dashboards and alerting automations for Fortune 500 finance clients.",
-        "Owned integrations with major ATS/CRM systems and scaled ingestion pipelines 3x without downtime."
-      ],
-      "technologies": [
-        "React",
-        "Node.js",
         "Python",
-        "Flask",
-        "Airflow",
-        "AWS Lambda",
-        "Redshift"
+        "LangChain",
+        "PostgreSQL",
+        "Kubernetes"
+      ]
+    },
+    {
+      "company": "DataForge",
+      "position": "Senior Software Engineer",
+      "duration": "2019 - 2022",
+      "description": [
+        "Designed and built data pipeline processing 1M+ events/day",
+        "Implemented GraphQL API layer serving 200+ frontend queries",
+        "Mentored team of 5 junior engineers"
+      ],
+      "technologies": [
+        "Node.js",
+        "React",
+        "GraphQL",
+        "AWS",
+        "Redis",
+        "Docker"
       ]
     }
   ],
   "education": [
     {
-      "institution": "University of Texas at Austin",
+      "institution": "UC Berkeley",
       "degree": "B.S. Computer Science",
-      "year": "2016",
-      "details": "Focus: Human-computer interaction and distributed systems."
+      "year": "2017",
+      "details": "Focus on distributed systems and machine learning"
     }
   ],
   "projects": [
-    "Shipped a vector-search knowledge base template (Next.js + Supabase) adopted by 400+ startups.",
-    "Maintains \"DeployKits\", an open-source Terraform module library for reproducible preview environments.",
-    "Built a portfolio of automation workflows connecting Linear, Notion, and PagerDuty via custom Slack apps."
+    "Open-source LLM orchestration framework (2k+ GitHub stars)",
+    "Real-time analytics dashboard for IoT sensor networks",
+    "AI-powered code review tool used by 500+ developers"
   ]
 }
-

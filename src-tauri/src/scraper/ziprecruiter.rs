@@ -164,6 +164,7 @@ impl JobScraper for ZipRecruiterScraper {
                     requirements: None,
                     location,
                     salary,
+                    contact_email: None,
                     source: "ZipRecruiter".to_string(),
                     status: JobStatus::Saved,
                     match_score: None,

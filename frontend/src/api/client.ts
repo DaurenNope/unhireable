@@ -35,6 +35,76 @@ import {
   ApiError,
   getErrorMessage
 } from '@/utils/errors'
+import { restApi, shouldUseRestApi } from './rest'
+
+// Map Tauri commands to REST API calls
+async function handleRestCommand<T>(command: string, args?: Record<string, unknown>): Promise<T> {
+  switch (command) {
+    case 'get_jobs':
+      return restApi.jobs.list({
+        status: args?.['status'] as any,
+        query: args?.['query'] as string,
+        page: args?.['page'] as number,
+        page_size: args?.['page_size'] as number,
+      }) as Promise<T>;
+
+    case 'get_job':
+      return restApi.jobs.get(args?.['id'] as number) as Promise<T>;
+
+    case 'create_job':
+      return restApi.jobs.create(args?.['job'] as any) as Promise<T>;
+
+    case 'update_job':
+      const job = args?.['job'] as any;
+      return restApi.jobs.update(job.id, job) as Promise<T>;
+
+    case 'delete_job':
+      return restApi.jobs.delete(args?.['id'] as number) as Promise<T>;
+
+    case 'get_applications':
+      return restApi.applications.list({
+        status: args?.['status'] as any,
+        job_id: args?.['job_id'] as number,
+      }) as Promise<T>;
+
+    case 'get_application':
+      return restApi.applications.get(args?.['id'] as number) as Promise<T>;
+
+    case 'create_application':
+      return restApi.applications.create(args?.['application'] as any) as Promise<T>;
+
+    case 'update_application':
+      const app = args?.['application'] as any;
+      return restApi.applications.update(app.id, app) as Promise<T>;
+
+    case 'scrape_jobs_selected':
+      return restApi.jobs.scrape(
+        args?.['sources'] as string[],
+        args?.['query'] as string || ''
+      ) as Promise<T>;
+
+    case 'auto_apply_to_jobs':
+      return restApi.applications.autoApply(
+        args?.['query'] as string || 'developer',
+        args?.['max_applications'] as number || 5,
+        args?.['dry_run'] as boolean ?? true
+      ) as Promise<T>;
+
+    // Auth commands (for web mode)
+    case 'auth_get_status':
+      return restApi.auth.getStatus() as Promise<T>;
+
+    case 'auth_setup':
+      return restApi.auth.setup(
+        args?.['email'] as string || '',
+        args?.['password'] as string || ''
+      ) as Promise<T>;
+
+    default:
+      console.warn(`REST API: Command '${command}' not implemented, falling back to mock`);
+      return handleMockCommand(command, args) as Promise<T>;
+  }
+}
 
 // Helper function to handle API calls
 // Tauri commands return T directly, not wrapped in ApiResponse
@@ -42,13 +112,15 @@ async function apiCall<T>(command: string, args?: Record<string, unknown>): Prom
   try {
     // Check if Tauri is available
     if (typeof window === 'undefined' || !window.__TAURI__) {
-      console.warn(`Tauri not available, using mock for command: ${command}`);
-      const mock = await handleMockCommand(command, args);
-      return mock as T;
+      // Use REST API when Tauri is not available (web preview mode)
+      // The REST server at localhost:3030 should be running
+      console.log(`Using REST API for command: ${command}`);
+      return await handleRestCommand<T>(command, args);
     }
 
     // Dynamically import invoke to avoid errors if Tauri isn't ready
     const { invoke } = await import('@tauri-apps/api/core');
+
 
     // Log apply_to_job calls for debugging
     if (command === 'apply_to_job') {
@@ -313,7 +385,7 @@ export const credentialApi = {
   create: (credential: Omit<Credential, 'id' | 'created_at' | 'updated_at'>) =>
     apiCall<Credential>('create_credential', credential),
   update: (credential: Credential) =>
-    apiCall<Credential>('update_credential', credential),
+    apiCall<Credential>('update_credential', credential as unknown as Record<string, unknown>),
   list: (activeOnly: boolean = false) =>
     apiCall<Credential[]>('list_credentials', { active_only: activeOnly }),
   delete: (platform: string) =>
@@ -443,19 +515,19 @@ import type {
 
 export const automationApi = {
   healthCheck: () => apiCall<AutomationHealth>('automation_health_check'),
-  
+
   // Initialize automation
   init: (config?: AutomationConfig) =>
     apiCall<boolean>('init_automation', { config }),
-  
+
   // Run full automation pipeline
   runPipeline: () =>
     apiCall<PipelineResult>('run_automation_pipeline'),
-  
+
   // Run with custom configuration
   runWithConfig: (config: AutomationConfig) =>
     apiCall<PipelineResult>('run_automation_with_config', { config }),
-  
+
   // Quick start with simple options
   quickStart: (options?: {
     query?: string;
@@ -467,27 +539,27 @@ export const automationApi = {
       max_applications: options?.maxApplications,
       dry_run: options?.dryRun,
     }),
-  
+
   // Get current status
   getStatus: () =>
     apiCall<AutomationStatus>('get_automation_status'),
-  
+
   // Get configuration
   getConfig: () =>
     apiCall<AutomationConfig>('get_automation_config'),
-  
+
   // Update configuration
   updateConfig: (config: AutomationConfig) =>
     apiCall<boolean>('update_automation_config', { config }),
-  
+
   // Stop automation
   stop: () =>
     apiCall<boolean>('stop_automation'),
-  
+
   // Check if running
   isRunning: () =>
     apiCall<boolean>('is_automation_running'),
-  
+
   // Get default configuration
   getDefaultConfig: () =>
     apiCall<AutomationConfig>('get_default_automation_config'),
@@ -571,10 +643,10 @@ export interface ClassifiedEmail {
 }
 
 export const testingApi = {
-  runSystemTests: () => invoke<SystemTestResults>('run_system_tests'),
-  testAutomationPipeline: (query?: string) => invoke<any>('test_automation_pipeline', { query }),
-  testEmailSending: (toEmail: string) => invoke<TestResult>('test_email_sending', { toEmail }),
-  testClassifyEmail: (subject: string, body: string) => invoke<ClassifiedEmail>('test_classify_email', { subject, body }),
+  runSystemTests: () => apiCall<SystemTestResults>('run_system_tests'),
+  testAutomationPipeline: (query?: string) => apiCall<any>('test_automation_pipeline', { query }),
+  testEmailSending: (toEmail: string) => apiCall<TestResult>('test_email_sending', { toEmail }),
+  testClassifyEmail: (subject: string, body: string) => apiCall<ClassifiedEmail>('test_classify_email', { subject, body }),
 };
 
 // Export all APIs

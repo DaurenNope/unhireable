@@ -1,7 +1,7 @@
 //! Testing Commands - For verifying the automation system works end-to-end
 
 use crate::automation::{
-    AutoPilotConfig, AutomationConfig, PipelineResult, EmailClassifier, ClassifiedEmail,
+    AutoPilotConfig, AutomationConfig, ClassifiedEmail, EmailClassifier, PipelineResult,
 };
 use crate::commands::user::load_user_profile_from_conn;
 use crate::db::models::Job;
@@ -84,7 +84,10 @@ pub async fn run_system_tests(state: State<'_, AppState>) -> Result<SystemTestRe
     Ok(SystemTestResults {
         overall_passed,
         tests: results,
-        summary: format!("{}/{} tests passed in {}ms", passed_count, total_count, total_duration),
+        summary: format!(
+            "{}/{} tests passed in {}ms",
+            passed_count, total_count, total_duration
+        ),
         total_duration_ms: total_duration,
     })
 }
@@ -181,7 +184,7 @@ async fn test_job_scraping() -> TestResult {
 
     // Test with a single source
     let _scraper = crate::scraper::ScraperManager::new();
-    
+
     // Just test that the scraper initializes and can be called
     // Don't actually scrape to avoid rate limits
     TestResult {
@@ -201,7 +204,7 @@ async fn test_job_matching(state: &State<'_, AppState>) -> TestResult {
     let name = "Job Matching".to_string();
 
     use crate::db::models::JobStatus;
-    
+
     // Create a test job
     let test_job = Job {
         id: Some(999999),
@@ -217,6 +220,7 @@ async fn test_job_matching(state: &State<'_, AppState>) -> TestResult {
         created_at: None,
         updated_at: None,
         match_score: None,
+        ..Default::default()
     };
 
     // Get user profile for matching
@@ -351,11 +355,15 @@ async fn test_document_generation(state: &State<'_, AppState>) -> TestResult {
                 created_at: None,
                 updated_at: None,
                 match_score: None,
+                ..Default::default()
             };
 
             // Test resume generation
             let resume_gen = crate::generator::ResumeGenerator::new();
-            match resume_gen.generate_resume(&profile, &test_job, None, false).await {
+            match resume_gen
+                .generate_resume(&profile, &test_job, None, false)
+                .await
+            {
                 Ok(doc) => TestResult {
                     name,
                     passed: true,
@@ -441,17 +449,13 @@ pub async fn test_automation_pipeline(
     config.application.dry_run = true; // Always dry run for tests
     config.application.max_applications_per_run = 2; // Limit to 2 for testing
     config.search.max_jobs_per_run = 5; // Limit jobs for testing
-    
+
     if let Some(q) = query {
         config.search.queries = vec![q];
     }
 
     // Create orchestrator and run
-    let orchestrator = AutomationOrchestrator::new(
-        config,
-        state.db.clone(),
-        state.app_dir.clone(),
-    );
+    let orchestrator = AutomationOrchestrator::new(config, state.db.clone(), state.app_dir.clone());
 
     let result = orchestrator.run_pipeline(&profile).await?;
 
@@ -466,8 +470,8 @@ pub async fn test_email_sending(
     state: State<'_, AppState>,
     to_email: String,
 ) -> Result<TestResult> {
-    use crate::notifications::{EmailConfig, EmailService};
     use crate::db::queries::CredentialQueries;
+    use crate::notifications::{EmailConfig, EmailService};
 
     let start = std::time::Instant::now();
 
@@ -475,7 +479,7 @@ pub async fn test_email_sending(
     let db = state.db.lock().await;
     if let Some(db) = db.as_ref() {
         let conn = db.get_connection();
-        
+
         // Look for email credentials
         if let Ok(Some(cred)) = conn.get_credential("smtp") {
             let username = cred.username.clone().unwrap_or_default();
@@ -521,7 +525,8 @@ pub async fn test_email_sending(
             Ok(TestResult {
                 name: "Email Sending".to_string(),
                 passed: false,
-                message: "No SMTP credentials configured. Add them in Settings → Credentials.".to_string(),
+                message: "No SMTP credentials configured. Add them in Settings → Credentials."
+                    .to_string(),
                 duration_ms: start.elapsed().as_millis() as u64,
                 details: None,
             })
@@ -539,10 +544,7 @@ pub async fn test_email_sending(
 
 /// Classify a test email
 #[tauri::command]
-pub fn test_classify_email(
-    subject: String,
-    body: String,
-) -> ClassifiedEmail {
+pub fn test_classify_email(subject: String, body: String) -> ClassifiedEmail {
     let classifier = EmailClassifier::new();
     let (category, confidence) = classifier.classify(&subject, &body);
     let extracted = classifier.extract_data(&subject, &body);

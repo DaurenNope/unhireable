@@ -180,7 +180,8 @@ fn main() {
         match_score: Some(92.0),
         created_at: None,
         updated_at: None,
-    };
+                ..Default::default()
+        };
     
     println!("   ┌─────────────────────────────────────────────────────────┐");
     println!("   │  📋 APPLYING TO:                                        │");

@@ -1,9 +1,9 @@
 // End-to-end test for job matching workflow
 use chrono::Utc;
+use std::collections::HashMap;
 use unhireable_lib::db::models::{Job, JobStatus};
 use unhireable_lib::generator::{ExperienceEntry, PersonalInfo, SkillsProfile, UserProfile};
 use unhireable_lib::matching::JobMatcher;
-use std::collections::HashMap;
 
 #[test]
 fn test_end_to_end_job_matching_workflow() {
@@ -89,6 +89,7 @@ fn test_end_to_end_job_matching_workflow() {
             match_score: None,
             created_at: Some(Utc::now()),
             updated_at: Some(Utc::now()),
+            ..Default::default()
         },
         Job {
             id: Some(2),
@@ -104,6 +105,7 @@ fn test_end_to_end_job_matching_workflow() {
             match_score: None,
             created_at: Some(Utc::now()),
             updated_at: Some(Utc::now()),
+            ..Default::default()
         },
         Job {
             id: Some(3),
@@ -123,6 +125,7 @@ fn test_end_to_end_job_matching_workflow() {
             match_score: None,
             created_at: Some(Utc::now()),
             updated_at: Some(Utc::now()),
+            ..Default::default()
         },
     ];
     println!("✅ Created {} job postings", jobs.len());

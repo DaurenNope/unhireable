@@ -101,6 +101,7 @@ impl PersonaBlueprint {
             last_run_at: None,
             created_at: None,
             updated_at: None,
+            ..Default::default()
         };
 
         Self {
@@ -234,6 +235,7 @@ pub fn ensure_test_job(conn: &MutexGuard<'_, rusqlite::Connection>, slug: &str) 
         match_score: Some(92.0),
         created_at: None,
         updated_at: None,
+        ..Default::default()
     };
 
     conn.create_job(&mut job)?;

@@ -6,7 +6,7 @@
  */
 export function sanitizeHtml(html: string): string {
   if (!html) return '';
-  
+
   // Remove script tags and event handlers
   return html
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
@@ -22,7 +22,7 @@ export function sanitizeHtml(html: string): string {
  */
 export function sanitizeText(text: string): string {
   if (!text) return '';
-  
+
   return text
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -37,7 +37,7 @@ export function sanitizeText(text: string): string {
  */
 export function validateUrl(url: string): boolean {
   if (!url) return false;
-  
+
   try {
     const parsed = new URL(url);
     const allowedProtocols = ['http:', 'https:'];
@@ -62,10 +62,10 @@ export function sanitizeUrl(url: string): string {
  */
 export function sanitizeForLogging(data: string): string {
   if (!data) return '';
-  
+
   // Redact API keys, tokens, passwords
   return data
-    .replace(/(?i)(api[_-]?key|apikey|token|secret|password)\s*[:=]\s*['"]?([a-zA-Z0-9_\-]{20,})['"]?/g, '$1: ***REDACTED***')
+    .replace(/(api[_-]?key|apikey|token|secret|password)\s*[:=]\s*['"]?([a-zA-Z0-9_\-]{20,})['"]?/gi, '$1: ***REDACTED***')
     .replace(/sk-[a-zA-Z0-9]{32,}/g, 'sk-***REDACTED***')
     .replace(/pk_[a-zA-Z0-9]{32,}/g, 'pk_***REDACTED***');
 }

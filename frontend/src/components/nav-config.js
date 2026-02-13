@@ -1,4 +1,4 @@
-import { LayoutDashboard, Briefcase, BookmarkCheck, Settings, Bot, FlaskConical, } from 'lucide-react';
+import { LayoutDashboard, Briefcase, BookmarkCheck, Settings, Bot, } from 'lucide-react';
 export const navigation = [
     {
         name: 'Dashboard',
@@ -19,11 +19,6 @@ export const navigation = [
         name: 'Auto-Pilot',
         href: '/autopilot',
         icon: Bot,
-    },
-    {
-        name: 'Testing',
-        href: '/testing',
-        icon: FlaskConical,
     },
     {
         name: 'Settings',

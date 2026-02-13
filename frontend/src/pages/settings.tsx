@@ -15,9 +15,9 @@ import { Sun, Moon, Monitor, Key, Trash2, Plus, Save, AlertCircle, CheckCircle2,
 import { credentialApi, schedulerApi, profileApi, savedSearchApi, automationApi } from "@/api/client"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { UserProfileForm } from "@/components/user-profile-form"
-import type { UserProfile, SchedulerConfig, ApplicationMode, AutomationHealth } from "@/types/models"
+import type { UserProfile, SchedulerConfig, ApplicationMode, AutomationHealth, AlertFrequency } from "@/types/models"
 import { cn } from "@/lib/utils"
-import { SavedSearchesSettings } from "./saved-searches-settings"
+// Saved searches functionality moved to simplified UI
 import { invoke } from "@tauri-apps/api/core"
 import { Clock, Square, RefreshCw, Loader2 } from "lucide-react"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -135,8 +135,6 @@ export function Settings() {
             </CardHeader>
             <CardContent className="space-y-6">
               <ScraperSettings />
-              <Separator />
-              <SavedSearchesSettings />
             </CardContent>
           </Card>
         </TabsContent>
@@ -1999,10 +1997,10 @@ function JobPreferences() {
             <div className="flex flex-wrap gap-2">
               <Button
                 onClick={() => savePreferences.mutate()}
-                disabled={savePreferences.isLoading}
+                disabled={savePreferences.isPending}
                 className="gap-2"
               >
-                {savePreferences.isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+                {savePreferences.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                 <Save className="h-4 w-4" />
                 {smartSearch ? "Update Preferences" : "Save Preferences"}
               </Button>

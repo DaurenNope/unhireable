@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::str::FromStr;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Job {
     pub id: Option<i64>,
     pub title: String,
@@ -13,6 +13,8 @@ pub struct Job {
     pub requirements: Option<String>,
     pub location: Option<String>,
     pub salary: Option<String>,
+    #[serde(default)]
+    pub contact_email: Option<String>, // Email for direct applications
     pub source: String,
     pub status: JobStatus,
     pub match_score: Option<f64>, // Match score from 0.0 to 100.0, None if not calculated
@@ -20,9 +22,10 @@ pub struct Job {
     pub updated_at: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum JobStatus {
+    #[default]
     Saved,
     Applied,
     Interviewing,
@@ -61,21 +64,25 @@ impl std::fmt::Display for JobStatus {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Application {
     pub id: Option<i64>,
     pub job_id: i64,
     pub applied_at: Option<DateTime<Utc>>,
     pub status: ApplicationStatus,
+    #[serde(default)]
+    pub applied_via: Option<String>, // 'linkedin', 'ats', 'email', 'direct'
     pub notes: Option<String>,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Contact {
     pub id: Option<i64>,
+    #[serde(default)]
     pub job_id: i64,
+    #[serde(default)]
     pub name: String,
     pub email: Option<String>,
     pub phone: Option<String>,
@@ -139,9 +146,10 @@ pub struct Document {
     pub updated_at: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum ApplicationStatus {
+    #[default]
     Preparing,
     Submitted,
     InterviewScheduled,
@@ -294,10 +302,11 @@ impl Default for SavedSearchFilters {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum AlertFrequency {
     Hourly,
+    #[default]
     Daily,
     Weekly,
     Never,
@@ -329,17 +338,39 @@ impl std::fmt::Display for AlertFrequency {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct SavedSearch {
     pub id: Option<i64>,
+    #[serde(default)]
     pub name: String,
+    #[serde(default)]
     pub query: String,
+    #[serde(default)]
     pub sources: Vec<String>, // ["remotive", "remoteok", "wellfound", "greenhouse"]
+    #[serde(default)]
     pub filters: SavedSearchFilters,
+    #[serde(default)]
     pub alert_frequency: AlertFrequency,
+    #[serde(default)]
     pub min_match_score: i32,
+    #[serde(default)]
     pub enabled: bool,
     pub last_run_at: Option<DateTime<Utc>>,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct AnswerCacheEntry {
+    pub id: Option<i64>,
+    pub normalized_key: String,
+    pub question: String,
+    pub answer: String,
+    pub field_type: Option<String>,
+    pub source: Option<String>,
+    pub confidence: Option<String>,
+    pub hit_count: i64,
+    pub persona_id: Option<String>,
+    pub created_at: Option<String>,
+    pub updated_at: Option<String>,
 }

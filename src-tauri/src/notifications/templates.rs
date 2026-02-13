@@ -638,6 +638,7 @@ mod tests {
             requirements: Some("React, TypeScript, Node.js".to_string()),
             location: Some("Remote".to_string()),
             salary: None,
+            contact_email: None,
             source: "test".to_string(),
             status: JobStatus::Saved,
             match_score: Some(85.0),

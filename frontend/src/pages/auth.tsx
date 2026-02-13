@@ -81,8 +81,8 @@ export function AuthSetup({ onSuccess }: AuthGateProps) {
             minLength={6}
           />
         </div>
-        <Button className="w-full" type="submit" disabled={setupMutation.isLoading}>
-          {setupMutation.isLoading ? 'Setting up...' : 'Create Password'}
+        <Button className="w-full" type="submit" disabled={setupMutation.isPending}>
+          {setupMutation.isPending ? 'Setting up...' : 'Create Password'}
         </Button>
       </form>
     </AuthShell>
@@ -130,8 +130,8 @@ export function AuthLogin({ onSuccess }: AuthGateProps) {
             required
           />
         </div>
-        <Button className="w-full" type="submit" disabled={loginMutation.isLoading}>
-          {loginMutation.isLoading ? 'Signing in...' : 'Unlock'}
+        <Button className="w-full" type="submit" disabled={loginMutation.isPending}>
+          {loginMutation.isPending ? 'Signing in...' : 'Unlock'}
         </Button>
       </form>
     </AuthShell>

@@ -71,13 +71,7 @@ impl ApplicationVerifier {
             "complete",
         ];
 
-        let failure_patterns = vec![
-            "error",
-            "failed",
-            "invalid",
-            "missing",
-            "required",
-        ];
+        let failure_patterns = vec!["error", "failed", "invalid", "missing", "required"];
 
         for pattern in &success_patterns {
             if url_lower.contains(pattern) {
@@ -89,7 +83,10 @@ impl ApplicationVerifier {
 
         for pattern in &failure_patterns {
             if url_lower.contains(pattern) {
-                evidence.push(format!("URL contains '{}' pattern (failure indicator)", pattern));
+                evidence.push(format!(
+                    "URL contains '{}' pattern (failure indicator)",
+                    pattern
+                ));
                 confidence -= 0.5;
                 verified = false;
             }
@@ -145,7 +142,10 @@ impl ApplicationVerifier {
 
         for phrase in &failure_phrases {
             if content_lower.contains(phrase) {
-                evidence.push(format!("Page content contains: '{}' (failure indicator)", phrase));
+                evidence.push(format!(
+                    "Page content contains: '{}' (failure indicator)",
+                    phrase
+                ));
                 confidence -= 0.3;
                 verified = false;
             }
@@ -153,7 +153,8 @@ impl ApplicationVerifier {
 
         // Check if form is still present (indicates failure)
         if content_lower.contains("<form") && !verified {
-            evidence.push("Form still present on page (may indicate submission failure)".to_string());
+            evidence
+                .push("Form still present on page (may indicate submission failure)".to_string());
             confidence -= 0.2;
         }
 
@@ -284,6 +285,7 @@ mod tests {
             match_score: None,
             created_at: None,
             updated_at: None,
+            ..Default::default()
         };
 
         let application_result = ApplicationResult {
@@ -305,9 +307,3 @@ mod tests {
         assert!(tracking.verification.is_some());
     }
 }
-
-
-
-
-
-

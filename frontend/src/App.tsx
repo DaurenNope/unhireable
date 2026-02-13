@@ -32,17 +32,13 @@ function ThemeProviderWrapper({ children }: { children: React.ReactNode }) {
 // Pages
 import { Dashboard } from "./pages/dashboard"
 import { Jobs } from "./pages/jobs"
-import { Pulse } from "./pages/pulse"
 import Applications from "./pages/applications"
 import { Settings } from "./pages/settings"
 import { JobDetails } from "./pages/job-details"
 import { ApplicationDetails } from "./pages/application-details"
 import { NotFound } from "./pages/not-found"
 import { AuthLogin, AuthSetup } from "./pages/auth"
-import { PersonaTest } from "./pages/persona-test"
-import { ResumeAnalyzer } from "./pages/resume-analyzer"
 import AutoPilot from "./pages/autopilot"
-import Testing from "./pages/testing"
 import { authApi } from "./api/client"
 
 // Create a client
@@ -71,6 +67,9 @@ function App() {
 }
 
 function AuthGuard() {
+  // Check if we're running in web preview mode (no Tauri bridge)
+  const isWebPreview = !window.__TAURI__;
+
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['auth-status'],
     queryFn: authApi.getStatus,
@@ -78,7 +77,14 @@ function AuthGuard() {
     retry: 2,
     retryDelay: 1000,
     staleTime: 30000, // 30 seconds
+    enabled: !isWebPreview, // Skip auth check in web preview mode
   });
+
+  // Web preview mode: bypass auth entirely for testing
+  if (isWebPreview) {
+    console.log('🌐 Web preview mode: bypassing authentication for testing');
+    return <AuthenticatedApp />;
+  }
 
   // If loading for more than 5 seconds or error, show error state
   if (error) {
@@ -120,7 +126,7 @@ function AuthenticatedApp() {
   }, []);
 
   useEffect(() => {
-    const setupNotificationListener = async () => {
+    const setupNotificationListener = async (): Promise<void | (() => void)> => {
       if (typeof window === 'undefined' || !window.__TAURI__) {
         return;
       }
@@ -150,6 +156,7 @@ function AuthenticatedApp() {
         };
       } catch (error) {
         console.error('Failed to set up notification listener:', error);
+        return;
       }
     };
 
@@ -215,15 +222,11 @@ function AuthenticatedApp() {
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/jobs" element={<Jobs />} />
-                <Route path="/pulse" element={<Pulse />} />
                 <Route path="/jobs/:id" element={<JobDetails />} />
                 <Route path="/applications" element={<Applications />} />
                 <Route path="/applications/:id" element={<ApplicationDetails />} />
                 <Route path="/settings" element={<Settings />} />
-                <Route path="/persona-test" element={<PersonaTest />} />
-                <Route path="/resume-analyzer" element={<ResumeAnalyzer />} />
                 <Route path="/autopilot" element={<AutoPilot />} />
-                <Route path="/testing" element={<Testing />} />
                 <Route path="/404" element={<NotFound />} />
                 <Route path="*" element={<Navigate to="/404" replace />} />
               </Routes>

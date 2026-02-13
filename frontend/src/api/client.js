@@ -1,14 +1,61 @@
 import { handleMockCommand } from './mock';
 import { NetworkError, ServerError, TimeoutError, NotFoundError, PermissionError, ValidationError, ApiError, getErrorMessage } from '@/utils/errors';
+import { restApi } from './rest';
+// Map Tauri commands to REST API calls
+async function handleRestCommand(command, args) {
+    switch (command) {
+        case 'get_jobs':
+            return restApi.jobs.list({
+                status: args?.['status'],
+                query: args?.['query'],
+                page: args?.['page'],
+                page_size: args?.['page_size'],
+            });
+        case 'get_job':
+            return restApi.jobs.get(args?.['id']);
+        case 'create_job':
+            return restApi.jobs.create(args?.['job']);
+        case 'update_job':
+            const job = args?.['job'];
+            return restApi.jobs.update(job.id, job);
+        case 'delete_job':
+            return restApi.jobs.delete(args?.['id']);
+        case 'get_applications':
+            return restApi.applications.list({
+                status: args?.['status'],
+                job_id: args?.['job_id'],
+            });
+        case 'get_application':
+            return restApi.applications.get(args?.['id']);
+        case 'create_application':
+            return restApi.applications.create(args?.['application']);
+        case 'update_application':
+            const app = args?.['application'];
+            return restApi.applications.update(app.id, app);
+        case 'scrape_jobs_selected':
+            return restApi.jobs.scrape(args?.['sources'], args?.['query'] || '');
+        case 'auto_apply_to_jobs':
+            return restApi.applications.autoApply(args?.['query'] || 'developer', args?.['max_applications'] || 5, args?.['dry_run'] ?? true);
+        // Auth commands (for web mode)
+        case 'auth_get_status':
+            return restApi.auth.getStatus();
+        case 'auth_setup':
+            return restApi.auth.setup(args?.['email'] || '', args?.['password'] || '');
+        default:
+            console.warn(`REST API: Command '${command}' not implemented, falling back to mock`);
+            return handleMockCommand(command, args);
+    }
+}
 // Helper function to handle API calls
 // Tauri commands return T directly, not wrapped in ApiResponse
 async function apiCall(command, args) {
     try {
         // Check if Tauri is available
         if (typeof window === 'undefined' || !window.__TAURI__) {
-            console.warn(`Tauri not available, using mock for command: ${command}`);
-            const mock = await handleMockCommand(command, args);
-            return mock;
+            // Use REST API when Tauri is not available (web preview mode)
+            // The REST server at localhost:3030 should be running
+            console.log(`Using REST API for command: ${command}`);
+            return await handleRestCommand(command, args);
         }
         // Dynamically import invoke to avoid errors if Tauri isn't ready
         const { invoke } = await import('@tauri-apps/api/core');
@@ -336,10 +383,10 @@ export const resumeAnalyzerApi = {
     environmentStatus: () => apiCall('get_resume_environment_status'),
 };
 export const testingApi = {
-    runSystemTests: () => invoke('run_system_tests'),
-    testAutomationPipeline: (query) => invoke('test_automation_pipeline', { query }),
-    testEmailSending: (toEmail) => invoke('test_email_sending', { toEmail }),
-    testClassifyEmail: (subject, body) => invoke('test_classify_email', { subject, body }),
+    runSystemTests: () => apiCall('run_system_tests'),
+    testAutomationPipeline: (query) => apiCall('test_automation_pipeline', { query }),
+    testEmailSending: (toEmail) => apiCall('test_email_sending', { toEmail }),
+    testClassifyEmail: (subject, body) => apiCall('test_classify_email', { subject, body }),
 };
 // Export all APIs
 export const api = {

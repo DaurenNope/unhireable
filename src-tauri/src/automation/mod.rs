@@ -1,5 +1,5 @@
 //! Automation Orchestrator Module
-//! 
+//!
 //! This module provides a fully automated job hunting pipeline that:
 //! 1. Continuously discovers fitting jobs from multiple sources
 //! 2. Matches jobs against user profile and preferences
@@ -10,7 +10,9 @@
 //! 7. Tracks everything in the database
 //! 8. Runs on a configurable schedule
 
+pub mod apply_queue;
 pub mod autopilot;
+pub mod bridge;
 pub mod config;
 pub mod email_monitor;
 pub mod follow_up;

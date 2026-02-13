@@ -15,5 +15,10 @@
   },
   "devDependencies": {
     "playwright": "^1.56.1"
+  },
+  "dependencies": {
+    "@types/nodemailer": "^7.0.5",
+    "googleapis": "^170.1.0",
+    "nodemailer": "^7.0.12"
   }
 }

@@ -71,6 +71,7 @@ fn generate_sample_jobs(query: &str) -> Vec<Job> {
                 match_score: None,
                 created_at: None,
                 updated_at: None,
+                ..Default::default()
             }
         })
         .collect()
@@ -623,6 +624,7 @@ pub async fn scrape_jobs(state: State<'_, AppState>, query: String) -> Result<Ve
                                             ),
                                             created_at: None,
                                             updated_at: None,
+                                            ..Default::default()
                                         };
 
                                         if conn.create_contact(&mut contact).is_ok() {

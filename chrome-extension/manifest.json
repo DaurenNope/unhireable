@@ -1,0 +1,74 @@
+{
+    "manifest_version": 3,
+    "name": "Unhireable Auto-Apply",
+    "version": "1.0.0",
+    "description": "One-click auto-fill for job applications. Supports Ashby, Greenhouse, Lever, and LinkedIn.",
+    "permissions": [
+        "activeTab",
+        "storage",
+        "scripting",
+        "tabs"
+    ],
+    "host_permissions": [
+        "https://jobs.ashbyhq.com/*",
+        "https://*.ashbyhq.com/*",
+        "https://boards.greenhouse.io/*",
+        "https://jobs.lever.co/*",
+        "https://www.linkedin.com/jobs/*"
+    ],
+    "action": {
+        "default_popup": "popup.html",
+        "default_icon": {
+            "16": "icons/icon16.png",
+            "48": "icons/icon48.png",
+            "128": "icons/icon128.png"
+        }
+    },
+    "background": {
+        "service_worker": "background.js"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "https://jobs.ashbyhq.com/*",
+                "https://*.ashbyhq.com/*",
+                "https://boards.greenhouse.io/*",
+                "https://jobs.lever.co/*",
+                "https://*.lever.co/*",
+                "https://*.myworkdayjobs.com/*",
+                "https://*.workday.com/*/job/*",
+                "https://*.icims.com/*",
+                "https://*.smartrecruiters.com/*",
+                "https://*.bamboohr.com/*",
+                "https://*.jazz.co/*",
+                "https://*.jobvite.com/*",
+                "https://*.breezy.hr/*",
+                "https://*.applytojob.com/*",
+                "https://*.recruitee.com/*"
+            ],
+            "js": [
+                "content-scripts/logger.js",
+                "content-scripts/smart-answers.js",
+                "content-scripts/universal-filler.js"
+            ],
+            "run_at": "document_idle"
+        },
+        {
+            "matches": [
+                "https://www.linkedin.com/jobs/*"
+            ],
+            "js": [
+                "content-scripts/logger.js",
+                "content-scripts/smart-answers.js",
+                "content-scripts/universal-filler.js",
+                "content-scripts/linkedin.js"
+            ],
+            "run_at": "document_idle"
+        }
+    ],
+    "icons": {
+        "16": "icons/icon16.png",
+        "48": "icons/icon48.png",
+        "128": "icons/icon128.png"
+    }
+}

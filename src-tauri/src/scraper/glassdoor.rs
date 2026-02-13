@@ -161,6 +161,7 @@ impl JobScraper for GlassdoorScraper {
                     requirements: None,
                     location,
                     salary,
+                    contact_email: None,
                     source: "Glassdoor".to_string(),
                     status: JobStatus::Saved,
                     match_score: None,

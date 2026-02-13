@@ -4,9 +4,7 @@ use tauri::{Manager, State};
 use tokio::{sync::Mutex, task};
 
 // Import trait implementations
-use crate::db::queries::{
-    ActivityQueries, ApplicationQueries, CredentialQueries, JobQueries,
-};
+use crate::db::queries::{ActivityQueries, ApplicationQueries, CredentialQueries, JobQueries};
 
 pub mod applicator;
 pub mod automation;
@@ -36,6 +34,7 @@ pub mod scraper;
 pub mod scraper_queue;
 pub mod security;
 pub mod session;
+pub mod web_server;
 
 use crate::applicator::{ApplicationConfig, ApplicationResult, JobApplicator};
 use crate::db::Database;
@@ -575,7 +574,7 @@ pub async fn run_auto_apply_logic(
                 }
             }
         }
-        
+
         if !found_resume {
             return Err(anyhow::anyhow!(
                 "No resume found. Please upload a PDF resume in Settings or set UNHIREABLE_DEV_RESUME_PATH for development."
@@ -699,6 +698,7 @@ pub async fn run_auto_apply_logic(
                         )),
                         created_at: None,
                         updated_at: None,
+                        ..Default::default()
                     };
                     if let Ok(_) = conn.create_application(&mut application) {
                         if let Some(app_id) = application.id {

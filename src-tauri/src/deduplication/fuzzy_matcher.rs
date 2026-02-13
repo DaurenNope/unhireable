@@ -216,6 +216,7 @@ mod tests {
             match_score: None,
             created_at: None,
             updated_at: None,
+                    ..Default::default()
         };
 
         let job2 = Job {
@@ -232,6 +233,7 @@ mod tests {
             match_score: None,
             created_at: None,
             updated_at: None,
+                    ..Default::default()
         };
 
         let similarity = calculate_job_similarity(&job1, &job2);
@@ -254,6 +256,7 @@ mod tests {
             match_score: None,
             created_at: None,
             updated_at: None,
+                    ..Default::default()
         };
 
         let job2 = Job {
@@ -270,6 +273,7 @@ mod tests {
             match_score: None,
             created_at: None,
             updated_at: None,
+                    ..Default::default()
         };
 
         let similarity = calculate_job_similarity(&job1, &job2);

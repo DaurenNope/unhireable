@@ -1,7 +1,7 @@
 use crate::db::models::{
-    Activity, AlertFrequency, Application, ApplicationStatus, Contact, Credential, Document,
-    DocumentType, Interview, Job, JobSnapshot, JobStatus, SavedSearch, SavedSearchFilters,
-    SnapshotCount, UserAuth,
+    Activity, AlertFrequency, AnswerCacheEntry, Application, ApplicationStatus, Contact,
+    Credential, Document, DocumentType, Interview, Job, JobSnapshot, JobStatus, SavedSearch,
+    SavedSearchFilters, SnapshotCount, UserAuth,
 };
 use anyhow::Result;
 use chrono::Utc;
@@ -191,6 +191,7 @@ impl JobQueries for MutexGuard<'_, rusqlite::Connection> {
                     requirements: row.get(5)?,
                     location: row.get(6)?,
                     salary: row.get(7)?,
+                    contact_email: None,
                     source: row.get(8)?,
                     status,
                     match_score: row.get(10)?,
@@ -220,6 +221,7 @@ impl JobQueries for MutexGuard<'_, rusqlite::Connection> {
                     requirements: row.get(5)?,
                     location: row.get(6)?,
                     salary: row.get(7)?,
+                    contact_email: None,
                     source: row.get(8)?,
                     status,
                     match_score: row.get(10)?,
@@ -297,6 +299,7 @@ impl JobQueries for MutexGuard<'_, rusqlite::Connection> {
                     requirements: row.get(5)?,
                     location: row.get(6)?,
                     salary: row.get(7)?,
+                    contact_email: None,
                     source: row.get(8)?,
                     status,
                     match_score: row.get(10)?,
@@ -356,6 +359,7 @@ impl ApplicationQueries for MutexGuard<'_, rusqlite::Connection> {
                 applied_at: row.get(2)?,
                 status,
                 notes: row.get(4)?,
+                applied_via: None,
                 created_at: row.get(5)?,
                 updated_at: row.get(6)?,
             })
@@ -411,6 +415,7 @@ impl ApplicationQueries for MutexGuard<'_, rusqlite::Connection> {
                         applied_at: row.get(2)?,
                         status,
                         notes: row.get(4)?,
+                        applied_via: None,
                         created_at: row.get(5)?,
                         updated_at: row.get(6)?,
                     })
@@ -432,6 +437,7 @@ impl ApplicationQueries for MutexGuard<'_, rusqlite::Connection> {
                         applied_at: row.get(2)?,
                         status,
                         notes: row.get(4)?,
+                        applied_via: None,
                         created_at: row.get(5)?,
                         updated_at: row.get(6)?,
                     })
@@ -453,6 +459,7 @@ impl ApplicationQueries for MutexGuard<'_, rusqlite::Connection> {
                         applied_at: row.get(2)?,
                         status,
                         notes: row.get(4)?,
+                        applied_via: None,
                         created_at: row.get(5)?,
                         updated_at: row.get(6)?,
                     })
@@ -474,6 +481,7 @@ impl ApplicationQueries for MutexGuard<'_, rusqlite::Connection> {
                         applied_at: row.get(2)?,
                         status,
                         notes: row.get(4)?,
+                        applied_via: None,
                         created_at: row.get(5)?,
                         updated_at: row.get(6)?,
                     })
@@ -1468,6 +1476,109 @@ impl SavedSearchQueries for MutexGuard<'_, rusqlite::Connection> {
         self.execute(
             "UPDATE saved_searches SET last_run_at = ?1 WHERE id = ?2",
             params![now, id],
+        )?;
+        Ok(())
+    }
+}
+
+// =============================================================================
+// Answer Cache Queries
+// =============================================================================
+
+pub trait AnswerCacheQueries {
+    fn list_answer_cache(&self, persona_id: Option<&str>) -> Result<Vec<AnswerCacheEntry>>;
+    fn upsert_answer_cache(&self, entry: &AnswerCacheEntry) -> Result<()>;
+    fn delete_answer_cache(&self, normalized_key: &str) -> Result<()>;
+}
+
+impl AnswerCacheQueries for MutexGuard<'_, rusqlite::Connection> {
+    fn list_answer_cache(&self, persona_id: Option<&str>) -> Result<Vec<AnswerCacheEntry>> {
+        // Ensure persona_id column exists (migration)
+        let _ = self.execute_batch(
+            "ALTER TABLE answer_cache ADD COLUMN persona_id TEXT DEFAULT 'default';",
+        );
+
+        let (sql, params_vec): (String, Vec<Box<dyn rusqlite::types::ToSql>>) = match persona_id {
+            Some(pid) => (
+                r#"SELECT id, normalized_key, question, answer, field_type, source,
+                          confidence, hit_count, persona_id, created_at, updated_at
+                   FROM answer_cache WHERE persona_id = ?1
+                   ORDER BY updated_at DESC"#
+                    .to_string(),
+                vec![Box::new(pid.to_string()) as Box<dyn rusqlite::types::ToSql>],
+            ),
+            None => (
+                r#"SELECT id, normalized_key, question, answer, field_type, source,
+                          confidence, hit_count, persona_id, created_at, updated_at
+                   FROM answer_cache
+                   ORDER BY updated_at DESC"#
+                    .to_string(),
+                vec![],
+            ),
+        };
+
+        let mut stmt = self.prepare(&sql)?;
+        let params_refs: Vec<&dyn rusqlite::types::ToSql> =
+            params_vec.iter().map(|p| p.as_ref()).collect();
+        let entries = stmt
+            .query_map(params_refs.as_slice(), |row| {
+                Ok(AnswerCacheEntry {
+                    id: row.get(0)?,
+                    normalized_key: row.get(1)?,
+                    question: row.get(2)?,
+                    answer: row.get(3)?,
+                    field_type: row.get(4)?,
+                    source: row.get(5)?,
+                    confidence: row.get(6)?,
+                    hit_count: row.get(7)?,
+                    persona_id: row.get(8)?,
+                    created_at: row.get(9)?,
+                    updated_at: row.get(10)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(entries)
+    }
+
+    fn upsert_answer_cache(&self, entry: &AnswerCacheEntry) -> Result<()> {
+        // Ensure persona_id column exists (migration)
+        let _ = self.execute_batch(
+            "ALTER TABLE answer_cache ADD COLUMN persona_id TEXT DEFAULT 'default';",
+        );
+
+        let persona = entry.persona_id.as_deref().unwrap_or("default");
+        self.execute(
+            r#"
+            INSERT INTO answer_cache (normalized_key, question, answer, field_type, source, confidence, hit_count, persona_id, created_at, updated_at)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, datetime('now'), datetime('now'))
+            ON CONFLICT(normalized_key) DO UPDATE SET
+                answer = excluded.answer,
+                field_type = excluded.field_type,
+                source = excluded.source,
+                confidence = excluded.confidence,
+                hit_count = answer_cache.hit_count + 1,
+                persona_id = excluded.persona_id,
+                updated_at = datetime('now')
+            "#,
+            params![
+                entry.normalized_key,
+                entry.question,
+                entry.answer,
+                entry.field_type,
+                entry.source,
+                entry.confidence,
+                entry.hit_count,
+                persona,
+            ],
+        )?;
+        Ok(())
+    }
+
+    fn delete_answer_cache(&self, normalized_key: &str) -> Result<()> {
+        self.execute(
+            "DELETE FROM answer_cache WHERE normalized_key = ?1",
+            [normalized_key],
         )?;
         Ok(())
     }

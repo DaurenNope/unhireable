@@ -448,26 +448,140 @@ function toGeneratedDocument(
   templateName?: string
 ): GeneratedDocument {
   const now = new Date().toISOString()
-  const profileName = profile?.personal_info.name ?? 'Candidate'
-  const content = `# ${type === 'resume' ? 'Resume' : 'Cover Letter'}
+  const profileName = profile?.personal_info.name ?? 'Your Name'
+  const profileEmail = profile?.personal_info.email ?? 'your.email@example.com'
+  const profilePhone = profile?.personal_info.phone ?? ''
+  const profileLocation = profile?.personal_info.location ?? ''
+  const profileLinkedIn = profile?.personal_info.linkedin ?? ''
+  const profileGithub = profile?.personal_info.github ?? ''
+  const technicalSkills = profile?.skills?.technical_skills?.join(', ') ?? 'JavaScript, TypeScript, React'
+  const softSkills = profile?.skills?.soft_skills?.join(', ') ?? 'Communication, Problem-solving'
 
-**Candidate:** ${profileName}
-**Role:** ${job.title}
-**Company:** ${job.company}
+  // Extract job details
+  const jobTitle = job.title ?? 'Position'
+  const company = job.company ?? 'Company'
+  const jobDesc = job.description ?? ''
+  const jobReqs = job.requirements ?? ''
 
-> This is a mock ${type.replace('_', ' ')} generated in web preview mode.
+  // Match profile skills to job requirements
+  const reqKeywords = `${jobDesc} ${jobReqs}`.toLowerCase()
+  const matchedSkills = profile?.skills?.technical_skills?.filter(skill =>
+    reqKeywords.includes(skill.toLowerCase())
+  ) ?? []
 
-Use the desktop app to generate production-ready documents with AI enhancements.`
+  // Get most recent experience
+  const latestExp = profile?.experience?.[0]
+  const yearsOfExp = profile?.experience?.length ? `${profile.experience.length * 2}+` : '5+'
+
+  let content = ''
+
+  if (type === 'resume') {
+    content = `# ${profileName}
+**${jobTitle} Candidate**
+
+${profileEmail}${profilePhone ? ` | ${profilePhone}` : ''}${profileLocation ? ` | ${profileLocation}` : ''}
+${profileLinkedIn ? `LinkedIn: ${profileLinkedIn}` : ''}${profileGithub ? ` | GitHub: ${profileGithub}` : ''}
+
+---
+
+## Professional Summary
+
+Results-driven professional with ${yearsOfExp} years of experience seeking the **${jobTitle}** role at **${company}**. ${matchedSkills.length > 0 ? `Strong expertise in ${matchedSkills.slice(0, 3).join(', ')}, directly aligned with this role's requirements.` : `Proven track record in delivering high-quality solutions and driving business impact.`}
+
+---
+
+## Technical Skills
+
+${technicalSkills}
+
+**Soft Skills:** ${softSkills}
+
+---
+
+## Professional Experience
+
+${profile?.experience?.map((exp) => `### ${exp.position} | ${exp.company}
+*${exp.duration}*
+
+${exp.description?.join('\n- ') ?? 'Delivered impactful solutions and drove team success.'}
+
+**Technologies:** ${exp.technologies?.join(', ') ?? 'Various technologies'}
+`).join('\n') ?? `### Senior Developer | Previous Company
+*2020 - Present*
+
+- Led development initiatives and delivered production-ready solutions
+- Collaborated with cross-functional teams to achieve business objectives
+- Mentored junior developers and established best practices
+`}
+
+---
+
+## Education
+
+${profile?.education?.map(edu => `**${edu.degree}** - ${edu.institution} (${edu.year})`).join('\n') ?? '**Bachelor of Science in Computer Science** - University (2018)'}
+
+---
+
+*Resume tailored for ${jobTitle} at ${company}*`
+
+  } else if (type === 'cover_letter') {
+    content = `# Cover Letter
+
+**${profileName}**
+${profileEmail}${profilePhone ? ` | ${profilePhone}` : ''}
+${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+
+---
+
+**Re: Application for ${jobTitle}**
+
+Dear Hiring Manager at ${company},
+
+I am writing to express my strong interest in the **${jobTitle}** position at **${company}**. ${jobDesc ? `Your mission to "${jobDesc.substring(0, 100)}${jobDesc.length > 100 ? '...' : ''}" particularly resonates with me.` : 'I am excited about the opportunity to contribute to your team.'}
+
+${latestExp ? `In my current role as **${latestExp.position}** at **${latestExp.company}**, I have ${latestExp.description?.[0]?.substring(0, 150) ?? 'gained extensive experience delivering impactful solutions'}.` : 'Throughout my career, I have consistently delivered high-quality work and driven measurable results.'}
+
+${matchedSkills.length > 0 ? `My expertise in **${matchedSkills.slice(0, 3).join(', ')}** directly aligns with your requirements. ` : ''}I am confident that my combination of technical skills and ${yearsOfExp} years of industry experience make me an excellent fit for this role.
+
+${jobReqs ? `I noticed you're looking for someone with ${jobReqs.substring(0, 80)}${jobReqs.length > 80 ? '...' : ''}. These are areas where I have demonstrated proven success.` : ''}
+
+I would welcome the opportunity to discuss how my background, skills, and enthusiasm can contribute to ${company}'s continued success. Thank you for considering my application.
+
+Sincerely,
+
+**${profileName}**
+${profileEmail}
+${profileLinkedIn ? `LinkedIn: ${profileLinkedIn}` : ''}`
+
+  } else {
+    // Email version - concise
+    content = `Subject: Application for ${jobTitle} - ${profileName}
+
+Dear Hiring Team,
+
+I'm excited to apply for the **${jobTitle}** position at **${company}**.
+
+${matchedSkills.length > 0 ? `With expertise in ${matchedSkills.slice(0, 3).join(', ')}, I'm well-positioned to contribute immediately.` : `With ${yearsOfExp} years of relevant experience, I bring proven skills that align with this role.`}
+
+${latestExp ? `Currently at ${latestExp.company} as ${latestExp.position}, I've ${latestExp.description?.[0]?.substring(0, 80) ?? 'delivered impactful solutions'}.` : ''}
+
+I'd love to discuss how I can add value to your team.
+
+Best regards,
+${profileName}
+${profileEmail}
+${profilePhone ? `Phone: ${profilePhone}` : ''}`
+  }
 
   return {
     content,
     format: 'Markdown',
     metadata: {
-      title: `${profileName} - ${job.title}`,
+      title: `${profileName} - ${job.title} ${type === 'resume' ? 'Resume' : type === 'cover_letter' ? 'Cover Letter' : 'Email'}`,
       job_title: job.title,
       company: job.company,
       generated_at: now,
-      template_used: templateName ?? 'demo',
+      template_used: templateName ?? 'personalized',
       word_count: content.split(/\s+/).length,
     },
   }
@@ -507,13 +621,13 @@ export async function handleMockCommand(
         jobs = jobs.filter((job) => job.status === status)
       }
       if (query) {
-        jobs = searchJobs(jobs, query)
+        jobs = searchJobs(jobs, String(query))
       }
       return jobs
     }
     case 'scrape_jobs':
     case 'scrape_jobs_selected': {
-      const query = args?.query ?? ''
+      const query = args?.query ? String(args.query) : ''
       const freshJobs = searchJobs(SAMPLE_JOBS, query)
       const existingUrls = new Set(db.jobs.map((job) => job.url))
       const newJobs = freshJobs.filter((job) => !existingUrls.has(job.url))
@@ -537,12 +651,12 @@ export async function handleMockCommand(
         })
         saveDb(db)
       }
-      return searchJobs(db.jobs, query)
+      return searchJobs(db.jobs, query as string)
     }
     case 'get_user_profile':
       return db.profile
     case 'save_user_profile': {
-      db.profile = args?.profile ?? null
+      db.profile = (args?.profile as UserProfile) ?? null
       db.activities.push({
         id: db.activities.length + 1,
         entity_type: 'profile',
@@ -590,7 +704,7 @@ export async function handleMockCommand(
           ],
           experience_level: 'senior',
         }))
-        .filter((result) => result.match_score >= min)
+        .filter((result) => result.match_score >= Number(min))
     }
     case 'calculate_job_match_score': {
       const jobId = args?.job_id as number
@@ -601,7 +715,7 @@ export async function handleMockCommand(
       return {
         job_id: job.id ?? null,
         job,
-        match_score: generateMatchScore(job, args?.profile),
+        match_score: generateMatchScore(job, args?.profile as UserProfile | undefined),
         skills_match: Math.round(Math.random() * 20 + 60),
         experience_match: Math.round(Math.random() * 20 + 60),
         location_match: job.location?.toLowerCase().includes('remote') ? 90 : 70,
@@ -622,20 +736,20 @@ export async function handleMockCommand(
       return COVER_LETTER_TEMPLATES
     case 'generate_resume': {
       const job = db.jobs.find((item) => item.id === args?.job_id) ?? FALLBACK_JOB
-      return toGeneratedDocument('resume', args?.profile, job, args?.template_name)
+      return toGeneratedDocument('resume', args?.profile as UserProfile | undefined, job, args?.template_name as string | undefined)
     }
     case 'generate_cover_letter': {
       const job = db.jobs.find((item) => item.id === args?.job_id) ?? FALLBACK_JOB
       return toGeneratedDocument(
         'cover_letter',
-        args?.profile,
+        args?.profile as UserProfile | undefined,
         job,
-        args?.template_name
+        args?.template_name as string | undefined
       )
     }
     case 'generate_email_version': {
       const job = db.jobs.find((item) => item.id === args?.job_id) ?? FALLBACK_JOB
-      return toGeneratedDocument('email', args?.profile, job, args?.template_name)
+      return toGeneratedDocument('email', args?.profile as UserProfile | undefined, job, args?.template_name as string | undefined)
     }
     case 'analyze_job_for_profile': {
       const job = db.jobs.find((item) => item.id === args?.job_id) ?? FALLBACK_JOB
@@ -650,7 +764,7 @@ export async function handleMockCommand(
           'Collaborate with AI and matching teams',
           'Own design system improvements',
         ],
-        match_score: generateMatchScore(job, args?.profile),
+        match_score: generateMatchScore(job, args?.profile as UserProfile | undefined),
         job_title: job.title,
         company: job.company,
       } as JobAnalysis

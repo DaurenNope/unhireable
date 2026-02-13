@@ -222,7 +222,8 @@ impl IndeedScraper {
                 match_score: None,
                 created_at: None,
                 updated_at: None,
-            });
+                        ..Default::default()
+        });
 
             // No hard limit - pagination will handle this
         }

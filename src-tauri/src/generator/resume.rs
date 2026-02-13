@@ -316,6 +316,7 @@ mod tests {
             match_score: None,
             created_at: Some(chrono::Utc::now()),
             updated_at: Some(chrono::Utc::now()),
+            ..Default::default()
         }
     }
 

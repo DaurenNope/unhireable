@@ -3,13 +3,8 @@ import {
   LayoutDashboard,
   Briefcase,
   BookmarkCheck,
-  AlarmClock,
-  BarChart3,
   Settings,
-  FileText,
-  Zap,
   Bot,
-  FlaskConical,
 } from 'lucide-react'
 
 export interface NavItem {
@@ -44,11 +39,6 @@ export const navigation: NavItem[] = [
     name: 'Auto-Pilot',
     href: '/autopilot',
     icon: Bot,
-  },
-  {
-    name: 'Testing',
-    href: '/testing',
-    icon: FlaskConical,
   },
   {
     name: 'Settings',

@@ -481,6 +481,7 @@ mod tests {
             match_score: None,
             created_at: None,
             updated_at: None,
+                    ..Default::default()
         };
 
         let onsite_job = Job {
@@ -497,6 +498,7 @@ mod tests {
             match_score: None,
             created_at: None,
             updated_at: None,
+                    ..Default::default()
         };
 
         let jobs = vec![remote_job.clone(), onsite_job.clone()];

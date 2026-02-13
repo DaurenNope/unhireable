@@ -374,6 +374,7 @@ mod tests {
             requirements: Some("React experience, design sense, CSS skills".to_string()),
             location: Some("Remote".to_string()),
             salary: Some("$80,000-$100,000".to_string()),
+            contact_email: None,
             source: "wellfound".to_string(),
             status: crate::db::models::JobStatus::Saved,
             match_score: None,

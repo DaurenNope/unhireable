@@ -602,6 +602,7 @@ mod tests {
             match_score: None,
             created_at: None,
             updated_at: None,
+            ..Default::default()
         };
 
         let skills = SkillsAnalyzer::extract_job_skills(&job);

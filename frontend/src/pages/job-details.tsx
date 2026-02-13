@@ -28,6 +28,7 @@ import { Job, JobStatus, UserProfile, MatchQuality } from '@/types/models';
 import { jobApi, profileApi } from '@/api/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DocumentGenerator } from '@/components/document-generator';
+import { ApplicationLaunchpad } from '@/components/application-launchpad';
 import { AtsSuggestions } from '@/components/ats-suggestions';
 import { formatSourceLabel } from '@/lib/sources';
 import DOMPurify from 'dompurify';
@@ -107,7 +108,7 @@ function parseMetadataFromDescription(description: string): ParsedMetadata {
       const escapedType = match[2].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const escapedTags = match[3].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const escapedPublished = match[4].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      
+
       // Pattern that matches metadata with optional HTML tags
       const htmlPattern = new RegExp(
         `(?:<[^>]*>\\s*)?Category:\\s*${escapedCategory}\\s+Type:\\s*${escapedType}\\s+Tags:\\s*${escapedTags}\\s+Published:\\s*${escapedPublished}(?:\\s*<[^>]*>)?(?:\\n|$)`,
@@ -115,7 +116,7 @@ function parseMetadataFromDescription(description: string): ParsedMetadata {
       );
       cleaned = cleaned.replace(htmlPattern, '');
     }
-    
+
     // Also try plain text pattern as fallback
     cleaned = cleaned.replace(metadataPattern, '').trim();
     metadata.cleanedDescription = cleaned;
@@ -178,8 +179,28 @@ export function JobDetails() {
   useEffect(() => {
     if (job) {
       setEditedJob(job);
-        }
+    }
   }, [job]);
+
+  // Auto-enrich jobs that are missing descriptions
+  useEffect(() => {
+    const shouldAutoEnrich = job && !isEnriching && (!job.description || job.description.trim() === '') && job.url;
+    if (shouldAutoEnrich && jobId) {
+      console.log('[Unhireable] Auto-enriching job...', jobId);
+      setIsEnriching(true);
+      jobApi.enrich(jobId)
+        .then((enrichedJob) => {
+          queryClient.invalidateQueries({ queryKey: ['job', jobId] });
+          console.log('✅ Auto-enriched job:', enrichedJob?.title);
+        })
+        .catch((err) => {
+          console.error('Auto-enrichment failed:', err);
+        })
+        .finally(() => {
+          setIsEnriching(false);
+        });
+    }
+  }, [job?.id, job?.description, job?.url, jobId, queryClient]);
 
   // Get sanitizer instance (must be before early returns to maintain hook order)
   const sanitizer = useMemo(() => {
@@ -248,11 +269,11 @@ export function JobDetails() {
 
   const handleDelete = async () => {
     if (!jobId || !window.confirm('Are you sure you want to delete this job?')) return;
-      try {
+    try {
       await jobApi.delete(jobId);
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
-        navigate('/jobs');
-      } catch (err) {
+      navigate('/jobs');
+    } catch (err) {
       console.error('Failed to delete job:', err);
       alert('Failed to delete job. Please try again.');
     }
@@ -339,9 +360,9 @@ export function JobDetails() {
           ) : (
             <>
               {needsEnrichment && (
-                <Button 
-                  variant="outline" 
-                  onClick={handleEnrich} 
+                <Button
+                  variant="outline"
+                  onClick={handleEnrich}
                   disabled={isEnriching}
                   className="gap-2 border-primary/30 hover:border-primary"
                 >
@@ -395,9 +416,9 @@ export function JobDetails() {
                 )}
 
                 {job.url && (
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     className="gap-2"
                     onClick={() => handleOpenOriginalPosting(job.url!)}
                   >
@@ -513,13 +534,19 @@ export function JobDetails() {
         <AtsSuggestions jobUrl={job.url} />
       )}
 
-      <Tabs defaultValue="details" className="space-y-6">
+      <Tabs defaultValue="apply" className="space-y-6">
         <TabsList>
+          {userProfile && (
+            <TabsTrigger value="apply" className="gap-2">
+              <Rocket className="h-4 w-4" />
+              Apply
+            </TabsTrigger>
+          )}
           <TabsTrigger value="details">Job Details</TabsTrigger>
           {userProfile && (
             <TabsTrigger value="documents">
               <FileText className="h-4 w-4 mr-2" />
-              Generate Documents
+              Documents
             </TabsTrigger>
           )}
         </TabsList>
@@ -592,8 +619,28 @@ export function JobDetails() {
                     className="job-description-content space-y-6 text-base leading-relaxed"
                     dangerouslySetInnerHTML={{ __html: sanitizedDescription }}
                   />
+                ) : isEnriching ? (
+                  <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                    <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+                    <p className="text-muted-foreground">Fetching full job details...</p>
+                  </div>
                 ) : (
-                  <p className="text-muted-foreground italic py-8">No description provided.</p>
+                  <div className="flex flex-col items-center justify-center py-12 space-y-4 bg-muted/30 rounded-xl border border-dashed border-muted-foreground/30">
+                    <Sparkles className="h-10 w-10 text-muted-foreground" />
+                    <p className="text-muted-foreground text-center">
+                      No description available yet
+                    </p>
+                    {job.url && (
+                      <Button
+                        onClick={handleEnrich}
+                        disabled={isEnriching}
+                        className="gap-2"
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                        Fetch Full Details
+                      </Button>
+                    )}
+                  </div>
                 )}
               </div>
 
@@ -621,6 +668,19 @@ export function JobDetails() {
         </TabsContent>
 
         {userProfile && (
+          <TabsContent value="apply">
+            <Card className="border-0 shadow-xl">
+              <CardContent className="p-6">
+                <ApplicationLaunchpad
+                  job={job}
+                  userProfile={userProfile}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
+
+        {userProfile && (
           <TabsContent value="documents">
             <Card className="border-0 shadow-xl">
               <CardContent className="p-6">
@@ -629,7 +689,6 @@ export function JobDetails() {
                   userProfile={userProfile}
                   onDocumentGenerated={(doc) => {
                     console.log('Document generated:', doc);
-                    // Could save to database or show notification
                   }}
                 />
               </CardContent>

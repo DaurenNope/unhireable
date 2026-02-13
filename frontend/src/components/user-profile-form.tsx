@@ -36,14 +36,28 @@ const defaultProfile: UserProfile = {
 };
 
 export function UserProfileForm({ profile, onSave, isLoading }: UserProfileFormProps) {
-  const [formData, setFormData] = useState<UserProfile>(profile || defaultProfile);
+  // Merge profile with defaults to ensure all nested properties exist
+  const safeProfile = profile ? {
+    ...defaultProfile,
+    ...profile,
+    personal_info: { ...defaultProfile.personal_info, ...profile.personal_info },
+    skills: { ...defaultProfile.skills, ...profile.skills },
+  } : defaultProfile;
+
+  const [formData, setFormData] = useState<UserProfile>(safeProfile);
   const [newTechSkill, setNewTechSkill] = useState('');
   const [newSoftSkill, setNewSoftSkill] = useState('');
   const [newProject, setNewProject] = useState('');
 
   useEffect(() => {
     if (profile) {
-      setFormData(profile);
+      // Safely merge with defaults when profile changes
+      setFormData({
+        ...defaultProfile,
+        ...profile,
+        personal_info: { ...defaultProfile.personal_info, ...profile.personal_info },
+        skills: { ...defaultProfile.skills, ...profile.skills },
+      });
     }
   }, [profile]);
 

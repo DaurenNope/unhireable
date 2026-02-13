@@ -324,7 +324,8 @@ impl JobScraper for HhKzScraper {
                                 match_score: None,
                                 created_at: None,
                                 updated_at: None,
-                            };
+                                        ..Default::default()
+        };
 
                             parsed_jobs.push(job);
                         }
@@ -470,7 +471,8 @@ impl JobScraper for HhKzScraper {
                                     match_score: None,
                                     created_at: None,
                                     updated_at: None,
-                                });
+                                            ..Default::default()
+        });
                             }
                         }
                         if jobs.is_empty() {

@@ -49,7 +49,7 @@ export interface BaseModel {
 }
 
 // Job Status (matches backend snake_case)
-export type JobStatus = 
+export type JobStatus =
   | 'saved'
   | 'applied'
   | 'interviewing'
@@ -377,39 +377,14 @@ export interface ApplicationResult {
 
 // Resume Analysis types
 export interface ResumeAnalysis {
-  personal_info: PersonalInfo;
+  personal_info: Partial<PersonalInfo>;
   summary?: string | null;
   skills: string[];
-  experience: ExperienceEntry[];
-  education: EducationEntry[];
+  experience: Array<Partial<ExperienceEntry>>;
+  education: Array<Partial<EducationEntry>>;
   projects: string[];
   raw_text: string;
   insights: AnalysisInsights;
-}
-
-export interface PersonalInfo {
-  name?: string | null;
-  email?: string | null;
-  phone?: string | null;
-  location?: string | null;
-  linkedin?: string | null;
-  github?: string | null;
-  portfolio?: string | null;
-}
-
-export interface ExperienceEntry {
-  company?: string | null;
-  position?: string | null;
-  duration?: string | null;
-  description: string[];
-  technologies: string[];
-}
-
-export interface EducationEntry {
-  institution?: string | null;
-  degree?: string | null;
-  year?: string | null;
-  details?: string | null;
 }
 
 export interface AnalysisInsights {

@@ -1,0 +1,61 @@
+{
+    "personal_info": {
+        "name": "Maksut Beksultan",
+        "email": "maksutbeksultan1@gmail.com",
+        "phone": "",
+        "location": "Kazakhstan/Almaty",
+        "linkedin": "",
+        "github": "",
+        "portfolio": "",
+        "requires_sponsorship": true,
+        "willing_to_relocate": true
+    },
+    "summary": "AI/ML & Fullstack Engineer with extensive experience across multiple technologies. Strong technical background with proficiency in JavaScript, TypeScript, Python, Java, C#, Go, and Rust. Experience with modern frameworks including React, Angular, and Express.",
+    "skills": {
+        "technical_skills": [
+            "JavaScript",
+            "TypeScript",
+            "Python",
+            "Java",
+            "C#",
+            "Go",
+            "Rust",
+            "React",
+            "Angular",
+            "Express",
+            "Node.js",
+            "AI/ML",
+            "Fullstack Development"
+        ],
+        "soft_skills": [
+            "Problem solving",
+            "Technical leadership",
+            "Cross-functional collaboration"
+        ]
+    },
+    "experience": [
+        {
+            "company": "RahmetLabs",
+            "position": "Backend Engineer",
+            "duration": "Current",
+            "description": [
+                "Backend development and engineering work"
+            ],
+            "technologies": [
+                "JavaScript",
+                "TypeScript",
+                "Python",
+                "Go",
+                "Rust"
+            ]
+        }
+    ],
+    "education": [
+        {
+            "institution": "University",
+            "degree": "Computer Science / Engineering",
+            "year": "",
+            "details": ""
+        }
+    ]
+}

@@ -174,7 +174,8 @@ impl LeverGreenhouseScraper {
                 match_score: None,
                 created_at: None,
                 updated_at: None,
-            });
+                        ..Default::default()
+        });
         }
 
         Ok(jobs)
@@ -265,7 +266,8 @@ impl LeverGreenhouseScraper {
                     match_score: None,
                     created_at: None,
                     updated_at: None,
-                });
+                            ..Default::default()
+        });
             }
 
             if !jobs.is_empty() {
@@ -373,7 +375,8 @@ impl LeverGreenhouseScraper {
                 match_score: None,
                 created_at: None,
                 updated_at: None,
-            });
+                        ..Default::default()
+        });
         }
 
         // Filter by query if provided

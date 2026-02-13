@@ -96,7 +96,8 @@ impl WorkAtStartupScraper {
                 match_score: None,
                 created_at: None,
                 updated_at: None,
-            });
+                        ..Default::default()
+        });
         }
 
         jobs
@@ -242,6 +243,7 @@ mod tests {
             match_score: None,
             created_at: None,
             updated_at: None,
+                    ..Default::default()
         };
 
         assert!(WorkAtStartupScraper::job_matches_query(&job, "software"));

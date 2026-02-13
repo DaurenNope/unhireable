@@ -3,12 +3,12 @@
 //! This orchestrates the full job hunting pipeline:
 //! Discovery → Matching → Filtering → Document Generation → Application → Notification
 
+use crate::applicator::{ApplicationConfig, JobApplicator};
 use crate::automation::config::AutomationConfig;
 use crate::automation::pipeline::{
     ApplicationSummary, JobSummary, PipelineResult, PipelineStage, ProcessedJob, StageResult,
 };
 use crate::automation::status::AutomationStatus;
-use crate::applicator::{ApplicationConfig, JobApplicator};
 use crate::db::models::{Application, ApplicationStatus, Job};
 use crate::db::queries::{ApplicationQueries, CredentialQueries, JobQueries};
 use crate::db::Database;
@@ -126,7 +126,10 @@ impl AutomationOrchestrator {
         }
 
         // Stage 4: Document Generation
-        let jobs_with_docs = match self.stage_document_generation(filtered_jobs, profile, &config).await {
+        let jobs_with_docs = match self
+            .stage_document_generation(filtered_jobs, profile, &config)
+            .await
+        {
             Ok((jobs, stage_result)) => {
                 result.add_stage_result(stage_result);
                 jobs
@@ -139,7 +142,10 @@ impl AutomationOrchestrator {
         };
 
         // Stage 5: Application
-        let applied_jobs = match self.stage_application(jobs_with_docs, profile, &config).await {
+        let applied_jobs = match self
+            .stage_application(jobs_with_docs, profile, &config)
+            .await
+        {
             Ok((jobs, stage_result)) => {
                 result.add_stage_result(stage_result);
                 jobs
@@ -175,7 +181,7 @@ impl AutomationOrchestrator {
     /// Stage 1: Discover jobs from configured sources
     async fn stage_discovery(&self, config: &AutomationConfig) -> Result<(Vec<Job>, StageResult)> {
         let stage_start = Instant::now();
-        
+
         {
             let mut status = self.status.lock().await;
             status.set_stage(PipelineStage::Discovery.as_str());
@@ -298,7 +304,8 @@ impl AutomationOrchestrator {
 
             // Update match score in database
             if let Some(job_id) = processed.job.id {
-                self.update_job_match_score(job_id, match_result.match_score).await;
+                self.update_job_match_score(job_id, match_result.match_score)
+                    .await;
             }
 
             processed_jobs.push(processed);
@@ -579,7 +586,8 @@ impl AutomationOrchestrator {
                                     job.job.company.replace(' ', "_"),
                                     job.job.id.unwrap_or(0)
                                 ));
-                                job.cover_letter_path = Some(pdf_path.to_string_lossy().to_string());
+                                job.cover_letter_path =
+                                    Some(pdf_path.to_string_lossy().to_string());
                             }
                         }
                         docs_generated += 1;
@@ -600,7 +608,10 @@ impl AutomationOrchestrator {
             message: Some(format!("{} documents generated", docs_generated)),
         };
 
-        println!("   📊 Document generation complete: {} docs created", docs_generated);
+        println!(
+            "   📊 Document generation complete: {} docs created",
+            docs_generated
+        );
 
         Ok((jobs, stage_result))
     }
@@ -891,6 +902,7 @@ impl AutomationOrchestrator {
                     )),
                     created_at: None,
                     updated_at: None,
+                    ..Default::default()
                 };
                 let _ = conn.create_application(&mut application);
             }

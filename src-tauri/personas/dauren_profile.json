@@ -1,0 +1,158 @@
+{
+    "personal_info": {
+        "name": "Dauren Nurseitov",
+        "email": "dauren.nope@gmail.com",
+        "phone": "+77088413062",
+        "location": "Astana, Kazakhstan",
+        "linkedin_url": "https://linkedin.com/in/dauren-nox",
+        "github_url": "https://github.com/DaurenNox",
+        "portfolio_url": "https://rahmetlabs.xyz",
+        "requires_sponsorship": true,
+        "willing_to_relocate": true,
+        "years_experience": "5",
+        "salary_expectation": "5000"
+    },
+    "title": "AI & Blockchain Product Manager",
+    "summary": "Experienced product & ML/AI engineer with 5+ years across automation, blockchain, and full-stack product development. Built and scaled AI/LLM pipelines (RAG, embeddings, semantic search), automation systems, and production-ready applications for startups, enterprises, and universities. Founded and led AI/blockchain companies, delivering 30+ automation solutions and 20+ web platforms. Advised a leading bank on a $500K crypto portfolio and developed an NFT diploma verification system for a major Central Asian university.",
+    "skills": {
+        "technical_skills": [
+            "Solidity",
+            "JavaScript",
+            "AI Automation",
+            "Workflow Automation (n8n)",
+            "FastAPI",
+            "ML/NLP Pipelines",
+            "Classification Models",
+            "RAG",
+            "Embeddings",
+            "Semantic Search",
+            "Docker",
+            "CI/CD"
+        ],
+        "soft_skills": [
+            "Project Management",
+            "Team Leadership",
+            "Blockchain Consulting",
+            "Education & Training"
+        ],
+        "experience_years": {
+            "AI/Automation": 5,
+            "JavaScript": 5,
+            "Solidity": 3,
+            "FastAPI": 3,
+            "ML/NLP": 3
+        }
+    },
+    "experience": [
+        {
+            "company": "Rahmet Labs",
+            "title": "Founder",
+            "start_date": "Feb 2024",
+            "end_date": "Present",
+            "description": "Automation Agency (AI, Web, Web3)",
+            "highlights": [
+                "Delivered 30+ automation systems",
+                "Shipped 20+ websites and full-stack apps for enterprises",
+                "Built Web3 automation systems"
+            ]
+        },
+        {
+            "company": "Zorox Research Lab",
+            "title": "Founder & Blockchain Consultant",
+            "start_date": "Jul 2021",
+            "end_date": "Feb 2024",
+            "description": "Blockchain Consultancy",
+            "highlights": [
+                "Led a 6-person consultancy specializing in crypto research and airdrops",
+                "Invested in early-stage crypto projects, earning major airdrop rewards",
+                "Developed automation scripts to optimize blockchain research and execution"
+            ]
+        },
+        {
+            "company": "PTB Academy",
+            "title": "Founder & Lead Educator",
+            "start_date": "Nov 2022",
+            "end_date": "Dec 2023",
+            "description": "Educational Company",
+            "highlights": [
+                "Taught 100+ people about AI and blockchain through courses",
+                "Created blockchain and AI investment strategies curricula",
+                "Boosted course enrollment with targeted marketing efforts"
+            ]
+        },
+        {
+            "company": "EYEQ DAO",
+            "title": "Fullstack Engineer",
+            "start_date": "Dec 2022",
+            "end_date": "May 2023",
+            "description": "Web3 Media & NFT services ecosystem",
+            "highlights": [
+                "Developed Solidity smart contracts with strong security",
+                "Led front-end improvements to enhance user experience",
+                "Designed and optimized frontend of the application"
+            ]
+        }
+    ],
+    "education": [
+        {
+            "school": "California State University Northridge",
+            "degree": "Bachelor's",
+            "field": "Computer Science",
+            "graduation_year": 2020
+        },
+        {
+            "school": "Houston Community College",
+            "degree": "Associate's",
+            "field": "Mechanical Engineering",
+            "graduation_year": 2017
+        }
+    ],
+    "certifications": [
+        "Solidity Developer Certification",
+        "Blockchain Developer Program",
+        "IBM Agile and Scrum Master"
+    ],
+    "languages": [
+        {
+            "language": "English",
+            "proficiency": "Native or Bilingual"
+        },
+        {
+            "language": "Russian",
+            "proficiency": "Native or Bilingual"
+        }
+    ],
+    "preferences": {
+        "job_types": [
+            "Full-time",
+            "Contract",
+            "Remote"
+        ],
+        "preferred_roles": [
+            "AI/ML Engineer",
+            "Product Manager",
+            "Fullstack Engineer",
+            "Blockchain Developer",
+            "Automation Engineer"
+        ],
+        "remote_preference": "Remote",
+        "min_salary": null
+    },
+    "projects": [
+        {
+            "name": "BeyondLines",
+            "description": "Full-stack system that discovers, analyzes, and curates high-value content from 60+ sources (crypto, hacking, AI, alt-news)",
+            "url": "https://beyondlines-web.vercel.app"
+        },
+        {
+            "name": "Unhireable",
+            "description": "A full desktop application that automates the entire job search workflow",
+            "url": "https://unhireable-wesbite.vercel.app"
+        },
+        {
+            "name": "Production Web Integrations",
+            "description": "Full stack websites for educational sector: aheu.edu.kz, qgroup.asia, q-university.edu.kz",
+            "url": ""
+        }
+    ]
+}

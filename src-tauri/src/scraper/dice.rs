@@ -76,11 +76,12 @@ impl JobScraper for DiceScraper {
         for job_element in job_elements {
             // Get title from the link's aria-label or text content
             let title_link = job_element.select(&title_selector).next();
-            
+
             let title = title_link
                 .and_then(|e| {
                     // Try aria-label first (more reliable)
-                    e.value().attr("aria-label")
+                    e.value()
+                        .attr("aria-label")
                         .map(|s| s.to_string())
                         .or_else(|| e.text().next().map(|s| s.trim().to_string()))
                 })
@@ -99,8 +100,9 @@ impl JobScraper for DiceScraper {
                 .unwrap_or_else(|| format!("https://www.dice.com/jobs?q={}", encoded_query));
 
             // Company name - look for company-related elements
-            let company_selector = Selector::parse(r#"a[data-testid*="company"], span[data-testid*="company"]"#)
-                .unwrap_or_else(|_| Selector::parse("a[href*='/company/']").unwrap());
+            let company_selector =
+                Selector::parse(r#"a[data-testid*="company"], span[data-testid*="company"]"#)
+                    .unwrap_or_else(|_| Selector::parse("a[href*='/company/']").unwrap());
             let company = job_element
                 .select(&company_selector)
                 .next()
@@ -136,6 +138,7 @@ impl JobScraper for DiceScraper {
                     requirements: None,
                     location,
                     salary,
+                    contact_email: None,
                     source: "dice".to_string(),
                     status: JobStatus::Saved,
                     match_score: None,

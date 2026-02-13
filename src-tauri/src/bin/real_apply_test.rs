@@ -61,7 +61,8 @@ async fn main() {
         match_score: None,
         created_at: None,
         updated_at: None,
-    };
+                ..Default::default()
+        };
 
     let config = ApplicationConfig {
         auto_submit: true, // OK for test endpoint

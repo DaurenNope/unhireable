@@ -113,6 +113,7 @@ impl AdzunaScraper {
             match_score: None,
             created_at: None,
             updated_at: None,
+            ..Default::default()
         })
     }
 }
@@ -173,7 +174,11 @@ impl JobScraper for AdzunaScraper {
         if !response.status().is_success() {
             let status = response.status();
             let body = response.text().unwrap_or_default();
-            println!("⚠️  Adzuna API error: {} - {}", status, &body[..200.min(body.len())]);
+            println!(
+                "⚠️  Adzuna API error: {} - {}",
+                status,
+                &body[..200.min(body.len())]
+            );
             return Ok(Vec::new());
         }
 

@@ -105,7 +105,7 @@ export function Jobs() {
     const [dismissedSpotlights, setDismissedSpotlights] = useState(new Set());
     const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
     const [showHighMatchesOnly, setShowHighMatchesOnly] = useState(false);
-    const [hideBarebonesJobs, setHideBarebonesJobs] = useState(true);
+    const [hideBarebonesJobs, setHideBarebonesJobs] = useState(false);
     const [isRunningSavedSearches, setIsRunningSavedSearches] = useState(false);
     const [isTogglingScheduler, setIsTogglingScheduler] = useState(false);
     // Use React Query for jobs data with caching
