@@ -1,16 +1,15 @@
 /// Intelligence Agent integration module
 /// Provides Rust interface to the Python ML microservice
-
 use crate::error::Result;
 use std::collections::HashMap;
 
 mod client;
-mod models;
 mod event_handler;
+mod models;
 
 pub use client::IntelligenceClient;
-pub use models::*;
 pub use event_handler::IntelligenceEventHandler;
+pub use models::*;
 
 /// Intelligence Agent service wrapper
 pub struct IntelligenceAgent {
@@ -164,14 +163,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_intelligence_agent_creation() {
-        let agent = IntelligenceAgent::default();
+        let _agent = IntelligenceAgent::default();
         // Just test that it can be created
         assert!(true);
     }
 }
-
-
-
-
-
-

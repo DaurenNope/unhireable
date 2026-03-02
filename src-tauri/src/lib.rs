@@ -14,13 +14,11 @@ pub mod commands;
 pub mod db;
 pub mod error;
 pub mod events;
-pub mod flow_engine;
 pub mod generator;
 pub mod insights;
 pub mod intelligence;
 pub mod logging;
 pub mod matching;
-pub mod metrics;
 // PostgreSQL migration temporarily disabled due to dependency conflicts
 // #[cfg(feature = "postgres")]
 // pub mod migration;
@@ -33,7 +31,6 @@ pub mod scheduler;
 pub mod scraper;
 pub mod scraper_queue;
 pub mod security;
-pub mod session;
 pub mod web_server;
 
 use crate::applicator::{ApplicationConfig, ApplicationResult, JobApplicator};
@@ -47,9 +44,7 @@ pub struct AppState {
     db: Arc<Mutex<Option<Database>>>,
     scheduler: Arc<Mutex<Option<scheduler::JobScheduler>>>,
     app_dir: Arc<Mutex<Option<std::path::PathBuf>>>,
-    session_manager: Arc<Mutex<Option<session::SessionManager>>>,
     event_bus: Arc<events::EventBus>,
-    flow_engine: Arc<flow_engine::FlowEngine>,
     cache: Arc<cache::Cache<String, serde_json::Value>>,
     document_cache: Arc<Mutex<generator::DocumentCache>>,
     queue_manager: Arc<queue::QueueManager>,
@@ -63,9 +58,7 @@ impl Default for AppState {
             db: Arc::new(Mutex::new(None)),
             scheduler: Arc::new(Mutex::new(None)),
             app_dir: Arc::new(Mutex::new(None)),
-            session_manager: Arc::new(Mutex::new(None)),
             event_bus: Arc::new(events::EventBus::new()),
-            flow_engine: Arc::new(flow_engine::FlowEngine::new()),
             cache: Arc::new(cache::Cache::new(std::time::Duration::from_secs(3600))),
             document_cache: Arc::new(Mutex::new(generator::DocumentCache::new(100, Some(86400)))), // 100 entries, 24h TTL
             queue_manager: Arc::new(queue::QueueManager::new()),
@@ -84,8 +77,6 @@ async fn setup_app_state(app: &mut tauri::App) -> Result<()> {
         crate::logging::init_logging();
     }
 
-    // Initialize metrics
-    crate::metrics::init_metrics();
     tracing::info!("Application starting up");
 
     // Get the app data directory (using "unhireable" as the app name)
@@ -108,15 +99,6 @@ async fn setup_app_state(app: &mut tauri::App) -> Result<()> {
         Database::new(db_path)?
     };
 
-    // Initialize Redis session manager if REDIS_URL is set
-    let session_manager = if let Ok(redis_url) = std::env::var("REDIS_URL") {
-        tracing::info!("Initializing Redis session manager");
-        Some(session::SessionManager::new(&redis_url, 3600)?)
-    } else {
-        tracing::info!("Redis not configured, sessions will be in-memory only");
-        None
-    };
-
     // Get the state to set up event handlers
     let state: State<AppState> = app.state();
 
@@ -137,11 +119,6 @@ async fn setup_app_state(app: &mut tauri::App) -> Result<()> {
     // Initialize Intelligence event handler (subscribes to JOB_CREATED)
     intelligence_handler.initialize().await?;
     tracing::info!("Intelligence Agent event handler initialized");
-
-    // Register Intelligence Agent flows
-    let flow_engine = state.flow_engine.clone();
-    flow_engine.register_intelligence_flows().await?;
-    tracing::info!("Intelligence Agent flows registered");
 
     let event_bus = state.event_bus.clone();
     event_bus
@@ -260,7 +237,6 @@ async fn setup_app_state(app: &mut tauri::App) -> Result<()> {
     let state: State<AppState> = app.state();
     *state.db.lock().await = Some(db);
     *state.app_dir.lock().await = Some(app_dir);
-    *state.session_manager.lock().await = session_manager;
 
     // Update Arc fields by replacing the entire AppState
     // Note: For Arc fields, we need to use Arc::get_mut or replace the state
@@ -848,12 +824,9 @@ pub fn run() {
             commands::documents::score_document_quality,
             commands::documents::list_ai_providers,
             commands::documents::generate_resume_with_provider,
-            commands::documents::generate_bulk_documents,
             commands::documents::create_document_version,
             commands::documents::get_document_versions,
             commands::documents::restore_document_version,
-            commands::documents::translate_document,
-            commands::documents::get_available_languages,
             // Job Matching commands
             commands::matching::calculate_job_match_score,
             commands::matching::match_jobs_for_profile,

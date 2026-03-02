@@ -94,14 +94,12 @@ impl ScraperManager {
             Ok(mut jobs) => {
                 log_scraper_success("RemoteOK", jobs.len());
                 // Record metrics: jobs found
-                crate::metrics::SCRAPER_JOBS_FOUND.inc_by(jobs.len() as f64);
                 all_jobs.append(&mut jobs);
                 thread::sleep(Duration::from_millis(500));
             }
             Err(e) => {
                 log_scraper_error("RemoteOK", &e, true);
                 // Record metrics: scraper errors
-                crate::metrics::SCRAPER_ERRORS.inc();
                 errors.push(format!("RemoteOK: {}", e));
             }
         }
@@ -111,7 +109,6 @@ impl ScraperManager {
             Ok(mut jobs) => {
                 println!("Successfully scraped {} jobs from hh.kz", jobs.len());
                 // Record metrics: jobs found
-                crate::metrics::SCRAPER_JOBS_FOUND.inc_by(jobs.len() as f64);
                 all_jobs.append(&mut jobs);
                 thread::sleep(Duration::from_secs(1));
             }
@@ -119,7 +116,6 @@ impl ScraperManager {
                 let error_msg = format!("Failed to scrape from hh.kz: {}", e);
                 eprintln!("{}", error_msg);
                 // Record metrics: scraper errors
-                crate::metrics::SCRAPER_ERRORS.inc();
                 errors.push(error_msg);
             }
         }
@@ -130,7 +126,6 @@ impl ScraperManager {
                 Ok(mut jobs) => {
                     println!("Successfully scraped {} jobs from LinkedIn", jobs.len());
                     // Record metrics: jobs found
-                    crate::metrics::SCRAPER_JOBS_FOUND.inc_by(jobs.len() as f64);
                     all_jobs.append(&mut jobs);
                     // Longer delay after LinkedIn to avoid detection
                     thread::sleep(Duration::from_secs(5));
@@ -139,7 +134,6 @@ impl ScraperManager {
                     let error_msg = format!("Failed to scrape from LinkedIn: {}", e);
                     eprintln!("{}", error_msg);
                     // Record metrics: scraper errors
-                    crate::metrics::SCRAPER_ERRORS.inc();
                     errors.push(error_msg);
                 }
             }
@@ -160,7 +154,6 @@ impl ScraperManager {
             Ok(mut jobs) => {
                 println!("✅ Successfully scraped {} jobs from Indeed", jobs.len());
                 // Record metrics: jobs found
-                crate::metrics::SCRAPER_JOBS_FOUND.inc_by(jobs.len() as f64);
                 all_jobs.append(&mut jobs);
                 thread::sleep(Duration::from_millis(500));
             }
@@ -168,7 +161,6 @@ impl ScraperManager {
                 let error_msg = format!("Failed to scrape from Indeed: {}", e);
                 eprintln!("{}", error_msg);
                 // Record metrics: scraper errors
-                crate::metrics::SCRAPER_ERRORS.inc();
                 errors.push(error_msg);
             }
         }
@@ -185,7 +177,6 @@ impl ScraperManager {
             Ok(mut jobs) => {
                 println!("✅ Successfully scraped {} jobs from Wellfound", jobs.len());
                 // Record metrics: jobs found
-                crate::metrics::SCRAPER_JOBS_FOUND.inc_by(jobs.len() as f64);
                 all_jobs.append(&mut jobs);
                 thread::sleep(Duration::from_millis(500));
             }
@@ -193,7 +184,6 @@ impl ScraperManager {
                 let error_msg = format!("Failed to scrape from Wellfound: {}", e);
                 eprintln!("{}", error_msg);
                 // Record metrics: scraper errors
-                crate::metrics::SCRAPER_ERRORS.inc();
                 errors.push(error_msg);
             }
         }
@@ -203,7 +193,6 @@ impl ScraperManager {
             Ok(mut jobs) => {
                 println!("Successfully scraped {} jobs from Remotive", jobs.len());
                 // Record metrics: jobs found
-                crate::metrics::SCRAPER_JOBS_FOUND.inc_by(jobs.len() as f64);
                 all_jobs.append(&mut jobs);
                 thread::sleep(Duration::from_millis(500));
             }
@@ -211,7 +200,6 @@ impl ScraperManager {
                 let error_msg = format!("Failed to scrape from Remotive: {}", e);
                 eprintln!("{}", error_msg);
                 // Record metrics: scraper errors
-                crate::metrics::SCRAPER_ERRORS.inc();
                 errors.push(error_msg);
             }
         }
@@ -221,7 +209,6 @@ impl ScraperManager {
             Ok(mut jobs) => {
                 println!("Successfully scraped {} jobs from Greenhouse", jobs.len());
                 // Record metrics: jobs found
-                crate::metrics::SCRAPER_JOBS_FOUND.inc_by(jobs.len() as f64);
                 all_jobs.append(&mut jobs);
                 thread::sleep(Duration::from_millis(500));
             }
@@ -229,7 +216,6 @@ impl ScraperManager {
                 let error_msg = format!("Failed to scrape from Greenhouse: {}", e);
                 eprintln!("{}", error_msg);
                 // Record metrics: scraper errors
-                crate::metrics::SCRAPER_ERRORS.inc();
                 errors.push(error_msg);
             }
         }
@@ -242,7 +228,6 @@ impl ScraperManager {
                     jobs.len()
                 );
                 // Record metrics: jobs found
-                crate::metrics::SCRAPER_JOBS_FOUND.inc_by(jobs.len() as f64);
                 all_jobs.append(&mut jobs);
                 thread::sleep(Duration::from_millis(500));
             }
@@ -250,7 +235,6 @@ impl ScraperManager {
                 let error_msg = format!("Failed to scrape from WorkAtAStartup: {}", e);
                 eprintln!("{}", error_msg);
                 // Record metrics: scraper errors
-                crate::metrics::SCRAPER_ERRORS.inc();
                 errors.push(error_msg);
             }
         }
@@ -263,7 +247,6 @@ impl ScraperManager {
                     jobs.len()
                 );
                 // Record metrics: jobs found
-                crate::metrics::SCRAPER_JOBS_FOUND.inc_by(jobs.len() as f64);
                 all_jobs.append(&mut jobs);
                 thread::sleep(Duration::from_millis(500));
             }
@@ -271,7 +254,6 @@ impl ScraperManager {
                 let error_msg = format!("Failed to scrape from WeWorkRemotely: {}", e);
                 eprintln!("{}", error_msg);
                 // Record metrics: scraper errors
-                crate::metrics::SCRAPER_ERRORS.inc();
                 errors.push(error_msg);
             }
         }
@@ -281,7 +263,6 @@ impl ScraperManager {
             Ok(mut jobs) => {
                 println!("Successfully scraped {} jobs from Remote.co", jobs.len());
                 // Record metrics: jobs found
-                crate::metrics::SCRAPER_JOBS_FOUND.inc_by(jobs.len() as f64);
                 all_jobs.append(&mut jobs);
                 thread::sleep(Duration::from_millis(500));
             }
@@ -289,7 +270,6 @@ impl ScraperManager {
                 let error_msg = format!("Failed to scrape from Remote.co: {}", e);
                 eprintln!("{}", error_msg);
                 // Record metrics: scraper errors
-                crate::metrics::SCRAPER_ERRORS.inc();
                 errors.push(error_msg);
             }
         }
@@ -355,7 +335,6 @@ impl ScraperManager {
                     jobs.len()
                 );
                 // Record metrics: jobs found
-                crate::metrics::SCRAPER_JOBS_FOUND.inc_by(jobs.len() as f64);
                 all_jobs.append(&mut jobs);
                 thread::sleep(Duration::from_millis(500));
             }
@@ -363,7 +342,6 @@ impl ScraperManager {
                 let error_msg = format!("Failed to scrape from Stack Overflow: {}", e);
                 eprintln!("{}", error_msg);
                 // Record metrics: scraper errors
-                crate::metrics::SCRAPER_ERRORS.inc();
                 errors.push(error_msg);
             }
         }
@@ -380,7 +358,6 @@ impl ScraperManager {
             Ok(mut jobs) => {
                 println!("✅ Successfully scraped {} jobs from Dice", jobs.len());
                 // Record metrics: jobs found
-                crate::metrics::SCRAPER_JOBS_FOUND.inc_by(jobs.len() as f64);
                 all_jobs.append(&mut jobs);
                 thread::sleep(Duration::from_millis(500));
             }
@@ -388,7 +365,6 @@ impl ScraperManager {
                 let error_msg = format!("Failed to scrape from Dice: {}", e);
                 eprintln!("{}", error_msg);
                 // Record metrics: scraper errors
-                crate::metrics::SCRAPER_ERRORS.inc();
                 errors.push(error_msg);
             }
         }

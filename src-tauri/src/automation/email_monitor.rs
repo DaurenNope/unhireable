@@ -3,7 +3,6 @@
 //! Monitors inbox for job-related emails and categorizes them
 
 use chrono::{DateTime, Utc};
-use imap::Client;
 use mailparse::{parse_mail, MailHeaderMap};
 use native_tls::TlsConnector;
 use regex::Regex;

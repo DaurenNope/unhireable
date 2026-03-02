@@ -1,20 +1,18 @@
+use crate::cache::Cache;
 /// Event handler for Intelligence Agent
 /// Handles event-driven job matching
-
 use crate::db::queries::JobQueries;
 use crate::error::Result;
-use crate::events::{Event, EventBus, event_types};
+use crate::events::{event_types, Event, EventBus};
+use crate::generator::UserProfile;
 use crate::intelligence::IntelligenceAgent;
 use crate::matching::JobMatcher;
-use crate::generator::UserProfile;
-use crate::cache::Cache;
-use crate::metrics;
 use anyhow::Context;
 use chrono::Utc;
 use serde_json::json;
 use std::sync::Arc;
-use tokio::sync::Mutex;
 use std::time::Instant;
+use tokio::sync::Mutex;
 
 /// Event handler for Intelligence Agent operations
 pub struct IntelligenceEventHandler {
@@ -63,14 +61,10 @@ impl IntelligenceEventHandler {
                 // Spawn async task to handle job matching
                 let event_clone = event.clone();
                 tokio::spawn(async move {
-                    if let Err(e) = Self::handle_job_created(
-                        event_clone,
-                        agent,
-                        matcher,
-                        cache,
-                        db,
-                        event_bus,
-                    ).await {
+                    if let Err(e) =
+                        Self::handle_job_created(event_clone, agent, matcher, cache, db, event_bus)
+                            .await
+                    {
                         tracing::error!("Error handling job created event: {}", e);
                     }
                 });
@@ -93,9 +87,10 @@ impl IntelligenceEventHandler {
         event_bus: Arc<EventBus>,
     ) -> Result<()> {
         let start_time = Instant::now();
-        
+
         // Extract job ID from event payload
-        let job_id = event.payload
+        let job_id = event
+            .payload
             .get("job_id")
             .and_then(|v| v.as_i64())
             .context("Missing job_id in event payload")?;
@@ -104,9 +99,12 @@ impl IntelligenceEventHandler {
         let cache_key = format!("match_score:{}", job_id);
         if let Some(cached_value) = cache.get(&cache_key).await {
             if let Some(cached_score) = cached_value.as_f64() {
-                metrics::CACHE_HITS.inc();
-                tracing::debug!("Using cached match score for job {}: {}", job_id, cached_score);
-                
+                tracing::debug!(
+                    "Using cached match score for job {}: {}",
+                    job_id,
+                    cached_score
+                );
+
                 // Publish JOB_MATCHED event with cached score
                 let matched_event = Event {
                     id: uuid::Uuid::new_v4().to_string(),
@@ -119,7 +117,7 @@ impl IntelligenceEventHandler {
                     timestamp: Utc::now(),
                 };
                 event_bus.publish(matched_event).await?;
-                
+
                 // Also publish MATCH_CALCULATED for backward compatibility
                 let calculated_event = Event {
                     id: uuid::Uuid::new_v4().to_string(),
@@ -132,23 +130,15 @@ impl IntelligenceEventHandler {
                     timestamp: Utc::now(),
                 };
                 event_bus.publish(calculated_event).await?;
-                
-                metrics::CACHE_HITS.inc();
-                metrics::MATCH_CALCULATIONS_TOTAL.inc();
-                metrics::MATCH_CALCULATION_DURATION.observe(start_time.elapsed().as_secs_f64());
-                
+
                 return Ok(());
             }
         }
-        
-        metrics::CACHE_MISSES.inc();
 
         // Get job from database
         let job = {
             let db_guard = db.lock().await;
-            let db_instance = db_guard
-                .as_ref()
-                .context("Database not initialized")?;
+            let db_instance = db_guard.as_ref().context("Database not initialized")?;
             let conn = db_instance.get_connection();
             let job = conn
                 .get_job(job_id)?
@@ -175,9 +165,8 @@ impl IntelligenceEventHandler {
             let experience_years = Some(total_years as f64);
 
             // Try Intelligence Agent API
-            let api_start = Instant::now();
-            metrics::INTELLIGENCE_API_CALLS.inc();
-            
+            let _api_start = Instant::now();
+
             match intelligence_agent
                 .calculate_match(
                     &job_text,
@@ -188,17 +177,9 @@ impl IntelligenceEventHandler {
                 )
                 .await
             {
-                Ok(response) => {
-                    metrics::INTELLIGENCE_API_DURATION.observe(api_start.elapsed().as_secs_f64());
-                    response.match_score
-                }
+                Ok(response) => response.match_score,
                 Err(e) => {
-                    metrics::INTELLIGENCE_API_ERRORS.inc();
-                    metrics::INTELLIGENCE_API_DURATION.observe(api_start.elapsed().as_secs_f64());
-                    tracing::warn!(
-                        "Intelligence Agent unavailable, using local matcher: {}",
-                        e
-                    );
+                    tracing::warn!("Intelligence Agent unavailable, using local matcher: {}", e);
                     // Fallback to local matcher
                     let match_result = matcher.calculate_match(&job, profile);
                     match_result.match_score
@@ -210,14 +191,14 @@ impl IntelligenceEventHandler {
         };
 
         // Cache the match score
-        cache.set(cache_key.clone(), json!(match_score), None).await?;
+        cache
+            .set(cache_key.clone(), json!(match_score), None)
+            .await?;
 
         // Update job in database with match score
         {
             let db_guard = db.lock().await;
-            let db_instance = db_guard
-                .as_ref()
-                .context("Database not initialized")?;
+            let db_instance = db_guard.as_ref().context("Database not initialized")?;
             let conn = db_instance.get_connection();
 
             let mut updated_job = job.clone();
@@ -237,7 +218,7 @@ impl IntelligenceEventHandler {
             timestamp: Utc::now(),
         };
         event_bus.publish(matched_event).await?;
-        
+
         // Also publish MATCH_CALCULATED for backward compatibility
         let calculated_event = Event {
             id: uuid::Uuid::new_v4().to_string(),
@@ -252,8 +233,6 @@ impl IntelligenceEventHandler {
         event_bus.publish(calculated_event).await?;
 
         // Record metrics
-        metrics::MATCH_CALCULATIONS_TOTAL.inc();
-        metrics::MATCH_CALCULATION_DURATION.observe(start_time.elapsed().as_secs_f64());
 
         tracing::info!(
             "Calculated match score for job {}: {} (took {:?})",
@@ -266,19 +245,14 @@ impl IntelligenceEventHandler {
     }
 
     /// Handle batch job matching
-    pub async fn handle_batch_matching(
-        &self,
-        job_ids: Vec<i64>,
-    ) -> Result<()> {
+    pub async fn handle_batch_matching(&self, job_ids: Vec<i64>) -> Result<()> {
         let start_time = Instant::now();
-        
+
         tracing::info!("Starting batch matching for {} jobs", job_ids.len());
 
         let jobs = {
             let db_guard = self.db.lock().await;
-            let db_instance = db_guard
-                .as_ref()
-                .context("Database not initialized")?;
+            let db_instance = db_guard.as_ref().context("Database not initialized")?;
             let conn = db_instance.get_connection();
             let jobs: Vec<_> = job_ids
                 .iter()
@@ -305,14 +279,7 @@ impl IntelligenceEventHandler {
                     timestamp: Utc::now(),
                 };
 
-                Self::handle_job_created(
-                    event,
-                    agent,
-                    matcher,
-                    task_cache,
-                    db,
-                    event_bus,
-                ).await
+                Self::handle_job_created(event, agent, matcher, task_cache, db, event_bus).await
             });
 
             tasks.push(task);
@@ -331,8 +298,6 @@ impl IntelligenceEventHandler {
             }
         }
 
-        metrics::BATCH_MATCH_DURATION.observe(start_time.elapsed().as_secs_f64());
-        
         tracing::info!(
             "Completed batch matching for {} jobs (took {:?})",
             job_ids.len(),
@@ -349,7 +314,7 @@ impl IntelligenceEventHandler {
         // This should be enhanced to actually load user profile from persona
         use crate::generator::{PersonalInfo, SkillsProfile};
         use std::collections::HashMap;
-        
+
         Ok(UserProfile {
             personal_info: PersonalInfo {
                 name: "User".to_string(),
@@ -373,4 +338,3 @@ impl IntelligenceEventHandler {
         })
     }
 }
-

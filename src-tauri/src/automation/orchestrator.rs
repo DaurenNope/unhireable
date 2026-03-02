@@ -3,7 +3,7 @@
 //! This orchestrates the full job hunting pipeline:
 //! Discovery → Matching → Filtering → Document Generation → Application → Notification
 
-use crate::applicator::{ApplicationConfig, JobApplicator};
+use crate::applicator::JobApplicator;
 use crate::automation::config::AutomationConfig;
 use crate::automation::pipeline::{
     ApplicationSummary, JobSummary, PipelineResult, PipelineStage, ProcessedJob, StageResult,

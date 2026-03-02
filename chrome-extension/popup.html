@@ -336,6 +336,80 @@
         </label>
     </div>
 
+    <!-- Schedule Configuration -->
+    <div class="status-card" style="margin-top: 12px; margin-bottom: 12px;">
+        <div class="status-header">
+            <span>⏰</span>
+            <span class="status-text">Auto Schedule</span>
+        </div>
+
+        <div class="settings-row" style="border-top: none; padding-top: 4px;">
+            <span class="settings-label">Enable auto-scan</span>
+            <label class="toggle">
+                <input type="checkbox" id="scheduleEnabledToggle">
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+
+        <div id="scheduleOptions" style="display: none;">
+            <div style="margin-bottom: 8px;">
+                <label style="font-size: 11px; color: #888;">Scan every:</label>
+                <select id="scanFrequency"
+                    style="width: 100%; padding: 6px; margin-top: 4px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: #fff; font-size: 12px;">
+                    <option value="1">1 hour</option>
+                    <option value="2">2 hours</option>
+                    <option value="4" selected>4 hours</option>
+                    <option value="6">6 hours</option>
+                    <option value="8">8 hours</option>
+                    <option value="12">12 hours</option>
+                </select>
+            </div>
+
+            <div style="margin-bottom: 8px;">
+                <label style="font-size: 11px; color: #888;">Daily apply limit:</label>
+                <select id="dailyLimitSelect"
+                    style="width: 100%; padding: 6px; margin-top: 4px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: #fff; font-size: 12px;">
+                    <option value="10">10 applications</option>
+                    <option value="25" selected>25 applications</option>
+                    <option value="50">50 applications</option>
+                    <option value="75">75 applications</option>
+                    <option value="100">100 applications</option>
+                </select>
+            </div>
+
+            <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                <div style="flex: 1;">
+                    <label style="font-size: 11px; color: #888;">Active from:</label>
+                    <select id="activeHoursStart"
+                        style="width: 100%; padding: 6px; margin-top: 4px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: #fff; font-size: 12px;">
+                        <option value="6">6 AM</option>
+                        <option value="7">7 AM</option>
+                        <option value="8">8 AM</option>
+                        <option value="9" selected>9 AM</option>
+                        <option value="10">10 AM</option>
+                    </select>
+                </div>
+                <div style="flex: 1;">
+                    <label style="font-size: 11px; color: #888;">Until:</label>
+                    <select id="activeHoursEnd"
+                        style="width: 100%; padding: 6px; margin-top: 4px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: #fff; font-size: 12px;">
+                        <option value="17" selected>5 PM</option>
+                        <option value="18">6 PM</option>
+                        <option value="20">8 PM</option>
+                        <option value="22">10 PM</option>
+                        <option value="23">11 PM</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div
+            style="display: flex; justify-content: space-between; font-size: 11px; color: #888; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
+            <span>Today: <strong id="dailyApplyCount" style="color: #6366f1;">0</strong> applied</span>
+            <span id="lastAutoScan" style="font-size: 10px;">Never scanned</span>
+        </div>
+    </div>
+
     <button id="testProfileBtn" class="btn btn-primary"
         style="background: linear-gradient(135deg, #22c55e, #16a34a); margin-bottom: 8px; width: 100%;">
         👤 Load My Profile

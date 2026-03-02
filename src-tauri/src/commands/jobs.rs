@@ -2,7 +2,6 @@ use crate::db::models::{self, Job, JobStatus};
 use crate::db::queries::{ActivityQueries, ContactQueries, CredentialQueries, JobQueries};
 use crate::error::Result;
 use crate::events;
-use crate::metrics;
 use crate::notifications;
 use crate::scraper;
 use crate::AppState;
@@ -442,10 +441,6 @@ pub async fn scrape_jobs(state: State<'_, AppState>, query: String) -> Result<Ve
                     jobs.len()
                 );
 
-                // Record metrics: jobs found
-                let job_count: usize = jobs.len();
-                metrics::SCRAPER_JOBS_FOUND.inc_by(job_count as f64);
-
                 // Publish JOB_FOUND events for each job
                 for job in &jobs {
                     let job_event = events::Event {
@@ -470,7 +465,6 @@ pub async fn scrape_jobs(state: State<'_, AppState>, query: String) -> Result<Ve
                 eprintln!("❌ Scraping failed: {}", e);
 
                 // Record metrics: scraper errors
-                metrics::SCRAPER_ERRORS.inc();
 
                 // Publish SCRAPER_ERROR event
                 let error_event = events::Event {
@@ -491,9 +485,6 @@ pub async fn scrape_jobs(state: State<'_, AppState>, query: String) -> Result<Ve
             }
             Err(join_err) => {
                 eprintln!("❌ Scraping thread panicked: {}", join_err);
-
-                // Record metrics: scraper errors
-                metrics::SCRAPER_ERRORS.inc();
 
                 // Publish SCRAPER_ERROR event
                 let error_event = events::Event {

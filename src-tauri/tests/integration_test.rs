@@ -1,9 +1,9 @@
 // Integration tests for job matching
 use chrono::Utc;
+use std::collections::HashMap;
 use unhireable_lib::db::models::{Job, JobStatus};
 use unhireable_lib::generator::{ExperienceEntry, PersonalInfo, SkillsProfile, UserProfile};
 use unhireable_lib::matching::JobMatcher;
-use std::collections::HashMap;
 
 fn create_test_job() -> Job {
     Job {
@@ -29,6 +29,7 @@ fn create_test_job() -> Job {
         match_score: None,
         created_at: Some(Utc::now()),
         updated_at: Some(Utc::now()),
+        ..Default::default()
     }
 }
 
@@ -161,6 +162,7 @@ fn test_multiple_jobs_matching() {
             match_score: None,
             created_at: Some(Utc::now()),
             updated_at: Some(Utc::now()),
+            ..Default::default()
         },
     ];
 
@@ -202,6 +204,7 @@ fn test_filter_by_score() {
             match_score: None,
             created_at: Some(Utc::now()),
             updated_at: Some(Utc::now()),
+            ..Default::default()
         },
     ];
 

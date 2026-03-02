@@ -1,16 +1,13 @@
 pub mod apply_mode;
-pub mod ats_api;
 pub mod ats_detector;
 pub mod form_filler;
 pub mod reliability;
 pub mod retry;
 pub mod templates;
-pub mod test_endpoint;
 pub mod verification;
 pub mod workflow;
 
 pub use apply_mode::{ApplyMode, PendingApplication, PendingStatus, PreApplyCheck};
-pub use ats_api::AtsApiHandler;
 pub use ats_detector::{AtsDetector, AtsType};
 pub use form_filler::FormFiller;
 pub use reliability::{
@@ -18,7 +15,6 @@ pub use reliability::{
 };
 pub use retry::{RetryConfig, RetryExecutor, RetryResult};
 pub use templates::{ApplicationTemplate, TemplateManager};
-pub use test_endpoint::TestEndpointSubmitter;
 pub use verification::{ApplicationVerifier, SuccessTracking, VerificationResult};
 pub use workflow::{Workflow, WorkflowOrchestrator, WorkflowState, WorkflowStep, WorkflowStepType};
 
@@ -98,29 +94,23 @@ impl ApplicationConfig {
 #[derive(Debug, Clone)]
 pub struct JobApplicator {
     config: ApplicationConfig,
-    ats_api: AtsApiHandler,
 }
 
 impl JobApplicator {
     pub fn new() -> Self {
         Self {
             config: ApplicationConfig::default(),
-            ats_api: AtsApiHandler::new(),
         }
     }
 
     pub fn with_config(config: ApplicationConfig) -> Self {
-        Self {
-            config,
-            ats_api: AtsApiHandler::new(),
-        }
+        Self { config }
     }
 
     /// Create applicator with a specific mode
     pub fn with_mode(mode: ApplyMode) -> Self {
         Self {
             config: ApplicationConfig::from_mode(mode),
-            ats_api: AtsApiHandler::new(),
         }
     }
 
@@ -142,22 +132,6 @@ impl JobApplicator {
         resume_path: Option<&str>,
         cover_letter_path: Option<&str>,
     ) -> Result<ApplicationResult> {
-        // Check if this is a test endpoint (httpbin.org or custom test endpoint)
-        let is_test_endpoint = job.url.contains("httpbin.org")
-            || job.url.contains("test")
-            || job.url.contains("localhost")
-            || job.title.starts_with("[TEST]");
-
-        if is_test_endpoint {
-            println!(
-                "🧪 TEST MODE: Using test endpoint submitter for: {}",
-                job.url
-            );
-            return self
-                .apply_to_test_endpoint(job, profile, resume_path, cover_letter_path)
-                .await;
-        }
-
         // Detect ATS system
         let ats_type = AtsDetector::detect_ats(&job.url);
         let reliability = get_reliability(&ats_type);
@@ -193,36 +167,6 @@ impl JobApplicator {
                 });
             }
             println!("✅ SMART APPLY: Proceeding - {}", reason);
-        }
-
-        // Attempt ATS API integration first if supported
-        if self.ats_api.supports(&ats_type) {
-            if let Some(ats) = ats_type.clone() {
-                println!("🌐 Attempting {:?} API integration before automation…", ats);
-                match self
-                    .ats_api
-                    .apply_via_api(ats.clone(), job, profile, resume_path, cover_letter_path)
-                    .await
-                {
-                    Ok(result) => {
-                        if result.success {
-                            println!("✅ Application submitted via {:?} API", ats);
-                            return Ok(result);
-                        } else {
-                            println!(
-                                "⚠️  {:?} API returned non-success, falling back to automation: {}",
-                                ats, result.message
-                            );
-                        }
-                    }
-                    Err(err) => {
-                        println!(
-                            "⚠️  {:?} API submission failed (will fallback to automation): {}",
-                            ats, err
-                        );
-                    }
-                }
-            }
         }
 
         // Mode-based check
@@ -278,7 +222,6 @@ impl JobApplicator {
                 let _duration = automation_start_time.elapsed().as_secs_f64();
 
                 // Record success metrics
-                crate::metrics::APPLICATIONS_CREATED.inc();
 
                 let message = match mode {
                     ApplyMode::Manual => {
@@ -309,45 +252,6 @@ impl JobApplicator {
                     message: format!("Application failed: {}", e),
                     applied_at: None,
                     ats_type: ats_type.map(|a| format!("{:?}", a)),
-                    errors: vec![e.to_string()],
-                })
-            }
-        }
-    }
-
-    /// Apply to test endpoint (for testing)
-    async fn apply_to_test_endpoint(
-        &self,
-        job: &Job,
-        profile: &UserProfile,
-        resume_path: Option<&str>,
-        cover_letter_path: Option<&str>,
-    ) -> Result<ApplicationResult> {
-        let submitter = TestEndpointSubmitter::new(job.url.clone());
-
-        match submitter
-            .submit_application(job, profile, resume_path, cover_letter_path)
-            .await
-        {
-            Ok(message) => {
-                println!("✅ Test application submitted successfully!");
-                Ok(ApplicationResult {
-                    success: true,
-                    application_id: None,
-                    message,
-                    applied_at: Some(chrono::Utc::now()),
-                    ats_type: Some("TestEndpoint".to_string()),
-                    errors: vec![],
-                })
-            }
-            Err(e) => {
-                eprintln!("❌ Test application failed: {}", e);
-                Ok(ApplicationResult {
-                    success: false,
-                    application_id: None,
-                    message: format!("Test application failed: {}", e),
-                    applied_at: None,
-                    ats_type: Some("TestEndpoint".to_string()),
                     errors: vec![e.to_string()],
                 })
             }

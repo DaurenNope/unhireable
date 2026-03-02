@@ -234,7 +234,7 @@ Keep it professional and authentic - don't invent new experiences, just improve 
     async fn call_ai(&self, prompt: &str) -> Result<String> {
         // Record metrics: start timing
         let start_time = std::time::Instant::now();
-        
+
         let client = reqwest::Client::new();
         let url = format!("{}/chat/completions", self.base_url);
 
@@ -268,9 +268,7 @@ Keep it professional and authentic - don't invent new experiences, just improve 
         let response_text = response.text().await?;
 
         // Record success metrics
-        let duration = start_time.elapsed().as_secs_f64();
-        crate::metrics::AI_API_CALLS_TOTAL.inc();
-        crate::metrics::AI_API_CALL_DURATION.observe(duration);
+        let _duration = start_time.elapsed().as_secs_f64();
 
         // Parse the response to extract the content
         let response_json: Value = serde_json::from_str(&response_text)?;

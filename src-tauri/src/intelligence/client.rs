@@ -1,5 +1,4 @@
 /// HTTP client for Intelligence Agent API
-
 use crate::error::Result;
 use crate::intelligence::models::*;
 use reqwest::Client;
@@ -29,7 +28,7 @@ impl IntelligenceClient {
     pub async fn match_job(&self, request: &JobMatchRequest) -> Result<JobMatchResponse> {
         // Record metrics: start timing
         let start_time = std::time::Instant::now();
-        
+
         let url = self.url("/api/v1/matching/match");
         let response = self
             .client
@@ -39,7 +38,6 @@ impl IntelligenceClient {
             .await
             .map_err(|e| {
                 // Record error metric
-                crate::metrics::INTELLIGENCE_API_ERRORS.inc();
                 crate::error::Error::Custom(format!("HTTP error: {}", e))
             })?;
 
@@ -47,7 +45,6 @@ impl IntelligenceClient {
             let status = response.status();
             let text = response.text().await.unwrap_or_default();
             // Record error metric
-            crate::metrics::INTELLIGENCE_API_ERRORS.inc();
             return Err(crate::error::Error::Custom(format!(
                 "Intelligence Agent API error ({}): {}",
                 status, text
@@ -60,9 +57,7 @@ impl IntelligenceClient {
             .map_err(|e| crate::error::Error::Custom(format!("Parse error: {}", e)))?;
 
         // Record success metrics
-        let duration = start_time.elapsed().as_secs_f64();
-        crate::metrics::INTELLIGENCE_API_CALLS.inc();
-        crate::metrics::INTELLIGENCE_API_DURATION.observe(duration);
+        let _duration = start_time.elapsed().as_secs_f64();
 
         Ok(match_response)
     }
@@ -73,7 +68,7 @@ impl IntelligenceClient {
     ) -> Result<RecommendationResponse> {
         // Record metrics: start timing
         let start_time = std::time::Instant::now();
-        
+
         let url = self.url("/api/v1/recommendations/jobs");
         let response = self
             .client
@@ -81,15 +76,11 @@ impl IntelligenceClient {
             .json(request)
             .send()
             .await
-            .map_err(|e| {
-                crate::metrics::INTELLIGENCE_API_ERRORS.inc();
-                crate::error::Error::Custom(format!("HTTP error: {}", e))
-            })?;
+            .map_err(|e| crate::error::Error::Custom(format!("HTTP error: {}", e)))?;
 
         if !response.status().is_success() {
             let status = response.status();
             let text = response.text().await.unwrap_or_default();
-            crate::metrics::INTELLIGENCE_API_ERRORS.inc();
             return Err(crate::error::Error::Custom(format!(
                 "Intelligence Agent API error ({}): {}",
                 status, text
@@ -102,9 +93,7 @@ impl IntelligenceClient {
             .map_err(|e| crate::error::Error::Custom(format!("Parse error: {}", e)))?;
 
         // Record success metrics
-        let duration = start_time.elapsed().as_secs_f64();
-        crate::metrics::INTELLIGENCE_API_CALLS.inc();
-        crate::metrics::INTELLIGENCE_API_DURATION.observe(duration);
+        let _duration = start_time.elapsed().as_secs_f64();
 
         Ok(rec_response)
     }
@@ -112,7 +101,7 @@ impl IntelligenceClient {
     pub async fn analyze_skill_gap(&self, request: &SkillGapRequest) -> Result<SkillGapAnalysis> {
         // Record metrics: start timing
         let start_time = std::time::Instant::now();
-        
+
         let url = self.url("/api/v1/skill-gap/analyze");
         let response = self
             .client
@@ -120,15 +109,11 @@ impl IntelligenceClient {
             .json(request)
             .send()
             .await
-            .map_err(|e| {
-                crate::metrics::INTELLIGENCE_API_ERRORS.inc();
-                crate::error::Error::Custom(format!("HTTP error: {}", e))
-            })?;
+            .map_err(|e| crate::error::Error::Custom(format!("HTTP error: {}", e)))?;
 
         if !response.status().is_success() {
             let status = response.status();
             let text = response.text().await.unwrap_or_default();
-            crate::metrics::INTELLIGENCE_API_ERRORS.inc();
             return Err(crate::error::Error::Custom(format!(
                 "Intelligence Agent API error ({}): {}",
                 status, text
@@ -141,9 +126,7 @@ impl IntelligenceClient {
             .map_err(|e| crate::error::Error::Custom(format!("Parse error: {}", e)))?;
 
         // Record success metrics
-        let duration = start_time.elapsed().as_secs_f64();
-        crate::metrics::INTELLIGENCE_API_CALLS.inc();
-        crate::metrics::INTELLIGENCE_API_DURATION.observe(duration);
+        let _duration = start_time.elapsed().as_secs_f64();
 
         Ok(analysis)
     }
@@ -151,7 +134,7 @@ impl IntelligenceClient {
     pub async fn get_career_path(&self, request: &CareerPathRequest) -> Result<CareerPathResponse> {
         // Record metrics: start timing
         let start_time = std::time::Instant::now();
-        
+
         let url = self.url("/api/v1/career-path/recommendations");
         let response = self
             .client
@@ -159,15 +142,11 @@ impl IntelligenceClient {
             .json(request)
             .send()
             .await
-            .map_err(|e| {
-                crate::metrics::INTELLIGENCE_API_ERRORS.inc();
-                crate::error::Error::Custom(format!("HTTP error: {}", e))
-            })?;
+            .map_err(|e| crate::error::Error::Custom(format!("HTTP error: {}", e)))?;
 
         if !response.status().is_success() {
             let status = response.status();
             let text = response.text().await.unwrap_or_default();
-            crate::metrics::INTELLIGENCE_API_ERRORS.inc();
             return Err(crate::error::Error::Custom(format!(
                 "Intelligence Agent API error ({}): {}",
                 status, text
@@ -180,9 +159,7 @@ impl IntelligenceClient {
             .map_err(|e| crate::error::Error::Custom(format!("Parse error: {}", e)))?;
 
         // Record success metrics
-        let duration = start_time.elapsed().as_secs_f64();
-        crate::metrics::INTELLIGENCE_API_CALLS.inc();
-        crate::metrics::INTELLIGENCE_API_DURATION.observe(duration);
+        let _duration = start_time.elapsed().as_secs_f64();
 
         Ok(path)
     }
@@ -196,7 +173,7 @@ impl IntelligenceClient {
     ) -> Result<ApplicationSuccessPrediction> {
         // Record metrics: start timing
         let start_time = std::time::Instant::now();
-        
+
         let url = self.url("/api/v1/predictive/application-success");
         let body = json!({
             "job_id": job_id,
@@ -211,15 +188,11 @@ impl IntelligenceClient {
             .json(&body)
             .send()
             .await
-            .map_err(|e| {
-                crate::metrics::INTELLIGENCE_API_ERRORS.inc();
-                crate::error::Error::Custom(format!("HTTP error: {}", e))
-            })?;
+            .map_err(|e| crate::error::Error::Custom(format!("HTTP error: {}", e)))?;
 
         if !response.status().is_success() {
             let status = response.status();
             let text = response.text().await.unwrap_or_default();
-            crate::metrics::INTELLIGENCE_API_ERRORS.inc();
             return Err(crate::error::Error::Custom(format!(
                 "Intelligence Agent API error ({}): {}",
                 status, text
@@ -232,9 +205,7 @@ impl IntelligenceClient {
             .map_err(|e| crate::error::Error::Custom(format!("Parse error: {}", e)))?;
 
         // Record success metrics
-        let duration = start_time.elapsed().as_secs_f64();
-        crate::metrics::INTELLIGENCE_API_CALLS.inc();
-        crate::metrics::INTELLIGENCE_API_DURATION.observe(duration);
+        let _duration = start_time.elapsed().as_secs_f64();
 
         Ok(prediction)
     }
@@ -247,7 +218,7 @@ impl IntelligenceClient {
     ) -> Result<MarketTrends> {
         // Record metrics: start timing
         let start_time = std::time::Instant::now();
-        
+
         let url = self.url("/api/v1/market-insights/trends");
         let mut body = json!({
             "timeframe_days": timeframe_days,
@@ -267,15 +238,11 @@ impl IntelligenceClient {
             .json(&body)
             .send()
             .await
-            .map_err(|e| {
-                crate::metrics::INTELLIGENCE_API_ERRORS.inc();
-                crate::error::Error::Custom(format!("HTTP error: {}", e))
-            })?;
+            .map_err(|e| crate::error::Error::Custom(format!("HTTP error: {}", e)))?;
 
         if !response.status().is_success() {
             let status = response.status();
             let text = response.text().await.unwrap_or_default();
-            crate::metrics::INTELLIGENCE_API_ERRORS.inc();
             return Err(crate::error::Error::Custom(format!(
                 "Intelligence Agent API error ({}): {}",
                 status, text
@@ -288,9 +255,7 @@ impl IntelligenceClient {
             .map_err(|e| crate::error::Error::Custom(format!("Parse error: {}", e)))?;
 
         // Record success metrics
-        let duration = start_time.elapsed().as_secs_f64();
-        crate::metrics::INTELLIGENCE_API_CALLS.inc();
-        crate::metrics::INTELLIGENCE_API_DURATION.observe(duration);
+        let _duration = start_time.elapsed().as_secs_f64();
 
         Ok(trends)
     }
@@ -351,9 +316,3 @@ impl IntelligenceClient {
         Ok(response.status().is_success())
     }
 }
-
-
-
-
-
-

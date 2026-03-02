@@ -1,7 +1,7 @@
+use tempfile::TempDir;
 use unhireable_lib::generator::{
     CoverLetterGenerator, DOCXExporter, DocumentFormat, PDFExporter, ResumeGenerator, UserProfile,
 };
-use tempfile::TempDir;
 
 #[tokio::test]
 async fn test_resume_template_listing() {
@@ -251,5 +251,6 @@ fn create_sample_job() -> unhireable_lib::db::models::Job {
         match_score: Some(87.5),
         created_at: Some(chrono::Utc::now()),
         updated_at: Some(chrono::Utc::now()),
+        ..Default::default()
     }
 }

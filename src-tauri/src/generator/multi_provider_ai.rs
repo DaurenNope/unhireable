@@ -42,7 +42,7 @@ pub struct MultiProviderAI {
 impl MultiProviderAI {
     pub fn new() -> Self {
         let mut providers = HashMap::new();
-        
+
         // Default OpenAI config
         providers.insert(
             AIProvider::OpenAI,
@@ -78,8 +78,7 @@ impl MultiProviderAI {
                 api_key: None, // Ollama doesn't require API key
                 base_url: std::env::var("OLLAMA_BASE_URL")
                     .unwrap_or_else(|_| "http://localhost:11434".to_string()),
-                model: std::env::var("OLLAMA_MODEL")
-                    .unwrap_or_else(|_| "llama2".to_string()),
+                model: std::env::var("OLLAMA_MODEL").unwrap_or_else(|_| "llama2".to_string()),
                 enabled: true,
             },
         );
@@ -108,27 +107,25 @@ impl MultiProviderAI {
     pub fn list_available_providers(&self) -> Vec<AIProvider> {
         self.providers
             .iter()
-            .filter(|(_, config)| config.enabled && (config.api_key.is_some() || config.provider == AIProvider::Ollama))
+            .filter(|(_, config)| {
+                config.enabled
+                    && (config.api_key.is_some() || config.provider == AIProvider::Ollama)
+            })
             .map(|(provider, _)| provider.clone())
             .collect()
     }
 
-    pub async fn call_ai(
-        &mut self,
-        prompt: &str,
-        provider: Option<AIProvider>,
-    ) -> Result<String> {
-        use crate::metrics::{AI_API_CALLS_TOTAL, AI_API_CALL_DURATION};
-        
+    pub async fn call_ai(&mut self, prompt: &str, provider: Option<AIProvider>) -> Result<String> {
         // Check cache first
-        let cache_key = format!("{:?}:{}", provider.as_ref().unwrap_or(&self.default_provider), prompt);
+        let cache_key = format!(
+            "{:?}:{}",
+            provider.as_ref().unwrap_or(&self.default_provider),
+            prompt
+        );
         if let Some(cached) = self.cache.get(&cache_key) {
-            crate::metrics::DOCUMENT_CACHE_HITS.inc();
             return Ok(cached.clone());
         }
-        
-        crate::metrics::DOCUMENT_CACHE_MISSES.inc();
-        AI_API_CALLS_TOTAL.inc();
+
         let start = std::time::Instant::now();
 
         let provider = provider.unwrap_or_else(|| self.default_provider.clone());
@@ -148,8 +145,7 @@ impl MultiProviderAI {
         };
 
         // Record duration
-        let duration = start.elapsed().as_secs_f64();
-        AI_API_CALL_DURATION.observe(duration);
+        let _duration = start.elapsed().as_secs_f64();
 
         // Cache successful results
         if let Ok(ref response) = result {
@@ -183,7 +179,13 @@ impl MultiProviderAI {
             .post(&url)
             .header(
                 "Authorization",
-                format!("Bearer {}", config.api_key.as_ref().ok_or_else(|| anyhow::anyhow!("OpenAI API key not set"))?),
+                format!(
+                    "Bearer {}",
+                    config
+                        .api_key
+                        .as_ref()
+                        .ok_or_else(|| anyhow::anyhow!("OpenAI API key not set"))?
+                ),
             )
             .header("Content-Type", "application/json")
             .json(&request_body)
@@ -223,7 +225,10 @@ impl MultiProviderAI {
             .post(&url)
             .header(
                 "x-api-key",
-                config.api_key.as_ref().ok_or_else(|| anyhow::anyhow!("Anthropic API key not set"))?,
+                config
+                    .api_key
+                    .as_ref()
+                    .ok_or_else(|| anyhow::anyhow!("Anthropic API key not set"))?,
             )
             .header("anthropic-version", "2023-06-01")
             .header("Content-Type", "application/json")
@@ -272,7 +277,11 @@ impl MultiProviderAI {
         }
     }
 
-    pub async fn analyze_job(&mut self, job: &Job, provider: Option<AIProvider>) -> Result<JobAnalysis> {
+    pub async fn analyze_job(
+        &mut self,
+        job: &Job,
+        provider: Option<AIProvider>,
+    ) -> Result<JobAnalysis> {
         let prompt = format!(
             r#"
 Analyze this job posting and extract key information:
@@ -404,9 +413,3 @@ impl Default for MultiProviderAI {
         Self::new()
     }
 }
-
-
-
-
-
-

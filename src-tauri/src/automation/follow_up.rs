@@ -9,28 +9,27 @@ use crate::notifications::email::EmailService;
 use crate::notifications::templates::EmailTemplate;
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 /// Follow-up configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FollowUpConfig {
     pub enabled: bool,
-    pub thank_you_delay_hours: i64,      // Hours after interview to send thank-you
-    pub status_check_delay_days: i64,    // Days after application to send check-in
-    pub max_follow_ups: usize,           // Maximum follow-ups per application
-    pub ai_enhance_messages: bool,       // Use AI to enhance messages
-    pub auto_send: bool,                 // Automatically send or just notify
+    pub thank_you_delay_hours: i64, // Hours after interview to send thank-you
+    pub status_check_delay_days: i64, // Days after application to send check-in
+    pub max_follow_ups: usize,      // Maximum follow-ups per application
+    pub ai_enhance_messages: bool,  // Use AI to enhance messages
+    pub auto_send: bool,            // Automatically send or just notify
 }
 
 impl Default for FollowUpConfig {
     fn default() -> Self {
         Self {
             enabled: true,
-            thank_you_delay_hours: 4,    // 4 hours after interview
-            status_check_delay_days: 7,  // 1 week after application
+            thank_you_delay_hours: 4,   // 4 hours after interview
+            status_check_delay_days: 7, // 1 week after application
             max_follow_ups: 2,
             ai_enhance_messages: true,
-            auto_send: false,            // Manual approval by default
+            auto_send: false, // Manual approval by default
         }
     }
 }
@@ -96,7 +95,11 @@ impl FollowUpAutomation {
         pending
     }
 
-    fn check_application_follow_up(&self, app: &Application, conn: &std::sync::MutexGuard<rusqlite::Connection>) -> Option<PendingFollowUp> {
+    fn check_application_follow_up(
+        &self,
+        app: &Application,
+        conn: &std::sync::MutexGuard<rusqlite::Connection>,
+    ) -> Option<PendingFollowUp> {
         let now = Utc::now();
 
         match app.status {
@@ -106,12 +109,18 @@ impl FollowUpAutomation {
                     for interview in interviews {
                         if !interview.completed {
                             // Send interview confirmation if interview is within 24 hours
-                            if interview.scheduled_at > now && interview.scheduled_at < now + Duration::hours(24) {
-                                return self.create_interview_confirmation_follow_up(app, &interview, conn);
+                            if interview.scheduled_at > now
+                                && interview.scheduled_at < now + Duration::hours(24)
+                            {
+                                return self.create_interview_confirmation_follow_up(
+                                    app, &interview, conn,
+                                );
                             }
 
                             // Send thank-you if interview is completed (scheduled time has passed)
-                            if interview.scheduled_at < now && interview.scheduled_at > now - Duration::hours(24) {
+                            if interview.scheduled_at < now
+                                && interview.scheduled_at > now - Duration::hours(24)
+                            {
                                 return self.create_thank_you_follow_up(app, &interview, conn);
                             }
                         }
@@ -125,7 +134,11 @@ impl FollowUpAutomation {
                     if days_since_application >= self.config.status_check_delay_days {
                         // Check if we haven't sent too many follow-ups
                         if self.count_previous_follow_ups(app.id?) < self.config.max_follow_ups {
-                            return self.create_status_check_in_follow_up(app, days_since_application as u32, conn);
+                            return self.create_status_check_in_follow_up(
+                                app,
+                                days_since_application as u32,
+                                conn,
+                            );
                         }
                     }
                 }
@@ -136,7 +149,12 @@ impl FollowUpAutomation {
         None
     }
 
-    fn create_interview_confirmation_follow_up(&self, app: &Application, interview: &Interview, conn: &std::sync::MutexGuard<rusqlite::Connection>) -> Option<PendingFollowUp> {
+    fn create_interview_confirmation_follow_up(
+        &self,
+        app: &Application,
+        interview: &Interview,
+        conn: &std::sync::MutexGuard<rusqlite::Connection>,
+    ) -> Option<PendingFollowUp> {
         // Get job details
         let job = conn.get_job(app.job_id).ok()??;
 
@@ -157,20 +175,26 @@ impl FollowUpAutomation {
             application_id: app.id?,
             follow_up_type: FollowUpType::InterviewConfirmation,
             scheduled_for: interview.scheduled_at - Duration::hours(2), // 2 hours before interview
-            recipient_email: "recruiter@example.com".to_string(), // TODO: Get from contacts
+            recipient_email: "recruiter@example.com".to_string(),       // TODO: Get from contacts
             subject: format!("Confirmation: Interview for {} position", job.title),
             template,
             created_at: Utc::now(),
         })
     }
 
-    fn create_thank_you_follow_up(&self, app: &Application, interview: &Interview, conn: &std::sync::MutexGuard<rusqlite::Connection>) -> Option<PendingFollowUp> {
+    fn create_thank_you_follow_up(
+        &self,
+        app: &Application,
+        interview: &Interview,
+        conn: &std::sync::MutexGuard<rusqlite::Connection>,
+    ) -> Option<PendingFollowUp> {
         // Get job details
         let job = conn.get_job(app.job_id).ok()??;
 
-        let scheduled_for = interview.scheduled_at + Duration::hours(self.config.thank_you_delay_hours);
+        let scheduled_for =
+            interview.scheduled_at + Duration::hours(self.config.thank_you_delay_hours);
 
-        let mut template = EmailTemplate::interview_thank_you(
+        let template = EmailTemplate::interview_thank_you(
             &job.company,
             None, // TODO: Extract recruiter name
             &interview.r#type,
@@ -179,7 +203,7 @@ impl FollowUpAutomation {
 
         // Enhance with AI if enabled
         if self.config.ai_enhance_messages {
-            if let Some(ai) = &self.ai_integration {
+            if let Some(_ai) = &self.ai_integration {
                 // TODO: Use AI to enhance the thank-you message
                 // template = self.enhance_with_ai(template, &job, interview).await;
             }
@@ -191,13 +215,21 @@ impl FollowUpAutomation {
             follow_up_type: FollowUpType::InterviewThankYou,
             scheduled_for,
             recipient_email: "recruiter@example.com".to_string(), // TODO: Get from contacts
-            subject: format!("Thank You - {} Interview at {}", interview.r#type, job.company),
+            subject: format!(
+                "Thank You - {} Interview at {}",
+                interview.r#type, job.company
+            ),
             template,
             created_at: Utc::now(),
         })
     }
 
-    fn create_status_check_in_follow_up(&self, app: &Application, days_since: u32, conn: &std::sync::MutexGuard<rusqlite::Connection>) -> Option<PendingFollowUp> {
+    fn create_status_check_in_follow_up(
+        &self,
+        app: &Application,
+        days_since: u32,
+        conn: &std::sync::MutexGuard<rusqlite::Connection>,
+    ) -> Option<PendingFollowUp> {
         let job = conn.get_job(app.job_id).ok()??;
 
         let template = EmailTemplate::status_check_in(
@@ -219,14 +251,18 @@ impl FollowUpAutomation {
         })
     }
 
-    fn count_previous_follow_ups(&self, application_id: i64) -> usize {
+    fn count_previous_follow_ups(&self, _application_id: i64) -> usize {
         // TODO: Implement tracking of sent follow-ups
         // For now, return 0 to allow follow-ups
         0
     }
 
     /// Send pending follow-ups
-    pub async fn send_pending_follow_ups(&self, email_service: &EmailService, pending: &[PendingFollowUp]) -> Vec<Result<(), String>> {
+    pub async fn send_pending_follow_ups(
+        &self,
+        email_service: &EmailService,
+        pending: &[PendingFollowUp],
+    ) -> Vec<Result<(), String>> {
         let mut results = Vec::new();
 
         for follow_up in pending {
@@ -238,10 +274,15 @@ impl FollowUpAutomation {
                     Some(&follow_up.template.text),
                 );
 
-                results.push(result.map_err(|e| format!("Failed to send follow-up {}: {}", follow_up.id, e)));
+                results.push(
+                    result.map_err(|e| format!("Failed to send follow-up {}: {}", follow_up.id, e)),
+                );
             } else {
                 // Just log that follow-up is ready
-                println!("📧 Follow-up ready to send: {} to {}", follow_up.subject, follow_up.recipient_email);
+                println!(
+                    "📧 Follow-up ready to send: {} to {}",
+                    follow_up.subject, follow_up.recipient_email
+                );
                 results.push(Ok(()));
             }
         }

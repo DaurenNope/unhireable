@@ -1,16 +1,15 @@
+use crate::cache::Cache;
 use crate::db::models::Job;
 use crate::generator::UserProfile;
 use crate::matching::JobMatcher;
 use crate::recommendations::behavior_tracker::{BehaviorTracker, InteractionType};
 use crate::recommendations::similarity::JobSimilarity;
-use crate::cache::Cache;
-use crate::metrics;
 use anyhow::Result;
 use chrono::Utc;
-use std::sync::MutexGuard;
+use sha2::{Digest, Sha256};
 use std::sync::Arc;
+use std::sync::MutexGuard;
 use std::time::Instant;
-use sha2::{Sha256, Digest};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct RecommendedJob {
@@ -41,40 +40,41 @@ impl RecommendationEngine {
         profile: Option<&UserProfile>,
         limit: usize,
     ) -> Result<Vec<RecommendedJob>> {
-        let start_time = Instant::now();
-        
+        let _start_time = Instant::now();
+
         // Generate cache key based on user profile and job list
         let cache_key = self.generate_cache_key(profile, all_jobs.len(), limit);
-        
+
         // Check cache first
         if let Some(cache) = &self.cache {
             if let Some(cached_value) = cache.get(&cache_key).await {
-                if let Ok(recommendations) = serde_json::from_value::<Vec<RecommendedJob>>(cached_value) {
-                    metrics::RECOMMENDATION_CACHE_HITS.inc();
-                    metrics::RECOMMENDATION_GENERATION_DURATION.observe(start_time.elapsed().as_secs_f64());
+                if let Ok(recommendations) =
+                    serde_json::from_value::<Vec<RecommendedJob>>(cached_value)
+                {
                     return Ok(recommendations);
                 }
             }
-            metrics::RECOMMENDATION_CACHE_MISSES.inc();
         }
-        
+
         // Generate recommendations
         let recommendations = self.get_recommended_jobs(db, all_jobs, profile, limit)?;
-        
+
         // Cache the results
         if let Some(cache) = &self.cache {
             let cache_value = serde_json::to_value(&recommendations)?;
             cache.set(cache_key, cache_value, None).await?;
         }
-        
-        metrics::RECOMMENDATIONS_GENERATED.inc();
-        metrics::RECOMMENDATION_GENERATION_DURATION.observe(start_time.elapsed().as_secs_f64());
-        
+
         Ok(recommendations)
     }
 
     /// Generate cache key for recommendations
-    fn generate_cache_key(&self, profile: Option<&UserProfile>, job_count: usize, limit: usize) -> String {
+    fn generate_cache_key(
+        &self,
+        profile: Option<&UserProfile>,
+        job_count: usize,
+        limit: usize,
+    ) -> String {
         let profile_hash = if let Some(p) = profile {
             // Create a simple hash from profile skills
             let skills_str = p.skills.technical_skills.join(",");
@@ -84,7 +84,7 @@ impl RecommendationEngine {
         } else {
             "no_profile".to_string()
         };
-        
+
         format!("recommendations:{}:{}:{}", profile_hash, job_count, limit)
     }
 
@@ -101,7 +101,7 @@ impl RecommendationEngine {
                 // Clear all recommendation cache
                 vec!["recommendations:*".to_string()]
             };
-            
+
             for pattern in cache_keys {
                 // Note: Cache doesn't support wildcard deletion in current implementation
                 // For now, we'll let TTL handle expiration, or implement cache tagging

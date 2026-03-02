@@ -120,6 +120,39 @@ async function loadSettings() {
     } catch (err) {
         console.error('Failed to load settings:', err);
     }
+
+    // Load schedule config
+    try {
+        const { scheduleConfig, dailyApplyCount = 0, lastAutoScan } = await chrome.storage.local.get(
+            ['scheduleConfig', 'dailyApplyCount', 'lastAutoScan']
+        );
+
+        const scheduleToggle = document.getElementById('scheduleEnabledToggle');
+        const scheduleOptions = document.getElementById('scheduleOptions');
+        const scanFrequency = document.getElementById('scanFrequency');
+        const dailyLimitSelect = document.getElementById('dailyLimitSelect');
+        const activeHoursStart = document.getElementById('activeHoursStart');
+        const activeHoursEnd = document.getElementById('activeHoursEnd');
+        const dailyCountEl = document.getElementById('dailyApplyCount');
+        const lastScanEl = document.getElementById('lastAutoScan');
+
+        if (scheduleConfig) {
+            if (scheduleToggle) scheduleToggle.checked = scheduleConfig.enabled || false;
+            if (scheduleOptions) scheduleOptions.style.display = scheduleConfig.enabled ? 'block' : 'none';
+            if (scanFrequency) scanFrequency.value = String(scheduleConfig.intervalHours || 4);
+            if (dailyLimitSelect) dailyLimitSelect.value = String(scheduleConfig.dailyLimit || 25);
+            if (activeHoursStart) activeHoursStart.value = String(scheduleConfig.activeHoursStart || 9);
+            if (activeHoursEnd) activeHoursEnd.value = String(scheduleConfig.activeHoursEnd || 17);
+        }
+
+        if (dailyCountEl) dailyCountEl.textContent = dailyApplyCount;
+        if (lastScanEl && lastAutoScan) {
+            const ago = Math.round((Date.now() - new Date(lastAutoScan).getTime()) / 60000);
+            lastScanEl.textContent = ago < 60 ? `${ago}m ago` : `${Math.round(ago / 60)}h ago`;
+        }
+    } catch (err) {
+        console.error('Failed to load schedule settings:', err);
+    }
 }
 
 // Set user's profile (Dauren - comprehensive for tailored resume generation)
@@ -263,12 +296,39 @@ async function loadRealProfile() {
     }
 }
 
+// Save schedule config to storage (triggers background.js alarm re-registration)
+async function saveScheduleConfig() {
+    const config = {
+        enabled: document.getElementById('scheduleEnabledToggle')?.checked || false,
+        intervalHours: parseInt(document.getElementById('scanFrequency')?.value || '4'),
+        dailyLimit: parseInt(document.getElementById('dailyLimitSelect')?.value || '25'),
+        activeHoursStart: parseInt(document.getElementById('activeHoursStart')?.value || '9'),
+        activeHoursEnd: parseInt(document.getElementById('activeHoursEnd')?.value || '17')
+    };
+    await chrome.storage.local.set({ scheduleConfig: config });
+    console.log('[Popup] Schedule config saved:', config);
+}
+
 // Setup event listeners
 function setupEventListeners() {
     // Auto-fill button
     if (fillBtn) {
         fillBtn.addEventListener('click', handleFillClick);
     }
+
+    // Schedule config listeners
+    const scheduleToggle = document.getElementById('scheduleEnabledToggle');
+    const scheduleOptions = document.getElementById('scheduleOptions');
+    if (scheduleToggle) {
+        scheduleToggle.addEventListener('change', () => {
+            if (scheduleOptions) scheduleOptions.style.display = scheduleToggle.checked ? 'block' : 'none';
+            saveScheduleConfig();
+        });
+    }
+    ['scanFrequency', 'dailyLimitSelect', 'activeHoursStart', 'activeHoursEnd'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', saveScheduleConfig);
+    });
 
     // Autopilot button
     const autopilotBtn = document.getElementById('autopilotBtn');

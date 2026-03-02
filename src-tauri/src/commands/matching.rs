@@ -5,7 +5,6 @@ use crate::error::Result;
 use crate::generator;
 use crate::insights::{self, MarketInsights};
 use crate::matching;
-use crate::metrics;
 use crate::recommendations::{
     self,
     behavior_tracker::{BehaviorTracker, InteractionType},
@@ -36,16 +35,8 @@ pub async fn calculate_job_match_score(
         }
     };
 
-    // Record metrics: start timing
-    let start_time = std::time::Instant::now();
-
     let matcher = matching::JobMatcher::new();
     let match_result = matcher.calculate_match(&job, &profile);
-
-    // Record matching metrics
-    let duration = start_time.elapsed().as_secs_f64();
-    metrics::MATCH_CALCULATIONS_TOTAL.inc();
-    metrics::MATCH_CALCULATION_DURATION.observe(duration);
 
     Ok(match_result)
 }
@@ -66,9 +57,6 @@ pub async fn match_jobs_for_profile(
         }
     };
 
-    // Record metrics: start timing
-    let start_time = std::time::Instant::now();
-
     let matcher = matching::JobMatcher::new();
     let results = matcher.match_jobs(&jobs, &profile);
 
@@ -77,11 +65,6 @@ pub async fn match_jobs_for_profile(
     } else {
         results
     };
-
-    // Record matching metrics
-    let duration = start_time.elapsed().as_secs_f64();
-    metrics::MATCH_CALCULATIONS_TOTAL.inc_by(filtered.len() as f64);
-    metrics::MATCH_CALCULATION_DURATION.observe(duration);
 
     Ok(filtered)
 }
@@ -107,9 +90,6 @@ pub async fn update_job_match_scores(
         }
     };
 
-    // Record metrics: start timing
-    let start_time = std::time::Instant::now();
-
     let matcher = matching::JobMatcher::new();
 
     // Calculate match scores for all jobs
@@ -130,11 +110,6 @@ pub async fn update_job_match_scores(
             }
         }
     }
-
-    // Record matching metrics
-    let duration = start_time.elapsed().as_secs_f64();
-    metrics::MATCH_CALCULATIONS_TOTAL.inc_by(updated_count as f64);
-    metrics::MATCH_CALCULATION_DURATION.observe(duration);
 
     Ok(updated_count)
 }

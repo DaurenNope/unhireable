@@ -519,7 +519,7 @@ Sent via Unhireable - Neural Career System
 
     /// Create an interview confirmation follow-up email
     pub fn interview_confirmation(
-        company: &str,
+        _company: &str,
         recruiter_name: Option<&str>,
         interview_date: &str,
         interview_time: &str,

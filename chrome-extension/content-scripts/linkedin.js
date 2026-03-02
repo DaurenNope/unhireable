@@ -7,7 +7,8 @@
 
     // ========== CONFIGURATION ==========
     const CONFIG = {
-        maxAppsPerSession: 10,          // Conservative limit
+        maxAppsPerSession: 10,          // Conservative limit per session
+        maxPagesToScan: 3,              // Scan up to N pages of results
         delayBetweenJobs: { min: 4000, max: 8000 },
         delayBetweenSteps: { min: 800, max: 1500 },
         typingDelay: { min: 30, max: 80 },
@@ -156,7 +157,7 @@
 
     // Sync applied job to backend API
     async function syncAppliedJobToBackend(job, record) {
-        const BACKEND_URL = 'http://localhost:3003'; // Tauri app URL
+        const BACKEND_URL = 'http://localhost:3030'; // Backend API URL
 
         try {
             // First, try to create or find the job in the backend
@@ -304,7 +305,37 @@
         await sleep(randomDelay(2000, 3000)); // Wait for details to load
     }
 
-    function extractJobDetails() {
+    // Extract job ID from a card element (data attributes)
+    function getJobIdFromCard(card) {
+        // LinkedIn cards have data-occludable-job-id or data-job-id
+        const dataJobId = card?.getAttribute('data-occludable-job-id') ||
+            card?.getAttribute('data-job-id') ||
+            card?.querySelector('[data-job-id]')?.getAttribute('data-job-id');
+        if (dataJobId) return dataJobId;
+
+        // Try extracting from the card's link href
+        const link = card?.querySelector('a[href*="/jobs/"]');
+        if (link) {
+            const hrefMatch = link.href.match(/currentJobId=(\d+)/) ||
+                link.href.match(/\/jobs\/view\/(\d+)/);
+            if (hrefMatch) return hrefMatch[1];
+        }
+        return null;
+    }
+
+    // Extract job ID from the current URL or page
+    function getJobIdFromUrl() {
+        const url = window.location.href;
+        // LinkedIn search uses ?currentJobId=XXXXX
+        const paramMatch = url.match(/currentJobId=(\d+)/);
+        if (paramMatch) return paramMatch[1];
+        // Direct view uses /jobs/view/XXXXX
+        const viewMatch = url.match(/\/jobs\/view\/(\d+)/);
+        if (viewMatch) return viewMatch[1];
+        return null;
+    }
+
+    function extractJobDetails(card) {
         // Get full job description
         const titleEl = document.querySelector(
             '.job-details-jobs-unified-top-card__job-title, ' +
@@ -344,10 +375,11 @@
         const emailMatch = description.match(/[\w.-]+@[\w.-]+\.\w+/);
         const email = emailMatch ? emailMatch[0] : null;
 
-        // Get job URL
+        // Job ID: prefer card data → URL param → URL path
+        const jobId = getJobIdFromCard(card) || getJobIdFromUrl() || `unknown_${Date.now()}`;
+
+        // Build a clean URL for this specific job
         const url = window.location.href;
-        const jobIdMatch = url.match(/\/jobs\/view\/(\d+)/);
-        const jobId = jobIdMatch ? jobIdMatch[1] : Date.now().toString();
 
         return {
             id: jobId,
@@ -426,38 +458,44 @@
         return Math.min(baseScore + expBonus, 1.0);
     }
 
-    async function scanAllJobs() {
-        console.log('[Unhireable] 🔍 Starting deep scan...');
-        scannedJobs = [];
-        matchedJobs = [];
-
-        // Load already attempted job IDs for dedup
-        const { attemptedJobIds = [] } = await chrome.storage.local.get(['attemptedJobIds']);
-        const attemptedSet = new Set(attemptedJobIds);
-        console.log(`[Unhireable] 📋 ${attemptedSet.size} previously attempted jobs in dedup list`);
-
+    // Scan a single page of job cards
+    async function scanCurrentPage(attemptedSet, sessionMatchedIds) {
         const cards = getJobCards();
-        if (cards.length === 0) {
-            showNotification('No jobs found on this page');
-            return [];
-        }
+        if (cards.length === 0) return { scanned: 0, matched: 0, deduped: 0 };
 
-        showNotification(`Scanning ${cards.length} jobs...`);
-        let skippedDedup = 0;
+        let pageScanned = 0, pageMatched = 0, pageDeduped = 0;
 
         for (let i = 0; i < cards.length && isRunning; i++) {
             console.log(`[Unhireable] Scanning job ${i + 1}/${cards.length}`);
             updateStatus(`Scanning ${i + 1}/${cards.length}`);
 
             try {
-                await clickJobCard(cards[i]);
-                const job = extractJobDetails();
-                scannedJobs.push(job);
+                // Pre-extract job ID from card BEFORE clicking (avoids loading wrong job detail)
+                const cardJobId = getJobIdFromCard(cards[i]);
 
-                // Dedup: skip if already attempted
-                if (attemptedSet.has(job.id)) {
-                    console.log(`[Unhireable] ♻️ Skip: Already attempted - ${job.title} (${job.id})`);
-                    skippedDedup++;
+                // Skip if already matched in this session (avoids duplicate INFUSE-type bugs)
+                if (cardJobId && sessionMatchedIds.has(cardJobId)) {
+                    console.log(`[Unhireable] ♻️ Skip: Already matched in session - ${cardJobId}`);
+                    pageDeduped++;
+                    continue;
+                }
+
+                // Skip if already attempted in a previous session
+                if (cardJobId && attemptedSet.has(cardJobId)) {
+                    console.log(`[Unhireable] ♻️ Skip: Already attempted - ${cardJobId}`);
+                    pageDeduped++;
+                    continue;
+                }
+
+                await clickJobCard(cards[i]);
+                const job = extractJobDetails(cards[i]);
+                scannedJobs.push(job);
+                pageScanned++;
+
+                // Double-check dedup with extracted ID (card ID might differ from detail ID)
+                if (sessionMatchedIds.has(job.id) || attemptedSet.has(job.id)) {
+                    console.log(`[Unhireable] ♻️ Skip: Duplicate after detail load - ${job.title} (${job.id})`);
+                    pageDeduped++;
                     continue;
                 }
 
@@ -473,7 +511,9 @@
 
                 if (matchScore >= CONFIG.matchThreshold) {
                     matchedJobs.push(job);
-                    console.log(`[Unhireable] ✅ Match: ${job.title} at ${job.company} (${(matchScore * 100).toFixed(0)}%)`);
+                    sessionMatchedIds.add(job.id);
+                    pageMatched++;
+                    console.log(`[Unhireable] ✅ Match: ${job.title} at ${job.company} (${(matchScore * 100).toFixed(0)}%) [ID: ${job.id}]`);
 
                     // Send to background to save to DB
                     chrome.runtime.sendMessage({
@@ -485,10 +525,138 @@
                 }
 
             } catch (err) {
-                console.error('[Unhireable] Error scanning job:', err);
+                console.error(`[Unhireable] ❌ Error scanning job ${i + 1}:`, err.message || err);
             }
 
             await sleep(randomDelay(1000, 2000));
+        }
+
+        return { scanned: pageScanned, matched: pageMatched, deduped: pageDeduped };
+    }
+
+    // Navigate to the next page of LinkedIn results (SPA-safe, no full reload)
+    function goToNextPage() {
+        // Try multiple pagination button selectors
+        const selectors = [
+            '.artdeco-pagination__button--next:not([disabled])',
+            'button[aria-label="Next"]:not([disabled])',
+            'li.artdeco-pagination__indicator--number.active + li button',
+        ];
+
+        for (const sel of selectors) {
+            const btn = document.querySelector(sel);
+            if (btn && !btn.disabled) {
+                console.log(`[Unhireable] 📄 Clicking pagination: ${sel}`);
+                btn.scrollIntoView({ block: 'center' });
+                btn.click();
+                return true;
+            }
+        }
+
+        // NO URL fallback — full page reload kills script context.
+        // If no button found, stop scanning additional pages.
+        console.log('[Unhireable] ⚠️ No pagination button found — stopping multi-page scan');
+        return false;
+    }
+
+    async function scanAllJobs() {
+        console.log('[Unhireable] 🔍 Starting deep scan...');
+        scannedJobs = [];
+        matchedJobs = [];
+
+        // Load config
+        const { attemptedJobIds = [], scheduleConfig } = await chrome.storage.local.get(['attemptedJobIds', 'scheduleConfig']);
+        const attemptedSet = new Set(attemptedJobIds);
+        const sessionMatchedIds = new Set(); // In-session dedup
+        const maxPages = scheduleConfig?.maxPages || CONFIG.maxPagesToScan;
+        console.log(`[Unhireable] 📋 ${attemptedSet.size} previously attempted jobs | scanning up to ${maxPages} pages`);
+
+        // Remember the starting page URL so we can return to it after scanning
+        const startUrl = window.location.href;
+        let totalDeduped = 0;
+        let pagesScanned = 0;
+
+        // Scan multiple pages
+        for (let page = 1; page <= maxPages && isRunning; page++) {
+            console.log(`[Unhireable] 📄 Scanning page ${page}/${maxPages}...`);
+            showNotification(`Scanning page ${page}/${maxPages}...`);
+
+            // Wait for page to stabilize
+            await sleep(2000);
+
+            const cards = getJobCards();
+            if (cards.length === 0) {
+                console.log(`[Unhireable] ⚠️ Page ${page}: No job cards found, stopping.`);
+                break;
+            }
+
+            const pageResult = await scanCurrentPage(attemptedSet, sessionMatchedIds);
+            totalDeduped += pageResult.deduped;
+            pagesScanned++;
+            console.log(`[Unhireable] 📊 Page ${page} done: ${pageResult.scanned} scanned, ${pageResult.matched} matched, ${pageResult.deduped} deduped`);
+
+            // Navigate to next page if not the last
+            if (page < maxPages && isRunning) {
+                // Capture fingerprint of current page to detect when new content loads
+                const currentCards = getJobCards();
+                const firstCardId = currentCards.length > 0 ? getJobIdFromCard(currentCards[0]) : null;
+                const firstCardText = currentCards.length > 0 ? currentCards[0].textContent?.substring(0, 100) : '';
+                console.log(`[Unhireable] ➡️ Navigating to page ${page + 1}... (current first card: ${firstCardId})`);
+
+                const navSuccess = goToNextPage();
+                if (!navSuccess) {
+                    console.log(`[Unhireable] ⚠️ Could not navigate to page ${page + 1}, stopping scan.`);
+                    break;
+                }
+
+                // Wait for new page content — poll until first card changes (max 15s)
+                let contentChanged = false;
+                for (let attempt = 0; attempt < 6; attempt++) {
+                    await sleep(2500);
+                    const newCards = getJobCards();
+                    const newFirstId = newCards.length > 0 ? getJobIdFromCard(newCards[0]) : null;
+                    const newFirstText = newCards.length > 0 ? newCards[0].textContent?.substring(0, 100) : '';
+
+                    if (newFirstId && newFirstId !== firstCardId) {
+                        console.log(`[Unhireable] ✅ Page ${page + 1} loaded (new first card: ${newFirstId})`);
+                        contentChanged = true;
+                        break;
+                    }
+                    if (newFirstText && newFirstText !== firstCardText) {
+                        console.log(`[Unhireable] ✅ Page ${page + 1} loaded (content changed)`);
+                        contentChanged = true;
+                        break;
+                    }
+                    console.log(`[Unhireable] ⏳ Waiting for page ${page + 1} content... (attempt ${attempt + 1}/6)`);
+                }
+
+                if (!contentChanged) {
+                    console.log(`[Unhireable] ⚠️ Page ${page + 1} content didn't change after 15s — stopping multi-page scan`);
+                    break;
+                }
+            }
+        }
+
+        // Navigate BACK to page 1 so applyToAllMatched can find the job cards
+        if (pagesScanned > 1) {
+            console.log('[Unhireable] ↩️ Returning to page 1 for apply phase...');
+            // Use history.back or direct URL navigation to page 1
+            const url = new URL(startUrl);
+            url.searchParams.delete('start'); // page 1 has no start param
+            window.history.pushState(null, '', url.toString());
+            // Trigger LinkedIn SPA route change
+            window.dispatchEvent(new PopStateEvent('popstate'));
+            await sleep(3000);
+            // If cards didn't reload, try clicking the page 1 button
+            const cards = getJobCards();
+            if (cards.length === 0) {
+                console.log('[Unhireable] ⚠️ Page 1 cards not loaded after popstate, reloading via pagination...');
+                const page1Btn = document.querySelector('li.artdeco-pagination__indicator--number button');
+                if (page1Btn) {
+                    page1Btn.click();
+                    await sleep(3000);
+                }
+            }
         }
 
         // Sort: Easy Apply first, then by match score
@@ -498,11 +666,11 @@
             return b.matchScore - a.matchScore;
         });
 
-        if (skippedDedup > 0) {
-            console.log(`[Unhireable] ♻️ Skipped ${skippedDedup} already-attempted jobs`);
+        if (totalDeduped > 0) {
+            console.log(`[Unhireable] ♻️ Skipped ${totalDeduped} already-attempted jobs total`);
         }
-        console.log(`[Unhireable] 📊 Scan complete: ${scannedJobs.length} scanned, ${matchedJobs.length} matched, ${skippedDedup} deduped`);
-        showNotification(`Found ${matchedJobs.length} matching jobs! (${skippedDedup} already tried)`);
+        console.log(`[Unhireable] 📊 Scan complete: ${pagesScanned} pages, ${scannedJobs.length} scanned, ${matchedJobs.length} unique matches`);
+        showNotification(`Found ${matchedJobs.length} matching jobs across ${pagesScanned} pages!`);
 
         // Save matches to storage for "Apply to Matches" button
         applyQueueIndex = 0;
@@ -710,839 +878,903 @@
 
     // Helper: dismiss modal and handle "Save this application?" confirmation
     async function dismissModal(modalRef) {
-    const modal = modalRef || document.querySelector('.jobs-easy-apply-modal, .artdeco-modal');
-    if (modal) {
-        const closeBtn = modal.querySelector('button[aria-label="Dismiss"], button[data-test-modal-close-btn]');
-        if (closeBtn) closeBtn.click();
-    }
-    await sleep(1000);
-    // Handle "Save this application?" confirmation dialog
-    const saveDialog = document.querySelector('[data-test-dialog], .artdeco-modal--layer-confirmation');
-    if (saveDialog) {
-        const discardBtn = Array.from(saveDialog.querySelectorAll('button')).find(btn =>
-            btn.textContent.toLowerCase().includes('discard')
-        );
-        if (discardBtn) {
-            console.log('[Unhireable] 🗑️ Clicking Discard on save dialog');
-            discardBtn.click();
-            await sleep(1000);
-            return;
+        const modal = modalRef || document.querySelector('.jobs-easy-apply-modal, .artdeco-modal');
+        if (modal) {
+            const closeBtn = modal.querySelector('button[aria-label="Dismiss"], button[data-test-modal-close-btn]');
+            if (closeBtn) closeBtn.click();
         }
-    }
-    // Fallback: look for any "Discard" button on the page
-    const anyDiscard = Array.from(document.querySelectorAll('button')).find(btn =>
-        btn.textContent.toLowerCase().trim() === 'discard'
-    );
-    if (anyDiscard) {
-        console.log('[Unhireable] 🗑️ Fallback: clicking Discard button');
-        anyDiscard.click();
         await sleep(1000);
-    }
-}
-
-async function clickNextOrSubmit(providedModal) {
-    // Use provided modal reference, or re-query with broad selectors
-    const modal = providedModal || document.querySelector(
-        '.jobs-easy-apply-modal, .artdeco-modal, [role="dialog"], .artdeco-modal__content'
-    );
-    if (!modal) {
-        console.log('[Unhireable] ⚠️ No modal found for button search');
-        return 'stuck';
-    }
-
-    // Multilingual button text patterns
-    const SUBMIT_TEXTS = ['submit', 'send application', '提交申请', '提交', 'отправить', 'envoyer', 'absenden'];
-    const REVIEW_TEXTS = ['review', '审查', '审阅', 'просмотр', 'vérifier'];
-    const NEXT_TEXTS = ['next', 'continue', '下一步', '继续', 'далее', 'suivant', 'weiter'];
-
-    const isMatch = (text, patterns) => patterns.some(p => text.includes(p));
-
-    // Search primary buttons including footer/actionbar areas
-    const buttons = modal.querySelectorAll(
-        'button.artdeco-button--primary, ' +
-        '.jobs-easy-apply-footer button.artdeco-button--primary, ' +
-        'footer button.artdeco-button--primary, ' +
-        '.artdeco-modal__actionbar button.artdeco-button--primary'
-    );
-    console.log(`[Unhireable] 🔍 Found ${buttons.length} primary buttons in modal`);
-
-    // First priority: Submit buttons
-    for (const btn of buttons) {
-        const text = btn.textContent.toLowerCase().trim();
-        const ariaLabel = (btn.getAttribute('aria-label') || '').toLowerCase();
-        console.log(`[Unhireable]   Button: "${text}" (aria: "${ariaLabel}")`);
-
-        if (isMatch(text, SUBMIT_TEXTS) || isMatch(ariaLabel, SUBMIT_TEXTS)) {
-            if (btn.disabled || btn.getAttribute('aria-disabled') === 'true') {
-                console.log('[Unhireable] ⚠️ Submit button is disabled - form may be incomplete');
-                continue;
+        // Handle "Save this application?" confirmation dialog
+        const saveDialog = document.querySelector('[data-test-dialog], .artdeco-modal--layer-confirmation');
+        if (saveDialog) {
+            const discardBtn = Array.from(saveDialog.querySelectorAll('button')).find(btn =>
+                btn.textContent.toLowerCase().includes('discard')
+            );
+            if (discardBtn) {
+                console.log('[Unhireable] 🗑️ Clicking Discard on save dialog');
+                discardBtn.click();
+                await sleep(1000);
+                return;
             }
-            console.log('[Unhireable] 🚀 Clicking SUBMIT button');
-            await sleep(randomDelay(1500, 3000));
-            btn.scrollIntoView({ block: 'center' });
-            await sleep(200);
-            btn.click();
-            btn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
-            return 'submitted';
+        }
+        // Fallback: look for any "Discard" button on the page
+        const anyDiscard = Array.from(document.querySelectorAll('button')).find(btn =>
+            btn.textContent.toLowerCase().trim() === 'discard'
+        );
+        if (anyDiscard) {
+            console.log('[Unhireable] 🗑️ Fallback: clicking Discard button');
+            anyDiscard.click();
+            await sleep(1000);
         }
     }
 
-    // Second priority: Review button
-    for (const btn of buttons) {
-        const text = btn.textContent.toLowerCase().trim();
-        if (isMatch(text, REVIEW_TEXTS)) {
-            if (btn.disabled) continue;
-            console.log('[Unhireable] 📋 Clicking REVIEW button');
-            await sleep(randomDelay(500, 1000));
-            btn.click();
-            return 'review';
+    async function clickNextOrSubmit(providedModal) {
+        // Use provided modal reference, or re-query with broad selectors
+        const modal = providedModal || document.querySelector(
+            '.jobs-easy-apply-modal, .artdeco-modal, [role="dialog"], .artdeco-modal__content'
+        );
+        if (!modal) {
+            console.log('[Unhireable] ⚠️ No modal found for button search');
+            return 'stuck';
         }
-    }
 
-    // Third priority: Next/Continue
-    for (const btn of buttons) {
-        const text = btn.textContent.toLowerCase().trim();
-        if (isMatch(text, NEXT_TEXTS)) {
-            if (btn.disabled) continue;
-            console.log('[Unhireable] ➡️ Clicking NEXT button');
-            await sleep(randomDelay(300, 700));
-            btn.click();
-            return 'next';
-        }
-    }
+        // Multilingual button text patterns
+        const SUBMIT_TEXTS = ['submit', 'send application', '提交申请', '提交', 'отправить', 'envoyer', 'absenden'];
+        const REVIEW_TEXTS = ['review', '审查', '审阅', 'просмотр', 'vérifier'];
+        const NEXT_TEXTS = ['next', 'continue', '下一步', '继续', 'далее', 'suivant', 'weiter'];
 
-    // Fallback: scan ALL buttons in modal (including non-primary) for navigation text
-    const allButtons = modal.querySelectorAll('button:not([disabled])');
-    for (const btn of allButtons) {
-        const text = btn.textContent.toLowerCase().trim();
-        if (isMatch(text, SUBMIT_TEXTS)) {
-            console.log('[Unhireable] 🚀 Fallback SUBMIT button found:', text);
-            btn.click();
-            return 'submitted';
-        }
-        if (isMatch(text, NEXT_TEXTS) || isMatch(text, REVIEW_TEXTS)) {
-            console.log('[Unhireable] ➡️ Fallback navigation button found:', text);
-            btn.click();
-            return isMatch(text, REVIEW_TEXTS) ? 'review' : 'next';
-        }
-    }
+        const isMatch = (text, patterns) => patterns.some(p => text.includes(p));
 
-    // Last resort: search the ENTIRE document footer (LinkedIn sometimes renders footer outside modal DOM)
-    const docFooter = document.querySelector('.jobs-easy-apply-footer, .artdeco-modal__actionbar');
-    if (docFooter) {
-        for (const btn of docFooter.querySelectorAll('button:not([disabled])')) {
+        // Search primary buttons including footer/actionbar areas
+        const buttons = modal.querySelectorAll(
+            'button.artdeco-button--primary, ' +
+            '.jobs-easy-apply-footer button.artdeco-button--primary, ' +
+            'footer button.artdeco-button--primary, ' +
+            '.artdeco-modal__actionbar button.artdeco-button--primary'
+        );
+        console.log(`[Unhireable] 🔍 Found ${buttons.length} primary buttons in modal`);
+
+        // First priority: Submit buttons
+        for (const btn of buttons) {
+            const text = btn.textContent.toLowerCase().trim();
+            const ariaLabel = (btn.getAttribute('aria-label') || '').toLowerCase();
+            console.log(`[Unhireable]   Button: "${text}" (aria: "${ariaLabel}")`);
+
+            if (isMatch(text, SUBMIT_TEXTS) || isMatch(ariaLabel, SUBMIT_TEXTS)) {
+                if (btn.disabled || btn.getAttribute('aria-disabled') === 'true') {
+                    console.log('[Unhireable] ⚠️ Submit button is disabled - form may be incomplete');
+                    continue;
+                }
+                console.log('[Unhireable] 🚀 Clicking SUBMIT button');
+                await sleep(randomDelay(1500, 3000));
+                btn.scrollIntoView({ block: 'center' });
+                await sleep(200);
+                btn.click();
+                btn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+                return 'submitted';
+            }
+        }
+
+        // Second priority: Review button
+        for (const btn of buttons) {
+            const text = btn.textContent.toLowerCase().trim();
+            if (isMatch(text, REVIEW_TEXTS)) {
+                if (btn.disabled) continue;
+                console.log('[Unhireable] 📋 Clicking REVIEW button');
+                await sleep(randomDelay(500, 1000));
+                btn.click();
+                return 'review';
+            }
+        }
+
+        // Third priority: Next/Continue
+        for (const btn of buttons) {
+            const text = btn.textContent.toLowerCase().trim();
+            if (isMatch(text, NEXT_TEXTS)) {
+                if (btn.disabled) continue;
+                console.log('[Unhireable] ➡️ Clicking NEXT button');
+                await sleep(randomDelay(300, 700));
+                btn.click();
+                return 'next';
+            }
+        }
+
+        // Fallback: scan ALL buttons in modal (including non-primary) for navigation text
+        const allButtons = modal.querySelectorAll('button:not([disabled])');
+        for (const btn of allButtons) {
             const text = btn.textContent.toLowerCase().trim();
             if (isMatch(text, SUBMIT_TEXTS)) {
-                console.log('[Unhireable] 🚀 Document-footer SUBMIT found:', text);
+                console.log('[Unhireable] 🚀 Fallback SUBMIT button found:', text);
                 btn.click();
                 return 'submitted';
             }
             if (isMatch(text, NEXT_TEXTS) || isMatch(text, REVIEW_TEXTS)) {
-                console.log('[Unhireable] ➡️ Document-footer navigation found:', text);
+                console.log('[Unhireable] ➡️ Fallback navigation button found:', text);
                 btn.click();
                 return isMatch(text, REVIEW_TEXTS) ? 'review' : 'next';
             }
         }
-    }
 
-    console.log('[Unhireable] ⚠️ No clickable button found in modal');
-    return 'stuck';
-}
-
-async function handleExternalApply(job) {
-    console.log(`[Unhireable] 🌐 External applying to: ${job.title} at ${job.company}`);
-
-    // Send message to background FIRST — it will set up tab watcher,
-    // then tell us to click, then handle the new tab
-    try {
-        const result = await new Promise((resolve, reject) => {
-            const timeout = setTimeout(() => {
-                reject(new Error('External apply timed out (90s)'));
-            }, 90000);
-
-            chrome.runtime.sendMessage({
-                type: 'externalApply',
-                profile: userProfile,
-                jobTitle: `${job.title} at ${job.company}`,
-                jobUrl: job.url
-            }, (response) => {
-                clearTimeout(timeout);
-                if (chrome.runtime.lastError) {
-                    reject(new Error(chrome.runtime.lastError.message));
-                } else {
-                    resolve(response);
+        // Last resort: search the ENTIRE document footer (LinkedIn sometimes renders footer outside modal DOM)
+        const docFooter = document.querySelector('.jobs-easy-apply-footer, .artdeco-modal__actionbar');
+        if (docFooter) {
+            for (const btn of docFooter.querySelectorAll('button:not([disabled])')) {
+                const text = btn.textContent.toLowerCase().trim();
+                if (isMatch(text, SUBMIT_TEXTS)) {
+                    console.log('[Unhireable] 🚀 Document-footer SUBMIT found:', text);
+                    btn.click();
+                    return 'submitted';
                 }
+                if (isMatch(text, NEXT_TEXTS) || isMatch(text, REVIEW_TEXTS)) {
+                    console.log('[Unhireable] ➡️ Document-footer navigation found:', text);
+                    btn.click();
+                    return isMatch(text, REVIEW_TEXTS) ? 'review' : 'next';
+                }
+            }
+        }
+
+        console.log('[Unhireable] ⚠️ No clickable button found in modal');
+        return 'stuck';
+    }
+
+    async function handleExternalApply(job) {
+        console.log(`[Unhireable] 🌐 External applying to: ${job.title} at ${job.company}`);
+
+        // Send message to background FIRST — it will set up tab watcher,
+        // then tell us to click, then handle the new tab
+        try {
+            const result = await new Promise((resolve, reject) => {
+                const timeout = setTimeout(() => {
+                    reject(new Error('External apply timed out (90s)'));
+                }, 90000);
+
+                chrome.runtime.sendMessage({
+                    type: 'externalApply',
+                    profile: userProfile,
+                    jobTitle: `${job.title} at ${job.company}`,
+                    jobUrl: job.url
+                }, (response) => {
+                    clearTimeout(timeout);
+                    if (chrome.runtime.lastError) {
+                        reject(new Error(chrome.runtime.lastError.message));
+                    } else {
+                        resolve(response);
+                    }
+                });
             });
-        });
 
-        if (result.success) {
-            console.log(`[Unhireable] ✅ External form filled: ${result.atsUrl || 'unknown ATS'}`);
-            return { success: true, type: 'external', atsUrl: result.atsUrl };
-        } else if (result.type === 'unsupported_ats') {
-            console.log(`[Unhireable] ⚠️ Unsupported ATS: ${result.error}`);
-            return { success: false, type: 'unsupported_ats', error: result.error };
-        } else {
-            console.warn(`[Unhireable] ❌ External fill failed: ${result.error}`);
-            return { success: false, type: 'external', error: result.error };
-        }
-    } catch (err) {
-        console.error(`[Unhireable] 💥 External apply error: ${err.message}`);
-        return { success: false, error: err.message };
-    }
-}
-
-async function applyToJob(job) {
-    console.log(`[Unhireable] 📝 Applying to: ${job.title} at ${job.company}`);
-
-    if (!job.hasEasyApply) {
-        return await handleExternalApply(job);
-    }
-
-    // Check if already applied before wasting time
-    const appliedBadge = document.querySelector(
-        '.jobs-details-top-card__applied-label, ' +
-        '.artdeco-inline-feedback--success, ' +
-        '.post-apply-timeline, ' +
-        '[data-test-applied-label]'
-    );
-    const pageText = document.querySelector('.jobs-details-top-card, .job-details-jobs-unified-top-card')?.textContent || '';
-    if (appliedBadge || pageText.toLowerCase().includes('applied ') || pageText.toLowerCase().includes('application submitted')) {
-        console.log('[Unhireable] ⏭️ Already applied to this job — skipping');
-        return { success: false, error: 'Already applied', skipped: true };
-    }
-
-    // Click Easy Apply button - IMPORTANT: avoid the filter toggle!
-    // The filter has id="searchFilter_applyWithLinkedin", we need the job apply button
-    const easyApplySelectors = [
-        // Primary: The main apply button in job details
-        '.jobs-apply-button--top-card',
-        '.jobs-unified-top-card button.jobs-apply-button',
-        '.job-details-jobs-unified-top-card__container--two-pane button[aria-label*="Easy Apply"]',
-        // Secondary: Other apply button variants (but NOT filter)
-        'button.jobs-apply-button:not([id*="searchFilter"])',
-        '.jobs-s-apply button:not([role="radio"])',
-        // Fallback: aria-label match but exclude filter
-        'button[aria-label*="Easy Apply"]:not([id*="searchFilter"]):not([role="radio"])'
-    ];
-
-    let easyApplyBtn = null;
-    for (const sel of easyApplySelectors) {
-        const btn = document.querySelector(sel);
-        // Extra check: make sure it's not the filter
-        if (btn && !btn.id?.includes('searchFilter') && btn.getAttribute('role') !== 'radio') {
-            easyApplyBtn = btn;
-            console.log('[Unhireable] 🔘 Found Easy Apply button:', sel, btn.textContent?.trim());
-            break;
+            if (result.success) {
+                console.log(`[Unhireable] ✅ External form filled: ${result.atsUrl || 'unknown ATS'}`);
+                return { success: true, type: 'external', atsUrl: result.atsUrl };
+            } else if (result.type === 'unsupported_ats') {
+                console.log(`[Unhireable] ⚠️ Unsupported ATS: ${result.error}`);
+                return { success: false, type: 'unsupported_ats', error: result.error };
+            } else {
+                console.warn(`[Unhireable] ❌ External fill failed: ${result.error}`);
+                return { success: false, type: 'external', error: result.error };
+            }
+        } catch (err) {
+            console.error(`[Unhireable] 💥 External apply error: ${err.message}`);
+            return { success: false, error: err.message };
         }
     }
 
-    if (!easyApplyBtn) {
-        console.log('[Unhireable] ❌ No Easy Apply button found');
-        return { success: false, error: 'No Easy Apply button' };
-    }
+    async function applyToJob(job) {
+        console.log(`[Unhireable] 📝 Applying to: ${job.title} at ${job.company}`);
 
-    // Verify the button actually says "Easy Apply" — not just "Apply" (external redirect)
-    const btnText = (easyApplyBtn.textContent || '').trim().toLowerCase();
-    if (!btnText.includes('easy apply')) {
-        console.log(`[Unhireable] 🌐 Button says "${btnText}" — trying external apply`);
-        return await handleExternalApply(job);
-    }
-
-    // If we got a container div, find the actual button inside
-    let clickTarget = easyApplyBtn;
-    if (easyApplyBtn.tagName.toLowerCase() !== 'button') {
-        const innerBtn = easyApplyBtn.querySelector('button');
-        if (innerBtn) {
-            clickTarget = innerBtn;
-            console.log('[Unhireable] 🔘 Found inner button inside container');
+        if (!job.hasEasyApply) {
+            return await handleExternalApply(job);
         }
-    }
 
-    console.log('[Unhireable] 🖱️ Clicking Easy Apply...', clickTarget.tagName);
+        // Check if already applied before wasting time
+        const appliedBadge = document.querySelector(
+            '.jobs-details-top-card__applied-label, ' +
+            '.artdeco-inline-feedback--success, ' +
+            '.post-apply-timeline, ' +
+            '[data-test-applied-label]'
+        );
+        const pageText = document.querySelector('.jobs-details-top-card, .job-details-jobs-unified-top-card')?.textContent || '';
+        if (appliedBadge || pageText.toLowerCase().includes('applied ') || pageText.toLowerCase().includes('application submitted')) {
+            console.log('[Unhireable] ⏭️ Already applied to this job — skipping');
+            return { success: false, error: 'Already applied', skipped: true };
+        }
 
-    // Ensure button is visible and click it properly
-    clickTarget.scrollIntoView({ block: 'center' });
-    await sleep(300);
-    clickTarget.focus();
-    await sleep(100);
+        // Click Easy Apply button - IMPORTANT: avoid the filter toggle!
+        // The filter has id="searchFilter_applyWithLinkedin", we need the job apply button
+        const easyApplySelectors = [
+            // Primary: The main apply button in job details
+            '.jobs-apply-button--top-card',
+            '.jobs-unified-top-card button.jobs-apply-button',
+            '.job-details-jobs-unified-top-card__container--two-pane button[aria-label*="Easy Apply"]',
+            // Secondary: Other apply button variants (but NOT filter)
+            'button.jobs-apply-button:not([id*="searchFilter"])',
+            '.jobs-s-apply button:not([role="radio"])',
+            // Fallback: aria-label match but exclude filter
+            'button[aria-label*="Easy Apply"]:not([id*="searchFilter"]):not([role="radio"])'
+        ];
 
-    // Try multiple click methods
-    clickTarget.click();
-
-    // Also dispatch click event for stubborn buttons
-    clickTarget.dispatchEvent(new MouseEvent('click', {
-        bubbles: true,
-        cancelable: true,
-        view: window
-    }));
-
-    // Wait for modal to appear (up to 8 seconds with more frequent checks)
-    let modal = null;
-    const modalSelectors = [
-        '.jobs-easy-apply-modal',
-        '.artdeco-modal[role="dialog"]',
-        '.artdeco-modal',
-        '[data-test-modal]',
-        '.jobs-easy-apply-content',
-        'div[class*="easy-apply"]',
-        '.jobs-apply-modal'
-    ];
-
-    console.log('[Unhireable] ⏳ Waiting for modal...');
-    for (let wait = 0; wait < 16; wait++) {
-        await sleep(500);
-        for (const sel of modalSelectors) {
-            modal = document.querySelector(sel);
-            if (modal && modal.offsetParent !== null) { // Check if visible
-                console.log('[Unhireable] ✅ Modal appeared:', sel);
+        let easyApplyBtn = null;
+        for (const sel of easyApplySelectors) {
+            const btn = document.querySelector(sel);
+            // Extra check: make sure it's not the filter
+            if (btn && !btn.id?.includes('searchFilter') && btn.getAttribute('role') !== 'radio') {
+                easyApplyBtn = btn;
+                console.log('[Unhireable] 🔘 Found Easy Apply button:', sel, btn.textContent?.trim());
                 break;
             }
         }
-        if (modal) break;
 
-        // Log progress every 2 seconds
-        if (wait % 4 === 3) {
-            console.log(`[Unhireable] Still waiting... (${(wait + 1) * 0.5}s)`);
-        }
-    }
-
-    if (!modal) {
-        console.log('[Unhireable] ❌ Modal never appeared after clicking Easy Apply');
-        console.log('[Unhireable] 📍 Button was:', easyApplyBtn.outerHTML.substring(0, 200));
-        return { success: false, error: 'Modal did not open' };
-    }
-
-    // Fill and submit up to 6 steps
-    let lastStepSignature = '';
-    let sameStepCount = 0;
-
-    for (let step = 0; step < 6; step++) {
-        console.log(`[Unhireable] 📄 Step ${step + 1}/6`);
-
-        const currentModal = document.querySelector('.jobs-easy-apply-modal, .artdeco-modal');
-        if (!currentModal) {
-            console.log('[Unhireable] ✅ Modal closed - application likely complete');
-            return { success: true, message: 'Application complete' };
+        if (!easyApplyBtn) {
+            console.log('[Unhireable] ❌ No Easy Apply button found');
+            return { success: false, error: 'No Easy Apply button' };
         }
 
-        // Detect if we're stuck in a loop (same form repeated)
-        const currentFields = currentModal.querySelectorAll('input, select, textarea');
-        const stepSignature = Array.from(currentFields).map(f => f.name || f.id || f.placeholder || '').join('|');
+        // Verify the button actually says "Easy Apply" — not just "Apply" (external redirect)
+        const btnText = (easyApplyBtn.textContent || '').trim().toLowerCase();
+        if (!btnText.includes('easy apply')) {
+            console.log(`[Unhireable] 🌐 Button says "${btnText}" — trying external apply`);
+            return await handleExternalApply(job);
+        }
 
-        // Check if we're on the review page (progress bar ≥ 95% or "Review" heading visible)
-        const progressBar = currentModal.querySelector('progress, .artdeco-completeness-meter-linear__progress-element');
-        const progressValue = progressBar ? (parseFloat(progressBar.style?.width) || parseFloat(progressBar.getAttribute('value')) || 0) : 0;
-        const reviewHeading = currentModal.querySelector('h2, h3');
-        const isReviewPage = progressValue >= 95 ||
-            (reviewHeading && /review|审查|просмотр/i.test(reviewHeading.textContent));
-
-        // Check for submit-like buttons (multilingual)
-        const submitTexts = ['submit', 'send application', '提交申请', '提交', 'отправить', 'envoyer', 'absenden'];
-        const hasSubmitBtn = Array.from(currentModal.querySelectorAll('button')).some(btn => {
-            const text = btn.textContent.toLowerCase().trim();
-            const aria = (btn.getAttribute('aria-label') || '').toLowerCase();
-            return submitTexts.some(st => text.includes(st) || aria.includes(st)) && !btn.disabled;
-        });
-
-        if (stepSignature === lastStepSignature) {
-            sameStepCount++;
-            if (isReviewPage || hasSubmitBtn) {
-                console.log('[Unhireable] 🔄 Review page detected (progress/submit) — proceeding to submit');
-                sameStepCount = 0;
-            } else if (sameStepCount >= 2) {
-                console.log('[Unhireable] 🛑 Stuck in loop — same step repeated 3 times. Needs manual input.');
-                showNotification(`⚠️ ${job.company}: stuck on a step, needs manual input`);
-                await dismissModal(currentModal);
-                return { success: false, error: 'Stuck in loop', needsManual: true };
+        // If we got a container div, find the actual button inside
+        let clickTarget = easyApplyBtn;
+        if (easyApplyBtn.tagName.toLowerCase() !== 'button') {
+            const innerBtn = easyApplyBtn.querySelector('button');
+            if (innerBtn) {
+                clickTarget = innerBtn;
+                console.log('[Unhireable] 🔘 Found inner button inside container');
             }
-        } else {
-            sameStepCount = 0;
-        }
-        lastStepSignature = stepSignature;
-
-        // Human pause - simulate reading the form before filling
-        await sleep(randomDelay(1000, 2000));
-
-        try {
-            log.stepStart(step + 1);
-            const fillResult = await UF.batchFill(currentModal, userProfile, job, getLinkedInHooks());
-            const filledCount = fillResult.filled;
-            log.stepEnd(filledCount > 0 ? 'filled' : 'empty');
-            await sleep(randomDelay(CONFIG.delayBetweenSteps.min, CONFIG.delayBetweenSteps.max));
-
-            // If form is completely empty (0 visible fields) AND no submit button, skip Next
-            const visibleFields = currentModal.querySelectorAll('input:not([type="hidden"]), select, textarea');
-            if (visibleFields.length === 0 && !hasSubmitBtn && !isReviewPage) {
-                console.log('[Unhireable] ⚠️ Empty form and no submit — skipping Next click');
-                continue;
-            }
-
-            const action = await clickNextOrSubmit(currentModal);
-            console.log('[Unhireable] Action result:', action);
-
-            if (action === 'submitted') {
-                await sleep(1000);
-                const dismissBtn = document.querySelector('button[aria-label="Dismiss"]');
-                if (dismissBtn) dismissBtn.click();
-                await trackAppliedJob(job);
-                return { success: true, submitted: true };
-            } else if (action === 'stuck') {
-                const requiredEmpties = currentModal.querySelectorAll(
-                    'input[required]:not([type="radio"]):not([type="checkbox"]), ' +
-                    'select[required], textarea[required]'
-                );
-                const hasUnfilledRequired = Array.from(requiredEmpties).some(f => !f.value || !f.value.trim());
-                if (hasUnfilledRequired) {
-                    console.log('[Unhireable] 🛑 Stuck with unfilled required fields — needs manual input');
-                    showNotification(`⚠️ ${job.company}: needs manual input`);
-                    await dismissModal(currentModal);
-                    return { success: false, error: 'Required fields unfilled', needsManual: true };
-                }
-                return { success: false, error: 'Could not proceed', needsManual: true };
-            }
-        } catch (stepError) {
-            console.error(`[Unhireable] 💥 Error on step ${step + 1}:`, stepError.message);
-            await dismissModal();
-            return { success: false, error: `Step ${step + 1} crashed: ${stepError.message}` };
         }
 
-        await sleep(randomDelay(800, 1500));
-    }
+        console.log('[Unhireable] 🖱️ Clicking Easy Apply...', clickTarget.tagName);
 
-    return { success: false, error: 'Too many steps' };
-}
+        // Ensure button is visible and click it properly
+        clickTarget.scrollIntoView({ block: 'center' });
+        await sleep(300);
+        clickTarget.focus();
+        await sleep(100);
 
-async function applyToAllMatched() {
-    console.log(`[Unhireable] 🚀 Applying to ${matchedJobs.length} jobs, starting at index ${applyQueueIndex}...`);
+        // Try multiple click methods
+        clickTarget.click();
 
-    let applied = 0;
+        // Also dispatch click event for stubborn buttons
+        clickTarget.dispatchEvent(new MouseEvent('click', {
+            bubbles: true,
+            cancelable: true,
+            view: window
+        }));
 
-    // Resume from where we left off
-    for (let i = applyQueueIndex; i < matchedJobs.length; i++) {
-        if (!isRunning) break;
-        if (applied >= CONFIG.maxAppsPerSession) {
-            showNotification(`Session limit reached (${applied} apps)`);
-            break;
-        }
+        // Wait for modal to appear (up to 8 seconds with more frequent checks)
+        let modal = null;
+        const modalSelectors = [
+            '.jobs-easy-apply-modal',
+            '.artdeco-modal[role="dialog"]',
+            '.artdeco-modal',
+            '[data-test-modal]',
+            '.jobs-easy-apply-content',
+            'div[class*="easy-apply"]',
+            '.jobs-apply-modal'
+        ];
 
-        const job = matchedJobs[i];
-        sessionStats.jobsAttempted++;
-        updateStatus(`Applying ${i + 1}/${matchedJobs.length}: ${job.company}`);
-
-        try {
-            // Find and click the job card in the list to load it (no page refresh!)
-            const jobCards = document.querySelectorAll('.jobs-search-results__list-item, .scaffold-layout__list-item');
-            let foundCard = false;
-
-            for (const card of jobCards) {
-                if (card.textContent.includes(job.company) || card.innerHTML.includes(job.id)) {
-                    const clickable = card.querySelector('a') || card;
-                    clickable.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    await sleep(500);
-                    clickable.click();
-                    await sleep(2000);  // Wait for job details to load
-                    foundCard = true;
+        console.log('[Unhireable] ⏳ Waiting for modal...');
+        for (let wait = 0; wait < 16; wait++) {
+            await sleep(500);
+            for (const sel of modalSelectors) {
+                modal = document.querySelector(sel);
+                if (modal && modal.offsetParent !== null) { // Check if visible
+                    console.log('[Unhireable] ✅ Modal appeared:', sel);
                     break;
                 }
             }
+            if (modal) break;
 
-            if (!foundCard) {
-                sessionStats.jobsSkipped++;
-                console.log(`[Unhireable] ⏭️ Skipping ${job.company} - not visible in list`);
-                continue;
+            // Log progress every 2 seconds
+            if (wait % 4 === 3) {
+                console.log(`[Unhireable] Still waiting... (${(wait + 1) * 0.5}s)`);
+            }
+        }
+
+        if (!modal) {
+            console.log('[Unhireable] ❌ Modal never appeared after clicking Easy Apply');
+            console.log('[Unhireable] 📍 Button was:', easyApplyBtn.outerHTML.substring(0, 200));
+            return { success: false, error: 'Modal did not open' };
+        }
+
+        // Fill and submit up to 6 steps
+        let lastStepSignature = '';
+        let sameStepCount = 0;
+
+        for (let step = 0; step < 6; step++) {
+            console.log(`[Unhireable] 📄 Step ${step + 1}/6`);
+
+            const currentModal = document.querySelector('.jobs-easy-apply-modal, .artdeco-modal');
+            if (!currentModal) {
+                console.log('[Unhireable] ✅ Modal closed - application likely complete');
+                return { success: true, message: 'Application complete' };
             }
 
-            // Per-job timeout: 3 minutes max (external apply can take longer)
-            const jobResult = await Promise.race([
-                applyToJob(job),
-                new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('Job application timed out (3 min)')), 180000)
-                )
-            ]);
+            // Detect if we're stuck in a loop (same form repeated)
+            const currentFields = currentModal.querySelectorAll('input, select, textarea');
+            const stepSignature = Array.from(currentFields).map(f => f.name || f.id || f.placeholder || '').join('|');
 
-            if (jobResult.success) {
-                applied++;
-                sessionStats.jobsApplied++;
-                appliedJobs.push({ ...job, appliedAt: new Date().toISOString(), applyType: jobResult.type || 'easy_apply' });
+            // Check if we're on the review page (progress bar ≥ 95% or "Review" heading visible)
+            const progressBar = currentModal.querySelector('progress, .artdeco-completeness-meter-linear__progress-element');
+            const progressValue = progressBar ? (parseFloat(progressBar.style?.width) || parseFloat(progressBar.getAttribute('value')) || 0) : 0;
+            const reviewHeading = currentModal.querySelector('h2, h3');
+            const isReviewPage = progressValue >= 95 ||
+                (reviewHeading && /review|审查|просмотр/i.test(reviewHeading.textContent));
 
-                if (jobResult.type === 'external') {
-                    showNotification(`🌐 External filled: ${job.company} (${applied}/${CONFIG.maxAppsPerSession})`);
-                } else {
-                    showNotification(`Applied to ${job.company} (${applied}/${CONFIG.maxAppsPerSession})`);
+            // Check for submit-like buttons (multilingual)
+            const submitTexts = ['submit', 'send application', '提交申请', '提交', 'отправить', 'envoyer', 'absenden'];
+            const hasSubmitBtn = Array.from(currentModal.querySelectorAll('button')).some(btn => {
+                const text = btn.textContent.toLowerCase().trim();
+                const aria = (btn.getAttribute('aria-label') || '').toLowerCase();
+                return submitTexts.some(st => text.includes(st) || aria.includes(st)) && !btn.disabled;
+            });
+
+            if (stepSignature === lastStepSignature) {
+                sameStepCount++;
+                if (isReviewPage || hasSubmitBtn) {
+                    console.log('[Unhireable] 🔄 Review page detected (progress/submit) — proceeding to submit');
+                    sameStepCount = 0;
+                } else if (sameStepCount >= 2) {
+                    console.log('[Unhireable] 🛑 Stuck in loop — same step repeated 3 times. Needs manual input.');
+                    showNotification(`⚠️ ${job.company}: stuck on a step, needs manual input`);
+                    await dismissModal(currentModal);
+                    return { success: false, error: 'Stuck in loop', needsManual: true };
+                }
+            } else {
+                sameStepCount = 0;
+            }
+            lastStepSignature = stepSignature;
+
+            // Human pause - simulate reading the form before filling
+            await sleep(randomDelay(1000, 2000));
+
+            try {
+                log.stepStart(step + 1);
+                const fillResult = await UF.batchFill(currentModal, userProfile, job, getLinkedInHooks());
+                const filledCount = fillResult.filled;
+                log.stepEnd(filledCount > 0 ? 'filled' : 'empty');
+                await sleep(randomDelay(CONFIG.delayBetweenSteps.min, CONFIG.delayBetweenSteps.max));
+
+                // If form is completely empty (0 visible fields) AND no submit button, skip Next
+                const visibleFields = currentModal.querySelectorAll('input:not([type="hidden"]), select, textarea');
+                if (visibleFields.length === 0 && !hasSubmitBtn && !isReviewPage) {
+                    console.log('[Unhireable] ⚠️ Empty form and no submit — skipping Next click');
+                    continue;
                 }
 
-                // Update DB
-                chrome.runtime.sendMessage({
-                    type: 'markApplied',
-                    jobId: job.id
-                });
-            } else if (jobResult.type === 'unsupported_ats') {
-                sessionStats.jobsSkipped++;
-                console.log(`[Unhireable] ⏭️ Unsupported ATS for ${job.company} — skipping`);
-            } else if (jobResult.needsManual) {
-                sessionStats.jobsSkipped++;
-                showNotification(`${job.company} needs manual input — skipping`);
-                // Ensure modal is fully closed before moving to next job
+                const action = await clickNextOrSubmit(currentModal);
+                console.log('[Unhireable] Action result:', action);
+
+                if (action === 'submitted') {
+                    await sleep(1000);
+                    const dismissBtn = document.querySelector('button[aria-label="Dismiss"]');
+                    if (dismissBtn) dismissBtn.click();
+                    await trackAppliedJob(job);
+                    return { success: true, submitted: true };
+                } else if (action === 'stuck') {
+                    const requiredEmpties = currentModal.querySelectorAll(
+                        'input[required]:not([type="radio"]):not([type="checkbox"]), ' +
+                        'select[required], textarea[required]'
+                    );
+                    const hasUnfilledRequired = Array.from(requiredEmpties).some(f => !f.value || !f.value.trim());
+                    if (hasUnfilledRequired) {
+                        console.log('[Unhireable] 🛑 Stuck with unfilled required fields — needs manual input');
+                        showNotification(`⚠️ ${job.company}: needs manual input`);
+                        await dismissModal(currentModal);
+                        return { success: false, error: 'Required fields unfilled', needsManual: true };
+                    }
+                    return { success: false, error: 'Could not proceed', needsManual: true };
+                }
+            } catch (stepError) {
+                console.error(`[Unhireable] 💥 Error on step ${step + 1}:`, stepError.message);
                 await dismissModal();
-            } else {
-                sessionStats.jobsFailed++;
-                console.warn(`[Unhireable] ❌ Failed: ${job.company} — ${jobResult.error || 'unknown'}`);
-                await dismissModal();
+                return { success: false, error: `Step ${step + 1} crashed: ${stepError.message}` };
             }
 
-        } catch (err) {
-            sessionStats.jobsFailed++;
-            console.error(`[Unhireable] 💥 Apply error on ${job.company}:`, err.message);
-            // Always try to clean up modal on error
-            try { await dismissModal(); } catch (_) { }
+            await sleep(randomDelay(800, 1500));
         }
 
-        // Save progress after each job
-        applyQueueIndex = i + 1;
-        await saveApplyQueue();
+        return { success: false, error: 'Too many steps' };
+    }
 
-        // Dedup: save this job ID as attempted so it's skipped next run
-        const { attemptedJobIds = [] } = await chrome.storage.local.get(['attemptedJobIds']);
-        if (!attemptedJobIds.includes(job.id)) {
-            attemptedJobIds.push(job.id);
-            await chrome.storage.local.set({ attemptedJobIds });
+    // ===== CROSS-SESSION DAILY RATE LIMITING =====
+    async function checkDailyLimit() {
+        const { dailyApplyCount = 0, dailyResetDate, scheduleConfig } = await chrome.storage.local.get(
+            ['dailyApplyCount', 'dailyResetDate', 'scheduleConfig']
+        );
+        const dailyLimit = scheduleConfig?.dailyLimit || 25;
+        const today = new Date().toDateString();
+
+        // Reset counter if it's a new day
+        if (dailyResetDate !== today) {
+            await chrome.storage.local.set({ dailyApplyCount: 0, dailyResetDate: today });
+            return { count: 0, limit: dailyLimit, remaining: dailyLimit };
         }
 
-        await sleep(randomDelay(CONFIG.delayBetweenJobs.min, CONFIG.delayBetweenJobs.max));
+        return { count: dailyApplyCount, limit: dailyLimit, remaining: Math.max(0, dailyLimit - dailyApplyCount) };
     }
 
-    logSessionStats();
-    console.log(`[Unhireable] ✅ Applied to ${applied} jobs`);
-    showNotification(`Done! Applied to ${applied}/${sessionStats.jobsAttempted} jobs (${sessionStats.jobsFailed} failed)`);
-    await clearApplyQueue();  // Clear queue when done
-    return applied;
-}
-
-// ========== MAIN AUTOPILOT ==========
-
-async function runAutopilot() {
-    if (isRunning) return;
-    isRunning = true;
-
-    // Load profile
-    const stored = await chrome.storage.local.get(['userProfile']);
-    userProfile = stored.userProfile;
-
-    if (!userProfile) {
-        showNotification('No profile! Click extension → Set Test Profile');
-        isRunning = false;
-        return;
+    async function incrementDailyCount() {
+        const { dailyApplyCount = 0 } = await chrome.storage.local.get(['dailyApplyCount']);
+        await chrome.storage.local.set({ dailyApplyCount: dailyApplyCount + 1 });
     }
 
-    console.log('[Unhireable] 🤖 Autopilot started');
-    showNotification('Autopilot starting...');
+    async function applyToAllMatched() {
+        console.log(`[Unhireable] 🚀 Applying to ${matchedJobs.length} jobs, starting at index ${applyQueueIndex}...`);
 
-    try {
-        // Phase 1: Scan
-        await scanAllJobs();
+        // Check daily limit before starting
+        const daily = await checkDailyLimit();
+        if (daily.remaining <= 0) {
+            showNotification(`Daily limit reached (${daily.count}/${daily.limit}). Try again tomorrow!`);
+            console.log(`[Unhireable] 🛑 Daily limit reached: ${daily.count}/${daily.limit}`);
+            return 0;
+        }
 
-        if (matchedJobs.length === 0) {
-            showNotification('No matching jobs found');
+        const effectiveSessionLimit = Math.min(CONFIG.maxAppsPerSession, daily.remaining);
+        console.log(`[Unhireable] 📊 Daily: ${daily.count}/${daily.limit}, session cap: ${effectiveSessionLimit}`);
+
+        let applied = 0;
+
+        // Resume from where we left off
+        for (let i = applyQueueIndex; i < matchedJobs.length; i++) {
+            if (!isRunning) break;
+            if (applied >= effectiveSessionLimit) {
+                const reason = applied >= daily.remaining ? 'daily limit' : 'session limit';
+                showNotification(`${reason.charAt(0).toUpperCase() + reason.slice(1)} reached (${applied} apps)`);
+                break;
+            }
+
+            const job = matchedJobs[i];
+            sessionStats.jobsAttempted++;
+            console.log(`[Unhireable] 📝 Apply ${i + 1}/${matchedJobs.length}: "${job.title}" at ${job.company} [ID: ${job.id}]`);
+            updateStatus(`Applying ${i + 1}/${matchedJobs.length}: ${job.company}`);
+
+            try {
+                // Strategy 1: Find card by job ID (most reliable)
+                let foundCard = false;
+                const jobCards = getJobCards();
+
+                for (const card of jobCards) {
+                    const cardId = getJobIdFromCard(card);
+                    if (cardId === job.id) {
+                        const clickable = card.querySelector('a') || card;
+                        clickable.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        await sleep(500);
+                        clickable.click();
+                        await sleep(2000);
+                        foundCard = true;
+                        break;
+                    }
+                }
+
+                // Strategy 2: Match by company name (fallback)
+                if (!foundCard) {
+                    for (const card of jobCards) {
+                        if (card.textContent.includes(job.company)) {
+                            const clickable = card.querySelector('a') || card;
+                            clickable.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            await sleep(500);
+                            clickable.click();
+                            await sleep(2000);
+                            foundCard = true;
+                            console.log(`[Unhireable] Found card by company name fallback: ${job.company}`);
+                            break;
+                        }
+                    }
+                }
+
+                // Strategy 3: Navigate directly to the job URL
+                if (!foundCard && job.id && job.id !== `unknown_${Date.now()}`) {
+                    console.log(`[Unhireable] ⚠️ Card not in DOM, navigating to job ${job.id} via URL...`);
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('currentJobId', job.id);
+                    window.history.pushState(null, '', url.toString());
+                    window.dispatchEvent(new PopStateEvent('popstate'));
+                    await sleep(3000);
+                    foundCard = true; // Assume navigation worked
+                }
+
+                if (!foundCard) {
+                    sessionStats.jobsSkipped++;
+                    console.log(`[Unhireable] ⏭️ Skipping ${job.company} - card not found [ID: ${job.id}]`);
+                    continue;
+                }
+
+                // Per-job timeout: 3 minutes max (external apply can take longer)
+                const jobResult = await Promise.race([
+                    applyToJob(job),
+                    new Promise((_, reject) =>
+                        setTimeout(() => reject(new Error('Job application timed out (3 min)')), 180000)
+                    )
+                ]);
+
+                if (jobResult.success) {
+                    applied++;
+                    sessionStats.jobsApplied++;
+                    appliedJobs.push({ ...job, appliedAt: new Date().toISOString(), applyType: jobResult.type || 'easy_apply' });
+                    await incrementDailyCount();
+
+                    if (jobResult.type === 'external') {
+                        showNotification(`🌐 External filled: ${job.company} (${applied}/${CONFIG.maxAppsPerSession})`);
+                    } else {
+                        showNotification(`Applied to ${job.company} (${applied}/${CONFIG.maxAppsPerSession})`);
+                    }
+
+                    // Update DB
+                    chrome.runtime.sendMessage({
+                        type: 'markApplied',
+                        jobId: job.id
+                    });
+                } else if (jobResult.type === 'unsupported_ats') {
+                    sessionStats.jobsSkipped++;
+                    console.log(`[Unhireable] ⏭️ Unsupported ATS for ${job.company} — skipping`);
+                } else if (jobResult.needsManual) {
+                    sessionStats.jobsSkipped++;
+                    showNotification(`${job.company} needs manual input — skipping`);
+                    // Ensure modal is fully closed before moving to next job
+                    await dismissModal();
+                } else {
+                    sessionStats.jobsFailed++;
+                    console.warn(`[Unhireable] ❌ Failed: ${job.company} — ${jobResult.error || 'unknown'}`);
+                    await dismissModal();
+                }
+
+            } catch (err) {
+                sessionStats.jobsFailed++;
+                console.error(`[Unhireable] 💥 Apply error on ${job.company}:`, err.message);
+                // Always try to clean up modal on error
+                try { await dismissModal(); } catch (_) { }
+            }
+
+            // Save progress after each job
+            applyQueueIndex = i + 1;
+            await saveApplyQueue();
+
+            // Dedup: save this job ID as attempted so it's skipped next run
+            const { attemptedJobIds = [] } = await chrome.storage.local.get(['attemptedJobIds']);
+            if (!attemptedJobIds.includes(job.id)) {
+                attemptedJobIds.push(job.id);
+                await chrome.storage.local.set({ attemptedJobIds });
+            }
+
+            await sleep(randomDelay(CONFIG.delayBetweenJobs.min, CONFIG.delayBetweenJobs.max));
+        }
+
+        logSessionStats();
+        console.log(`[Unhireable] ✅ Applied to ${applied} jobs`);
+        showNotification(`Done! Applied to ${applied}/${sessionStats.jobsAttempted} jobs (${sessionStats.jobsFailed} failed)`);
+        await clearApplyQueue();  // Clear queue when done
+        return applied;
+    }
+
+    // ========== MAIN AUTOPILOT ==========
+
+    async function runAutopilot() {
+        if (isRunning) return;
+        isRunning = true;
+
+        // Load profile
+        const stored = await chrome.storage.local.get(['userProfile']);
+        userProfile = stored.userProfile;
+
+        if (!userProfile) {
+            showNotification('No profile! Click extension → Set Test Profile');
             isRunning = false;
             return;
         }
 
-        // Phase 2: Apply
-        await applyToAllMatched();
+        console.log('[Unhireable] 🤖 Autopilot started');
+        showNotification('Autopilot starting...');
 
-    } catch (err) {
-        console.error('[Unhireable] Autopilot error:', err);
-        showNotification('Error: ' + err.message);
+        try {
+            // Phase 1: Scan
+            await scanAllJobs();
+
+            if (matchedJobs.length === 0) {
+                showNotification('No matching jobs found');
+                isRunning = false;
+                return;
+            }
+
+            // Phase 2: Apply
+            await applyToAllMatched();
+
+        } catch (err) {
+            console.error('[Unhireable] Autopilot error:', err);
+            showNotification('Error: ' + err.message);
+        }
+
+        isRunning = false;
+        updateStatus('Idle');
     }
 
-    isRunning = false;
-    updateStatus('Idle');
-}
+    function stopAutopilot() {
+        isRunning = false;
+        showNotification('Autopilot stopped');
+        updateStatus('Stopped');
+    }
 
-function stopAutopilot() {
-    isRunning = false;
-    showNotification('Autopilot stopped');
-    updateStatus('Stopped');
-}
+    // ========== UI ==========
 
-// ========== UI ==========
-
-function showNotification(message) {
-    let notif = document.getElementById('unhireable-notif');
-    if (!notif) {
-        notif = document.createElement('div');
-        notif.id = 'unhireable-notif';
-        notif.style.cssText = `
+    function showNotification(message) {
+        let notif = document.getElementById('unhireable-notif');
+        if (!notif) {
+            notif = document.createElement('div');
+            notif.id = 'unhireable-notif';
+            notif.style.cssText = `
                 position: fixed; top: 20px; right: 20px;
                 padding: 16px 24px; background: linear-gradient(135deg, #6366f1, #8b5cf6);
                 color: white; border-radius: 12px; font-family: system-ui;
                 font-size: 14px; font-weight: 500; z-index: 999999;
                 box-shadow: 0 10px 40px rgba(0,0,0,0.3);
             `;
-        document.body.appendChild(notif);
-    }
-    notif.textContent = '🤖 ' + message;
-    notif.style.opacity = '1';
-    clearTimeout(notif._t);
-    notif._t = setTimeout(() => notif.style.opacity = '0', 5000);
-}
-
-function updateStatus(status) {
-    chrome.runtime.sendMessage({
-        type: 'status', status,
-        matched: matchedJobs.length, applied: appliedJobs.length
-    });
-}
-
-// ========== MESSAGE HANDLING ==========
-
-// Bridge: allow page-level JS (e.g. browser automation) to trigger commands
-window.addEventListener('message', (event) => {
-    if (event.source !== window || event.data?.type !== 'unhireable') return;
-    const action = event.data.action;
-    console.log('[Unhireable] Window message:', action);
-
-    if (action === 'startAutopilot') {
-        runAutopilot();
-    } else if (action === 'stopAutopilot') {
-        stopAutopilot();
-    } else if (action === 'scanOnly') {
-        (async () => {
-            const stored = await chrome.storage.local.get(['userProfile']);
-            userProfile = stored.userProfile;
-            isRunning = true;
-            await scanAllJobs();
-            isRunning = false;
-            console.log(`[Unhireable] Scan complete: ${matchedJobs.length} matches`);
-        })();
-    } else if (action === 'applyToMatches') {
-        (async () => {
-            if (matchedJobs.length === 0) await loadApplyQueue();
-            if (matchedJobs.length === 0) {
-                showNotification('No matches to apply to! Scan first.');
-                return;
-            }
-            const stored = await chrome.storage.local.get(['userProfile']);
-            userProfile = stored.userProfile;
-            isRunning = true;
-            applyQueueIndex = 0;
-            await saveApplyQueue();
-            await applyToAllMatched();
-            isRunning = false;
-        })();
-    } else if (action === 'testApplySingle') {
-        (async () => {
-            const stored = await chrome.storage.local.get(['userProfile']);
-            userProfile = stored.userProfile;
-            if (!userProfile) {
-                console.log('[Unhireable] ❌ No profile loaded');
-                return;
-            }
-            const titleEl = document.querySelector('.job-details-jobs-unified-top-card__job-title, .jobs-unified-top-card__job-title');
-            const companyEl = document.querySelector('.job-details-jobs-unified-top-card__company-name, .jobs-unified-top-card__company-name');
-            const currentJob = {
-                title: titleEl?.textContent?.trim() || 'Unknown',
-                company: companyEl?.textContent?.trim() || 'Unknown',
-                hasEasyApply: true
-            };
-            console.log('[Unhireable] 🧪 Testing apply on:', currentJob);
-            try {
-                const result = await applyToJob(currentJob);
-                console.log('[Unhireable] 🧪 Test result:', result);
-            } catch (err) {
-                console.error('[Unhireable] Test apply error:', err);
-            }
-        })();
-    }
-});
-
-// Safety check - chrome.runtime may be undefined if extension context is invalidated
-if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.onMessage) {
-    console.error('[Unhireable] ❌ Chrome runtime not available - extension may need reload');
-    return;
-}
-
-chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    console.log('[Unhireable] Message:', msg.action);
-
-    if (msg.action === 'clickExternalApply') {
-        // Background is telling us to click the Apply button now (tab watcher is ready)
-        const applyBtn = document.querySelector(
-            'button.jobs-apply-button--top-card, ' +
-            'button.jobs-apply-button:not([id*="searchFilter"]), ' +
-            'button#jobs-apply-button-id'
-        );
-        if (applyBtn) {
-            applyBtn.click();
-            console.log('[Unhireable] 🖱️ Clicked external Apply button (on background request)');
-
-            // LinkedIn sometimes shows a "You are leaving LinkedIn" confirmation modal
-            // before opening the external page. We need to auto-click "Continue" if it appears.
-            (async () => {
-                for (let attempt = 0; attempt < 6; attempt++) {
-                    await new Promise(r => setTimeout(r, 500));
-                    // Look for common confirmation modal buttons
-                    const confirmBtns = document.querySelectorAll(
-                        '.artdeco-modal button, ' +
-                        '[data-test-modal] button, ' +
-                        '.modal button'
-                    );
-                    for (const btn of confirmBtns) {
-                        const text = (btn.textContent || '').trim().toLowerCase();
-                        if (text.includes('continue') || text.includes('apply') ||
-                            text.includes('proceed') || text.includes('go to') ||
-                            text.includes('leave') || text.includes('open')) {
-                            console.log(`[Unhireable] 🖱️ Clicking confirmation: "${btn.textContent.trim()}"`);
-                            btn.click();
-                            return;
-                        }
-                    }
-                    // Also check for dismiss/close buttons that may appear with a redirect link
-                    const extLink = document.querySelector(
-                        '.artdeco-modal a[target="_blank"], ' +
-                        '.artdeco-modal a[href*="apply"], ' +
-                        '[data-test-modal] a[target="_blank"]'
-                    );
-                    if (extLink) {
-                        console.log(`[Unhireable] 🖱️ Clicking external link in modal: ${extLink.href}`);
-                        extLink.click();
-                        return;
-                    }
-                }
-                console.log('[Unhireable] ⚠️ No confirmation modal detected (may have redirected directly)');
-            })();
-
-            sendResponse({ clicked: true });
-        } else {
-            console.log('[Unhireable] ❌ No Apply button found');
-            sendResponse({ clicked: false });
+            document.body.appendChild(notif);
         }
+        notif.textContent = '🤖 ' + message;
+        notif.style.opacity = '1';
+        clearTimeout(notif._t);
+        notif._t = setTimeout(() => notif.style.opacity = '0', 5000);
+    }
+
+    function updateStatus(status) {
+        chrome.runtime.sendMessage({
+            type: 'status', status,
+            matched: matchedJobs.length, applied: appliedJobs.length
+        });
+    }
+
+    // ========== MESSAGE HANDLING ==========
+
+    // Bridge: allow page-level JS (e.g. browser automation) to trigger commands
+    window.addEventListener('message', (event) => {
+        if (event.source !== window || event.data?.type !== 'unhireable') return;
+        const action = event.data.action;
+        console.log('[Unhireable] Window message:', action);
+
+        if (action === 'startAutopilot') {
+            runAutopilot();
+        } else if (action === 'stopAutopilot') {
+            stopAutopilot();
+        } else if (action === 'scanOnly') {
+            (async () => {
+                const stored = await chrome.storage.local.get(['userProfile']);
+                userProfile = stored.userProfile;
+                isRunning = true;
+                await scanAllJobs();
+                isRunning = false;
+                console.log(`[Unhireable] Scan complete: ${matchedJobs.length} matches`);
+            })();
+        } else if (action === 'applyToMatches') {
+            (async () => {
+                if (matchedJobs.length === 0) await loadApplyQueue();
+                if (matchedJobs.length === 0) {
+                    showNotification('No matches to apply to! Scan first.');
+                    return;
+                }
+                const stored = await chrome.storage.local.get(['userProfile']);
+                userProfile = stored.userProfile;
+                isRunning = true;
+                applyQueueIndex = 0;
+                await saveApplyQueue();
+                await applyToAllMatched();
+                isRunning = false;
+            })();
+        } else if (action === 'testApplySingle') {
+            (async () => {
+                const stored = await chrome.storage.local.get(['userProfile']);
+                userProfile = stored.userProfile;
+                if (!userProfile) {
+                    console.log('[Unhireable] ❌ No profile loaded');
+                    return;
+                }
+                const titleEl = document.querySelector('.job-details-jobs-unified-top-card__job-title, .jobs-unified-top-card__job-title');
+                const companyEl = document.querySelector('.job-details-jobs-unified-top-card__company-name, .jobs-unified-top-card__company-name');
+                const currentJob = {
+                    title: titleEl?.textContent?.trim() || 'Unknown',
+                    company: companyEl?.textContent?.trim() || 'Unknown',
+                    hasEasyApply: true
+                };
+                console.log('[Unhireable] 🧪 Testing apply on:', currentJob);
+                try {
+                    const result = await applyToJob(currentJob);
+                    console.log('[Unhireable] 🧪 Test result:', result);
+                } catch (err) {
+                    console.error('[Unhireable] Test apply error:', err);
+                }
+            })();
+        }
+    });
+
+    // Safety check - chrome.runtime may be undefined if extension context is invalidated
+    if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.onMessage) {
+        console.error('[Unhireable] ❌ Chrome runtime not available - extension may need reload');
         return;
     }
 
-    if (msg.action === 'startAutopilot') {
-        runAutopilot();
-        sendResponse({ success: true });
-    } else if (msg.action === 'stopAutopilot') {
-        stopAutopilot();
-        sendResponse({ success: true });
-    } else if (msg.action === 'getStatus') {
-        sendResponse({
-            isRunning,
-            scanned: scannedJobs.length,
-            matched: matchedJobs.length,
-            applied: appliedJobs.length
-        });
-    } else if (msg.action === 'scanOnly') {
-        (async () => {
-            const stored = await chrome.storage.local.get(['userProfile']);
-            userProfile = stored.userProfile;
-            isRunning = true;
-            await scanAllJobs();
-            isRunning = false;
-            sendResponse({ success: true, matched: matchedJobs.length });
-        })();
-        return true;
-    } else if (msg.action === 'applyToMatches') {
-        (async () => {
-            // Load from storage if needed
-            if (matchedJobs.length === 0) {
-                await loadApplyQueue();
+    chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+        console.log('[Unhireable] Message:', msg.action);
+
+        if (msg.action === 'clickExternalApply') {
+            // Background is telling us to click the Apply button now (tab watcher is ready)
+            const applyBtn = document.querySelector(
+                'button.jobs-apply-button--top-card, ' +
+                'button.jobs-apply-button:not([id*="searchFilter"]), ' +
+                'button#jobs-apply-button-id'
+            );
+            if (applyBtn) {
+                applyBtn.click();
+                console.log('[Unhireable] 🖱️ Clicked external Apply button (on background request)');
+
+                // LinkedIn sometimes shows a "You are leaving LinkedIn" confirmation modal
+                // before opening the external page. We need to auto-click "Continue" if it appears.
+                (async () => {
+                    for (let attempt = 0; attempt < 6; attempt++) {
+                        await new Promise(r => setTimeout(r, 500));
+                        // Look for common confirmation modal buttons
+                        const confirmBtns = document.querySelectorAll(
+                            '.artdeco-modal button, ' +
+                            '[data-test-modal] button, ' +
+                            '.modal button'
+                        );
+                        for (const btn of confirmBtns) {
+                            const text = (btn.textContent || '').trim().toLowerCase();
+                            if (text.includes('continue') || text.includes('apply') ||
+                                text.includes('proceed') || text.includes('go to') ||
+                                text.includes('leave') || text.includes('open')) {
+                                console.log(`[Unhireable] 🖱️ Clicking confirmation: "${btn.textContent.trim()}"`);
+                                btn.click();
+                                return;
+                            }
+                        }
+                        // Also check for dismiss/close buttons that may appear with a redirect link
+                        const extLink = document.querySelector(
+                            '.artdeco-modal a[target="_blank"], ' +
+                            '.artdeco-modal a[href*="apply"], ' +
+                            '[data-test-modal] a[target="_blank"]'
+                        );
+                        if (extLink) {
+                            console.log(`[Unhireable] 🖱️ Clicking external link in modal: ${extLink.href}`);
+                            extLink.click();
+                            return;
+                        }
+                    }
+                    console.log('[Unhireable] ⚠️ No confirmation modal detected (may have redirected directly)');
+                })();
+
+                sendResponse({ clicked: true });
+            } else {
+                console.log('[Unhireable] ❌ No Apply button found');
+                sendResponse({ clicked: false });
             }
+            return;
+        }
 
-            if (matchedJobs.length === 0) {
-                showNotification('No matches to apply to! Scan first.');
-                sendResponse({ success: false, error: 'No matches' });
-                return;
-            }
-
-            const stored = await chrome.storage.local.get(['userProfile']);
-            userProfile = stored.userProfile;
-            isRunning = true;
-            applyQueueIndex = 0;  // Start from beginning
-            await saveApplyQueue();
-            await applyToAllMatched();
-            isRunning = false;
-            sendResponse({ success: true, applied: appliedJobs.length });
-        })();
-        return true;
-    } else if (msg.action === 'testApplySingle') {
-        // Test on the currently visible job - no scanning, no navigation
-        (async () => {
-            const stored = await chrome.storage.local.get(['userProfile']);
-            userProfile = stored.userProfile;
-
-            if (!userProfile) {
-                sendResponse({ success: false, error: 'Load profile first!' });
-                return;
-            }
-
-            // Get current job info from the page
-            const titleEl = document.querySelector('.job-details-jobs-unified-top-card__job-title, .jobs-unified-top-card__job-title');
-            const companyEl = document.querySelector('.job-details-jobs-unified-top-card__company-name, .jobs-unified-top-card__company-name');
-
-            const currentJob = {
-                title: titleEl?.textContent?.trim() || 'Unknown',
-                company: companyEl?.textContent?.trim() || 'Unknown',
-                hasEasyApply: !!document.querySelector(
-                    'button.jobs-apply-button--top-card, ' +
-                    'button[aria-label*="Easy Apply"]:not([id*="searchFilter"]):not([role="radio"])'
-                )
-            };
-
-            console.log('[Unhireable] 🧪 Testing apply on:', currentJob);
-            showNotification(`Testing: ${currentJob.company}...`);
-
-            try {
-                const result = await applyToJob(currentJob);
-                console.log('[Unhireable] 🧪 Test result:', result);
-
-                if (result.success) {
-                    showNotification(`✅ Applied to ${currentJob.company}!`);
-                    sendResponse({ success: true });
-                } else {
-                    showNotification(`⚠️ ${result.error || 'Needs manual input'}`);
-                    sendResponse({ success: false, error: result.error || 'Manual needed' });
-                }
-            } catch (err) {
-                console.error('[Unhireable] Test apply error:', err);
-                sendResponse({ success: false, error: err.message });
-            }
-        })();
-        return true;
-    } else if (msg.action === 'getUnknownFields') {
-        // Get the backlog of unknown fields
-        (async () => {
-            const stored = await chrome.storage.local.get(['unknownFieldsBacklog']);
-            sendResponse({ fields: stored.unknownFieldsBacklog || [] });
-        })();
-        return true;
-    } else if (msg.action === 'clearUnknownFields') {
-        // Clear the backlog
-        (async () => {
-            await chrome.storage.local.remove(['unknownFieldsBacklog']);
-            unknownFields = [];
+        if (msg.action === 'startAutopilot') {
+            runAutopilot();
             sendResponse({ success: true });
-        })();
+        } else if (msg.action === 'stopAutopilot') {
+            stopAutopilot();
+            sendResponse({ success: true });
+        } else if (msg.action === 'getStatus') {
+            sendResponse({
+                isRunning,
+                scanned: scannedJobs.length,
+                matched: matchedJobs.length,
+                applied: appliedJobs.length
+            });
+        } else if (msg.action === 'scanOnly') {
+            (async () => {
+                const stored = await chrome.storage.local.get(['userProfile']);
+                userProfile = stored.userProfile;
+                isRunning = true;
+                await scanAllJobs();
+                isRunning = false;
+                sendResponse({ success: true, matched: matchedJobs.length });
+            })();
+            return true;
+        } else if (msg.action === 'applyToMatches') {
+            (async () => {
+                // Load from storage if needed
+                if (matchedJobs.length === 0) {
+                    await loadApplyQueue();
+                }
+
+                if (matchedJobs.length === 0) {
+                    showNotification('No matches to apply to! Scan first.');
+                    sendResponse({ success: false, error: 'No matches' });
+                    return;
+                }
+
+                const stored = await chrome.storage.local.get(['userProfile']);
+                userProfile = stored.userProfile;
+                isRunning = true;
+                applyQueueIndex = 0;  // Start from beginning
+                await saveApplyQueue();
+                await applyToAllMatched();
+                isRunning = false;
+                sendResponse({ success: true, applied: appliedJobs.length });
+            })();
+            return true;
+        } else if (msg.action === 'testApplySingle') {
+            // Test on the currently visible job - no scanning, no navigation
+            (async () => {
+                const stored = await chrome.storage.local.get(['userProfile']);
+                userProfile = stored.userProfile;
+
+                if (!userProfile) {
+                    sendResponse({ success: false, error: 'Load profile first!' });
+                    return;
+                }
+
+                // Get current job info from the page
+                const titleEl = document.querySelector('.job-details-jobs-unified-top-card__job-title, .jobs-unified-top-card__job-title');
+                const companyEl = document.querySelector('.job-details-jobs-unified-top-card__company-name, .jobs-unified-top-card__company-name');
+
+                const currentJob = {
+                    title: titleEl?.textContent?.trim() || 'Unknown',
+                    company: companyEl?.textContent?.trim() || 'Unknown',
+                    hasEasyApply: !!document.querySelector(
+                        'button.jobs-apply-button--top-card, ' +
+                        'button[aria-label*="Easy Apply"]:not([id*="searchFilter"]):not([role="radio"])'
+                    )
+                };
+
+                console.log('[Unhireable] 🧪 Testing apply on:', currentJob);
+                showNotification(`Testing: ${currentJob.company}...`);
+
+                try {
+                    const result = await applyToJob(currentJob);
+                    console.log('[Unhireable] 🧪 Test result:', result);
+
+                    if (result.success) {
+                        showNotification(`✅ Applied to ${currentJob.company}!`);
+                        sendResponse({ success: true });
+                    } else {
+                        showNotification(`⚠️ ${result.error || 'Needs manual input'}`);
+                        sendResponse({ success: false, error: result.error || 'Manual needed' });
+                    }
+                } catch (err) {
+                    console.error('[Unhireable] Test apply error:', err);
+                    sendResponse({ success: false, error: err.message });
+                }
+            })();
+            return true;
+        } else if (msg.action === 'getUnknownFields') {
+            // Get the backlog of unknown fields
+            (async () => {
+                const stored = await chrome.storage.local.get(['unknownFieldsBacklog']);
+                sendResponse({ fields: stored.unknownFieldsBacklog || [] });
+            })();
+            return true;
+        } else if (msg.action === 'clearUnknownFields') {
+            // Clear the backlog
+            (async () => {
+                await chrome.storage.local.remove(['unknownFieldsBacklog']);
+                unknownFields = [];
+                sendResponse({ success: true });
+            })();
+            return true;
+        }
+
         return true;
-    }
+    });
 
-    return true;
-});
+    // REMOVED: duplicate window.postMessage handler — consolidated into the one at line ~1896
 
-// REMOVED: duplicate window.postMessage handler — consolidated into the one at line ~1896
+    console.log('[Unhireable] 🚀 LinkedIn Auto-Apply loaded');
 
-console.log('[Unhireable] 🚀 LinkedIn Auto-Apply loaded');
+    // Auto-resume disabled for now - was causing infinite refresh loop
+    // TODO: Fix to only resume on the correct job page
+    (async () => {
+        // Clear any stuck apply sessions on load
+        await chrome.storage.local.remove(['isApplying']);
 
-// Auto-resume disabled for now - was causing infinite refresh loop
-// TODO: Fix to only resume on the correct job page
-(async () => {
-    // Clear any stuck apply sessions on load
-    await chrome.storage.local.remove(['isApplying']);
+        if (window.location.href.includes('/jobs/')) {
+            showNotification('Ready! Click extension to start');
+        }
+    })();
 
-    if (window.location.href.includes('/jobs/')) {
-        showNotification('Ready! Click extension to start');
-    }
 })();
-
-}) ();

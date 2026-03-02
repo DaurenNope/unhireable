@@ -226,6 +226,136 @@ async function handleNextJob() {
     }
 }
 
+// ========== CHROME ALARMS: AUTO-SCHEDULING ==========
+
+const ALARM_AUTO_SCAN = 'unhireable_autoScan';
+const ALARM_DAILY_RESET = 'unhireable_dailyReset';
+
+// Register or update the auto-scan alarm based on saved config
+async function registerScheduleAlarm() {
+    const { scheduleConfig } = await chrome.storage.local.get(['scheduleConfig']);
+    const config = scheduleConfig || { enabled: false, intervalHours: 4, dailyLimit: 25, activeHoursStart: 9, activeHoursEnd: 17 };
+
+    // Clear existing alarm
+    await chrome.alarms.clear(ALARM_AUTO_SCAN);
+
+    if (config.enabled) {
+        chrome.alarms.create(ALARM_AUTO_SCAN, {
+            delayInMinutes: config.intervalHours * 60,
+            periodInMinutes: config.intervalHours * 60
+        });
+        console.log(`[Unhireable] ⏰ Auto-scan alarm set: every ${config.intervalHours}h`);
+    } else {
+        console.log('[Unhireable] ⏰ Auto-scan disabled');
+    }
+}
+
+// Register daily reset alarm (fires at midnight)
+function registerDailyResetAlarm() {
+    const now = new Date();
+    const midnight = new Date(now);
+    midnight.setHours(24, 0, 0, 0);
+    const msUntilMidnight = midnight.getTime() - now.getTime();
+
+    chrome.alarms.create(ALARM_DAILY_RESET, {
+        delayInMinutes: msUntilMidnight / 60000,
+        periodInMinutes: 24 * 60  // Every 24 hours
+    });
+}
+
+// Check if current time is within active hours
+function isWithinActiveHours(config) {
+    const hour = new Date().getHours();
+    return hour >= (config.activeHoursStart || 9) && hour < (config.activeHoursEnd || 17);
+}
+
+// Find or open a LinkedIn Jobs tab and trigger autopilot
+async function triggerAutoScan() {
+    const { scheduleConfig, dailyApplyCount = 0 } = await chrome.storage.local.get(['scheduleConfig', 'dailyApplyCount']);
+    const config = scheduleConfig || { enabled: false, dailyLimit: 25, activeHoursStart: 9, activeHoursEnd: 17 };
+
+    // Safety checks
+    if (!config.enabled) {
+        console.log('[Unhireable] ⏰ Auto-scan skipped: disabled');
+        return;
+    }
+
+    if (!isWithinActiveHours(config)) {
+        console.log(`[Unhireable] ⏰ Auto-scan skipped: outside active hours (${config.activeHoursStart}-${config.activeHoursEnd})`);
+        return;
+    }
+
+    if (dailyApplyCount >= (config.dailyLimit || 25)) {
+        console.log(`[Unhireable] ⏰ Auto-scan skipped: daily limit reached (${dailyApplyCount}/${config.dailyLimit})`);
+        return;
+    }
+
+    console.log(`[Unhireable] ⏰ Auto-scan triggered. Daily count: ${dailyApplyCount}/${config.dailyLimit}`);
+
+    // Find existing LinkedIn Jobs tab or open one
+    const tabs = await chrome.tabs.query({ url: 'https://www.linkedin.com/jobs/*' });
+    let targetTab;
+
+    if (tabs.length > 0) {
+        targetTab = tabs[0];
+        // Make sure page is loaded
+        if (targetTab.status !== 'complete') {
+            await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+    } else {
+        // Open a LinkedIn Jobs search page
+        const { searchUrl } = await chrome.storage.local.get(['searchUrl']);
+        const url = searchUrl || 'https://www.linkedin.com/jobs/search/?f_AL=true&f_WT=2&sortBy=DD';
+        targetTab = await chrome.tabs.create({ url, active: false });
+
+        // Wait for page to load
+        await new Promise(resolve => {
+            const listener = (tabId, info) => {
+                if (tabId === targetTab.id && info.status === 'complete') {
+                    chrome.tabs.onUpdated.removeListener(listener);
+                    resolve();
+                }
+            };
+            chrome.tabs.onUpdated.addListener(listener);
+            setTimeout(() => {
+                chrome.tabs.onUpdated.removeListener(listener);
+                resolve();
+            }, 30000);
+        });
+
+        // Extra delay for content scripts to initialize
+        await new Promise(r => setTimeout(r, 3000));
+    }
+
+    // Send startAutopilot to the content script
+    try {
+        await chrome.tabs.sendMessage(targetTab.id, { action: 'startAutopilot' });
+        console.log(`[Unhireable] ⏰ Autopilot triggered on tab ${targetTab.id}`);
+        await chrome.storage.local.set({ lastAutoScan: new Date().toISOString() });
+    } catch (err) {
+        console.error('[Unhireable] ⏰ Failed to trigger autopilot:', err.message);
+    }
+}
+
+// Handle alarm events
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+    if (alarm.name === ALARM_AUTO_SCAN) {
+        console.log('[Unhireable] ⏰ Auto-scan alarm fired');
+        await triggerAutoScan();
+    } else if (alarm.name === ALARM_DAILY_RESET) {
+        console.log('[Unhireable] ⏰ Daily reset: clearing apply counter');
+        await chrome.storage.local.set({ dailyApplyCount: 0, dailyResetDate: new Date().toDateString() });
+    }
+});
+
+// Listen for schedule config changes from popup
+chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && changes.scheduleConfig) {
+        console.log('[Unhireable] ⏰ Schedule config changed, re-registering alarm');
+        registerScheduleAlarm();
+    }
+});
+
 // Listen for installation
 chrome.runtime.onInstalled.addListener(() => {
     console.log('Unhireable Auto-Apply extension installed');
@@ -237,13 +367,19 @@ chrome.runtime.onInstalled.addListener(() => {
         delayMs: { min: 50, max: 150 }  // Typing delay range
     });
 
+    // Register alarms
+    registerScheduleAlarm();
+    registerDailyResetAlarm();
+
     // Try to connect to Tauri app
     connectToTauriApp();
 });
 
-// Try to connect on startup
+// Try to connect on startup and re-register alarms
 chrome.runtime.onStartup.addListener(() => {
     connectToTauriApp();
+    registerScheduleAlarm();
+    registerDailyResetAlarm();
 });
 
 // Listen for messages from content scripts
@@ -251,7 +387,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log('[Unhireable Background] Received:', message.type || message.action);
 
     if (message.type === 'saveJob') {
-        // Save matched job to extension storage (and send to Tauri if connected)
+        // Forward to Tauri if connected
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ action: 'saveJob', job: message.job }));
+        }
+
+        // Save matched job to extension storage
         chrome.storage.local.get(['matchedJobs'], (result) => {
             const jobs = result.matchedJobs || [];
             // Avoid duplicates
@@ -259,17 +400,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 jobs.push(message.job);
                 chrome.storage.local.set({ matchedJobs: jobs }, () => {
                     console.log(`[Unhireable] Saved job: ${message.job.title} (${jobs.length} total)`);
+                    sendResponse({ success: true, count: jobs.length });
                 });
+            } else {
+                sendResponse({ success: true, exists: true });
             }
         });
-
-        // Forward to Tauri if connected
-        if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ action: 'saveJob', job: message.job }));
-        }
-
-        sendResponse({ success: true });
-        return true;
+        return true; // Keep channel open for async response
     }
 
     if (message.type === 'markApplied') {

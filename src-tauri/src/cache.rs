@@ -32,14 +32,12 @@ where
         if let Some(entry) = entries.get(key) {
             if entry.expires_at > Instant::now() {
                 // Record cache hit
-                crate::metrics::CACHE_HITS.inc();
                 return Some(entry.value.clone());
             } else {
                 entries.remove(key);
             }
         }
         // Record cache miss
-        crate::metrics::CACHE_MISSES.inc();
         None
     }
 

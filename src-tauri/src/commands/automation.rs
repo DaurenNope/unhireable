@@ -405,7 +405,7 @@ pub async fn dismiss_autopilot_alert(index: usize) -> Result<bool> {
 
 // ==== Apply Mode Commands ====
 
-use crate::applicator::{ApplyMode, PreApplyCheck, ReliabilityTier};
+use crate::applicator::{ApplyMode, PreApplyCheck};
 use serde::{Deserialize, Serialize};
 
 /// Mode info for frontend

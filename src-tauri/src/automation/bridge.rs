@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex, RwLock};
-use tokio::time::{timeout, Duration};
+use tokio::time::Duration;
 
 /// Commands sent from Tauri app to Chrome extension
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -120,7 +120,7 @@ impl BrowserBridge {
 
     /// Start the bridge WebSocket server
     pub async fn start(&mut self) -> Result<()> {
-        use futures_util::{SinkExt, StreamExt};
+        use futures_util::StreamExt;
         use tokio::net::TcpListener;
         use tokio_tungstenite::accept_async;
 
@@ -145,7 +145,7 @@ impl BrowserBridge {
 
                 match accept_async(stream).await {
                     Ok(ws_stream) => {
-                        let (mut write, mut read) = ws_stream.split();
+                        let (_write, mut read) = ws_stream.split();
                         let state_clone = state.clone();
                         let pending_clone = pending.clone();
 
@@ -249,7 +249,7 @@ impl BrowserBridge {
     }
 
     /// Send a command and wait for response
-    async fn send_command(&self, command: BridgeCommand) -> Result<BridgeResponse> {
+    async fn send_command(&self, _command: BridgeCommand) -> Result<BridgeResponse> {
         if !self.is_connected().await {
             return Err(anyhow::anyhow!("Bridge not connected to extension"));
         }
