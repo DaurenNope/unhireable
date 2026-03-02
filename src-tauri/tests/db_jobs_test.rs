@@ -13,7 +13,6 @@ fn migrations_and_job_crud_work() {
 
     // Create job
     let mut job = Job {
-        id: None,
         title: "Senior Frontend Developer".into(),
         company: "Tech Corp".into(),
         url: "https://example.com/jobs/senior-frontend".into(),
@@ -23,9 +22,7 @@ fn migrations_and_job_crud_work() {
         salary: Some("$120k - $180k".into()),
         source: "test".into(),
         status: JobStatus::Saved,
-        match_score: None,
-        created_at: None,
-        updated_at: None,
+        ..Default::default()
     };
     conn.create_job(&mut job).expect("create job");
     assert!(job.id.is_some(), "job id should be set after insert");
@@ -55,13 +52,10 @@ fn migrations_and_job_crud_work() {
 
     // Create application linked to job
     let mut app = Application {
-        id: None,
         job_id: fetched2.id.unwrap(),
-        applied_at: None,
         status: ApplicationStatus::Submitted,
         notes: Some("Submitted via company portal".into()),
-        created_at: None,
-        updated_at: None,
+        ..Default::default()
     };
     conn.create_application(&mut app)
         .expect("create application");

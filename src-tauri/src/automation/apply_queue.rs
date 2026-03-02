@@ -139,6 +139,7 @@ pub struct ApplicationQueue {
     config: Arc<RwLock<QueueConfig>>,
     bridge: Arc<Mutex<BrowserBridge>>,
     stats: Arc<RwLock<QueueStats>>,
+    #[allow(dead_code)]
     db: Arc<Mutex<Option<Database>>>,
     profile: Arc<RwLock<Option<UserProfile>>>,
     hour_start: Arc<RwLock<chrono::DateTime<chrono::Utc>>>,

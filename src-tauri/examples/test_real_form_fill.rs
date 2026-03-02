@@ -33,7 +33,6 @@ async fn main() {
         experience: vec![],
         education: vec![],
         projects: vec![],
-        preferences: None,
     };
 
     // Test URLs - pick one with a real application form
@@ -62,21 +61,19 @@ async fn main() {
         // - wait_for_confirmation = true
         let filler = FormFiller::new()
             .with_auto_submit(false) // Don't actually submit, just fill
-            .with_screenshots(true)
             .with_timeout(120);
 
         println!("\n🚀 Launching VISIBLE browser to fill form...");
         println!("👀 WATCH YOUR SCREEN - browser window will appear!\n");
 
         // Actually run the form filler
-        match filler.fill_application(
+        match filler.fill_and_submit(
             url, &profile, None, // no resume for this test
             None, // no cover letter
-            detected,
-        ) {
+            &detected,
+        ).await {
             Ok(()) => {
                 println!("\n✅ Form fill completed successfully!");
-                println!("📸 Screenshots saved to ./screenshots/");
             }
             Err(e) => {
                 println!("\n❌ Form fill failed: {}", e);

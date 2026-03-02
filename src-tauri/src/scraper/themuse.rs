@@ -1,3 +1,5 @@
+#![allow(dead_code)] // Fields in API response structs are needed for JSON deserialization
+
 //! The Muse API Scraper
 //! Free API, no authentication required
 //! Docs: https://www.themuse.com/developers/api/v2

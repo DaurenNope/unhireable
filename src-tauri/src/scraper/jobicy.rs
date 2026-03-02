@@ -1,3 +1,5 @@
+#![allow(dead_code)] // Fields in API response structs are needed for JSON deserialization
+
 //! Jobicy API Scraper
 //! Free API for remote jobs, no authentication required
 //! Docs: https://jobicy.com/api

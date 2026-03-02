@@ -1,5 +1,7 @@
-use crate::queue::{Queue, QueueJob, QueueManager};
+use crate::db::Database;
+use crate::db::queries::JobQueries;
 use crate::events::{Event, EventBus, event_types};
+use crate::queue::{Queue, QueueJob, QueueManager};
 use anyhow::Result;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -7,97 +9,88 @@ use tokio::sync::Mutex;
 pub struct ScraperQueueWorker {
     queue: Queue,
     event_bus: Arc<EventBus>,
+    db: Arc<Mutex<Option<Database>>>,
     processing: Arc<Mutex<bool>>,
 }
 
 impl ScraperQueueWorker {
-    pub fn new(queue: Queue, event_bus: Arc<EventBus>) -> Self {
+    pub fn new(queue: Queue, event_bus: Arc<EventBus>, db: Arc<Mutex<Option<Database>>>) -> Self {
         ScraperQueueWorker {
             queue,
             event_bus,
+            db,
             processing: Arc::new(Mutex::new(false)),
         }
     }
 
-    pub async fn start(&self) -> Result<()> {
+    pub async fn start(self: Arc<Self>) -> Result<()> {
         let mut processing = self.processing.lock().await;
         if *processing {
-            return Ok(()); // Already processing
+            return Ok(());
         }
         *processing = true;
         drop(processing);
 
-        loop {
-            if let Some(job) = self.queue.dequeue().await {
-                tracing::info!("Processing scraping job: {}", job.id);
-                
-                // Publish event for job processing start
-                let start_event = Event {
-                    id: uuid::Uuid::new_v4().to_string(),
-                    event_type: event_types::SCRAPER_STARTED.to_string(),
-                    payload: job.payload.clone(),
-                    timestamp: chrono::Utc::now(),
-                };
-                
-                // Handle event publishing errors
-                if let Err(e) = self.event_bus.publish(start_event).await {
-                    tracing::warn!("Failed to publish SCRAPER_STARTED event for job {}: {}", job.id, e);
-                }
+        let worker = self.clone();
+        tokio::spawn(async move {
+            loop {
+                if let Some(job) = worker.queue.dequeue().await {
+                    tracing::info!("Processing scraping job: {}", job.id);
 
-                // Process the job with proper error handling
-                match self.process_job(&job).await {
-                    Ok(_) => {
-                        tracing::info!("Successfully processed scraping job: {}", job.id);
-                        
-                        // Publish completion event
-                        let completion_event = Event {
-                            id: uuid::Uuid::new_v4().to_string(),
-                            event_type: event_types::SCRAPER_COMPLETED.to_string(),
-                            payload: serde_json::json!({
-                                "job_id": job.id,
-                                "status": "success"
-                            }),
-                            timestamp: chrono::Utc::now(),
-                        };
-                        
-                        if let Err(e) = self.event_bus.publish(completion_event).await {
-                            tracing::warn!("Failed to publish SCRAPER_COMPLETED event for job {}: {}", job.id, e);
+                    let start_event = Event {
+                        id: uuid::Uuid::new_v4().to_string(),
+                        event_type: event_types::SCRAPER_STARTED.to_string(),
+                        payload: job.payload.clone(),
+                        timestamp: chrono::Utc::now(),
+                    };
+                    if let Err(e) = worker.event_bus.publish(start_event).await {
+                        tracing::warn!("Failed to publish SCRAPER_STARTED: {}", e);
+                    }
+
+                    match worker.process_job(&job).await {
+                        Ok(count) => {
+                            tracing::info!("Scraping job {} saved {} jobs", job.id, count);
+                            let completion_event = Event {
+                                id: uuid::Uuid::new_v4().to_string(),
+                                event_type: event_types::SCRAPER_COMPLETED.to_string(),
+                                payload: serde_json::json!({
+                                    "job_id": job.id,
+                                    "jobs_found": count,
+                                    "status": "success"
+                                }),
+                                timestamp: chrono::Utc::now(),
+                            };
+                            if let Err(e) = worker.event_bus.publish(completion_event).await {
+                                tracing::warn!("Failed to publish SCRAPER_COMPLETED: {}", e);
+                            }
+                        }
+                        Err(e) => {
+                            tracing::error!("Scraping job {} failed: {}", job.id, e);
+                            let error_event = Event {
+                                id: uuid::Uuid::new_v4().to_string(),
+                                event_type: event_types::SCRAPER_ERROR.to_string(),
+                                payload: serde_json::json!({
+                                    "job_id": job.id,
+                                    "error": e.to_string(),
+                                    "status": "error"
+                                }),
+                                timestamp: chrono::Utc::now(),
+                            };
+                            if let Err(e) = worker.event_bus.publish(error_event).await {
+                                tracing::warn!("Failed to publish SCRAPER_ERROR: {}", e);
+                            }
                         }
                     }
-                    Err(e) => {
-                        tracing::error!("Failed to process scraping job {}: {}", job.id, e);
-                        
-                        // Publish error event
-                        let error_event = Event {
-                            id: uuid::Uuid::new_v4().to_string(),
-                            event_type: event_types::SCRAPER_ERROR.to_string(),
-                            payload: serde_json::json!({
-                                "job_id": job.id,
-                                "error": e.to_string(),
-                                "status": "error"
-                            }),
-                            timestamp: chrono::Utc::now(),
-                        };
-                        
-                        if let Err(pub_err) = self.event_bus.publish(error_event).await {
-                            tracing::warn!("Failed to publish SCRAPER_ERROR event for job {}: {}", job.id, pub_err);
-                        }
-                        
-                        // Optionally: re-enqueue job with lower priority for retry
-                        // For now, we'll just log the error and continue
-                    }
+                } else {
+                    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
                 }
-            } else {
-                // No jobs in queue, wait a bit
-                tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-            }
 
-            // Check if we should stop
-            let processing = self.processing.lock().await;
-            if !*processing {
-                break;
+                let processing = worker.processing.lock().await;
+                if !*processing {
+                    break;
+                }
             }
-        }
+        });
 
         Ok(())
     }
@@ -107,17 +100,16 @@ impl ScraperQueueWorker {
         *processing = false;
     }
 
-    /// Process a single scraping job
-    async fn process_job(&self, job: &QueueJob) -> Result<()> {
-        tracing::info!("Job payload: {:?}", job.payload);
-        
-        // Extract query and sources from payload
-        let query = job.payload
+    async fn process_job(&self, job: &QueueJob) -> Result<usize> {
+        let query = job
+            .payload
             .get("query")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| anyhow::anyhow!("Missing 'query' in job payload"))?;
-        
-        let sources: Option<Vec<String>> = job.payload
+            .unwrap_or("")
+            .to_string();
+
+        let sources: Option<Vec<String>> = job
+            .payload
             .get("sources")
             .and_then(|v| v.as_array())
             .map(|arr| {
@@ -126,24 +118,36 @@ impl ScraperQueueWorker {
                     .collect()
             });
 
-        // In a real implementation, you would:
-        // 1. Call the scraper with the extracted query and sources
-        // 2. Handle the results (save to database, etc.)
-        // 3. Return success or error
-        
-        // For now, we'll just validate the payload structure
-        tracing::debug!("Processing scraping job with query: '{}', sources: {:?}", query, sources);
-        
-        // TODO: Implement actual scraping logic here
-        // let scraper = crate::scraper::ScraperManager::new();
-        // let jobs = if let Some(sources) = sources {
-        //     scraper.scrape_selected(&sources, query)?
-        // } else {
-        //     scraper.scrape_all(query)?
-        // };
-        // // Save jobs to database, etc.
-        
-        Ok(())
+        tracing::info!("Background scrape: query='{}', sources={:?}", query, sources);
+
+        let scraper = crate::scraper::ScraperManager::new();
+        let jobs = tokio::task::spawn_blocking(move || {
+            if let Some(sources) = sources {
+                scraper.scrape_selected(&sources, &query)
+            } else {
+                scraper.scrape_all(&query)
+            }
+        })
+        .await
+        .map_err(|e| anyhow::anyhow!("Task join error: {}", e))??;
+
+        let mut saved_count = 0;
+        let db_guard = self.db.lock().await;
+        if let Some(db) = &*db_guard {
+            let conn = db.get_connection();
+            for mut scraped_job in jobs {
+                match conn.get_job_by_url(&scraped_job.url) {
+                    Ok(Some(_)) => {}
+                    _ => {
+                        if conn.create_job(&mut scraped_job).is_ok() {
+                            saved_count += 1;
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(saved_count)
     }
 }
 
@@ -154,7 +158,7 @@ pub async fn enqueue_scraping_job(
     priority: u8,
 ) -> Result<String> {
     let queue = queue_manager.get_queue("scraping").await;
-    
+
     let job = QueueJob {
         id: uuid::Uuid::new_v4().to_string(),
         job_type: "scrape".to_string(),
@@ -166,17 +170,9 @@ pub async fn enqueue_scraping_job(
         priority,
         created_at: chrono::Utc::now(),
     };
-    
+
     let job_id = job.id.clone();
     queue.enqueue(job).await?;
-    
+
     Ok(job_id)
 }
-
-
-
-
-
-
-
-

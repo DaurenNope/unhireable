@@ -75,6 +75,7 @@ pub enum BridgeState {
 }
 
 /// Pending command with response channel
+#[allow(dead_code)]
 struct PendingCommand {
     command: BridgeCommand,
     response_tx: mpsc::Sender<BridgeResponse>,
@@ -84,6 +85,7 @@ struct PendingCommand {
 pub struct BrowserBridge {
     state: Arc<RwLock<BridgeState>>,
     pending_commands: Arc<Mutex<HashMap<String, PendingCommand>>>,
+    #[allow(dead_code)]
     command_tx: Option<mpsc::Sender<(String, BridgeCommand)>>,
     config: BridgeConfig,
 }

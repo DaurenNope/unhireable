@@ -29,6 +29,32 @@ pub async fn get_activities(
 
 // ========== Credential Commands ==========
 
+/// Populate the sensitive fields of a credential by reading from the OS keychain.
+fn load_secrets(cred: &mut Credential) -> anyhow::Result<()> {
+    cred.tokens = crate::vault::load(&cred.platform, "tokens")?;
+    cred.encrypted_password = crate::vault::load(&cred.platform, "password")?;
+    cred.cookies = crate::vault::load(&cred.platform, "cookies")?;
+    Ok(())
+}
+
+/// Persist the sensitive fields of a credential to the OS keychain and clear them
+/// from the struct so they are never written to SQLite.
+fn store_secrets(cred: &mut Credential) -> anyhow::Result<()> {
+    if let Some(ref tokens) = cred.tokens.clone() {
+        crate::vault::store(&cred.platform, "tokens", tokens)?;
+        cred.tokens = None; // do not persist in DB
+    }
+    if let Some(ref pw) = cred.encrypted_password.clone() {
+        crate::vault::store(&cred.platform, "password", pw)?;
+        cred.encrypted_password = None;
+    }
+    if let Some(ref cookies) = cred.cookies.clone() {
+        crate::vault::store(&cred.platform, "cookies", cookies)?;
+        cred.cookies = None;
+    }
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn get_credential(
     state: State<'_, AppState>,
@@ -37,7 +63,11 @@ pub async fn get_credential(
     let db = state.db.lock().await;
     if let Some(db) = &*db {
         let conn = db.get_connection();
-        conn.get_credential(&platform).map_err(Into::into)
+        let mut cred_opt = conn.get_credential(&platform)?;
+        if let Some(ref mut cred) = cred_opt {
+            load_secrets(cred)?;
+        }
+        Ok(cred_opt)
     } else {
         Err(anyhow::anyhow!("Database not initialized").into())
     }
@@ -48,28 +78,19 @@ pub async fn create_credential(
     state: State<'_, AppState>,
     mut credential: Credential,
 ) -> Result<Credential> {
-    // Security validation
     crate::security::InputValidator::validate_string(&credential.platform, 100)?;
     crate::security::InputValidator::validate_sql_injection(&credential.platform)?;
-
-    // Validate API keys if present
-    if let Some(ref tokens) = credential.tokens {
-        if crate::security::SecureLogger::contains_sensitive_data(tokens) {
-            // Log warning but don't fail - user might be storing API keys
-            tracing::warn!("Credential tokens may contain sensitive data");
-        }
-    }
-
-    // Sanitize platform name
     credential.platform = crate::security::InputValidator::sanitize_input(&credential.platform);
 
-    // Note: encrypted_password should be encrypted before storage
-    // Currently relies on frontend to encrypt, but should encrypt here for security
+    // Move secrets to OS keychain before writing to DB
+    store_secrets(&mut credential)?;
 
     let db = state.db.lock().await;
     if let Some(db) = &*db {
         let conn = db.get_connection();
         conn.create_credential(&mut credential)?;
+        // Reload secrets so the returned struct has them populated
+        load_secrets(&mut credential)?;
         Ok(credential)
     } else {
         Err(anyhow::anyhow!("Database not initialized").into())
@@ -79,12 +100,16 @@ pub async fn create_credential(
 #[tauri::command]
 pub async fn update_credential(
     state: State<'_, AppState>,
-    credential: Credential,
+    mut credential: Credential,
 ) -> Result<Credential> {
+    // Move secrets to OS keychain before writing to DB
+    store_secrets(&mut credential)?;
+
     let db = state.db.lock().await;
     if let Some(db) = &*db {
         let conn = db.get_connection();
         conn.update_credential(&credential)?;
+        load_secrets(&mut credential)?;
         Ok(credential)
     } else {
         Err(anyhow::anyhow!("Database not initialized").into())
@@ -99,7 +124,11 @@ pub async fn list_credentials(
     let db = state.db.lock().await;
     if let Some(db) = &*db {
         let conn = db.get_connection();
-        conn.list_credentials(active_only).map_err(Into::into)
+        let mut creds = conn.list_credentials(active_only)?;
+        for cred in &mut creds {
+            let _ = load_secrets(cred); // best-effort; log errors but don't fail the list
+        }
+        Ok(creds)
     } else {
         Err(anyhow::anyhow!("Database not initialized").into())
     }
@@ -107,6 +136,9 @@ pub async fn list_credentials(
 
 #[tauri::command]
 pub async fn delete_credential(state: State<'_, AppState>, platform: String) -> Result<()> {
+    // Remove from keychain first
+    crate::vault::delete_all(&platform)?;
+
     let db = state.db.lock().await;
     if let Some(db) = &*db {
         let conn = db.get_connection();

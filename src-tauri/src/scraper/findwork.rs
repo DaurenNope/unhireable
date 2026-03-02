@@ -1,3 +1,5 @@
+#![allow(dead_code)] // Fields in API response structs are needed for JSON deserialization
+
 //! Findwork API Scraper
 //! Free API for tech/developer jobs
 //! Docs: https://findwork.dev/developers/

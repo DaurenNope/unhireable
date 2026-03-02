@@ -376,6 +376,13 @@ pub async fn delete_job(state: State<'_, AppState>, id: i64) -> Result<()> {
 
 #[tauri::command]
 pub async fn scrape_jobs(state: State<'_, AppState>, query: String) -> Result<Vec<Job>> {
+    // Rate-limit: max 10 scrape calls per 60-second window per endpoint
+    if !state.rate_limiter.check_rate_limit("scrape_jobs").await? {
+        return Err(anyhow::anyhow!(
+            "Too many scrape requests. Please wait a moment before trying again."
+        )
+        .into());
+    }
     println!("Starting scrape_jobs with query: '{}'", query);
 
     // Publish SCRAPER_STARTED event
@@ -683,6 +690,12 @@ pub async fn scrape_jobs_selected(
     sources: Vec<String>,
     query: Option<String>,
 ) -> Result<Vec<Job>> {
+    if !state.rate_limiter.check_rate_limit("scrape_jobs").await? {
+        return Err(anyhow::anyhow!(
+            "Too many scrape requests. Please wait a moment before trying again."
+        )
+        .into());
+    }
     let query_str = query.as_deref().unwrap_or("");
     println!(
         "Starting scrape_jobs_selected with sources: {:?}, query: '{}'",

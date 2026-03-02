@@ -1,3 +1,5 @@
+#![allow(dead_code)] // Fields in API response structs are needed for JSON deserialization
+
 //! Himalayas API Scraper
 //! Free API for quality remote jobs
 //! Docs: https://himalayas.app/api

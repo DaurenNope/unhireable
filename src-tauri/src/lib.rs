@@ -9,7 +9,6 @@ use crate::db::queries::{ActivityQueries, ApplicationQueries, CredentialQueries,
 pub mod applicator;
 pub mod automation;
 pub mod cache;
-pub mod channel;
 pub mod commands;
 pub mod db;
 pub mod error;
@@ -31,6 +30,7 @@ pub mod scheduler;
 pub mod scraper;
 pub mod scraper_queue;
 pub mod security;
+pub mod vault;
 pub mod web_server;
 
 use crate::applicator::{ApplicationConfig, ApplicationResult, JobApplicator};
@@ -39,17 +39,17 @@ use crate::error::Result;
 use crate::scraper::browser::BrowserScraper;
 
 // Application state structure
-#[allow(dead_code)] // Some fields are reserved for future features
 pub struct AppState {
-    db: Arc<Mutex<Option<Database>>>,
-    scheduler: Arc<Mutex<Option<scheduler::JobScheduler>>>,
-    app_dir: Arc<Mutex<Option<std::path::PathBuf>>>,
-    event_bus: Arc<events::EventBus>,
-    cache: Arc<cache::Cache<String, serde_json::Value>>,
-    document_cache: Arc<Mutex<generator::DocumentCache>>,
-    queue_manager: Arc<queue::QueueManager>,
-    channel_manager: Arc<channel::ChannelManager>,
-    rate_limiter: Arc<security::RateLimiter>,
+    pub(crate) db: Arc<Mutex<Option<Database>>>,
+    pub(crate) scheduler: Arc<Mutex<Option<scheduler::JobScheduler>>>,
+    pub(crate) app_dir: Arc<Mutex<Option<std::path::PathBuf>>>,
+    pub(crate) event_bus: Arc<events::EventBus>,
+    pub(crate) cache: Arc<cache::Cache<String, serde_json::Value>>,
+    pub(crate) document_cache: Arc<Mutex<generator::DocumentCache>>,
+    /// Priority queue for background scraping jobs
+    pub(crate) queue_manager: Arc<queue::QueueManager>,
+    /// Sliding-window rate limiter for Tauri commands that hit external services
+    pub(crate) rate_limiter: Arc<security::RateLimiter>,
 }
 
 impl Default for AppState {
@@ -62,7 +62,6 @@ impl Default for AppState {
             cache: Arc::new(cache::Cache::new(std::time::Duration::from_secs(3600))),
             document_cache: Arc::new(Mutex::new(generator::DocumentCache::new(100, Some(86400)))), // 100 entries, 24h TTL
             queue_manager: Arc::new(queue::QueueManager::new()),
-            channel_manager: Arc::new(channel::ChannelManager::new()),
             rate_limiter: Arc::new(security::RateLimiter::new(100, 60)),
         }
     }
@@ -119,6 +118,16 @@ async fn setup_app_state(app: &mut tauri::App) -> Result<()> {
     // Initialize Intelligence event handler (subscribes to JOB_CREATED)
     intelligence_handler.initialize().await?;
     tracing::info!("Intelligence Agent event handler initialized");
+
+    // Start background scraper queue worker
+    let scraping_queue = state.queue_manager.get_queue("scraping").await;
+    let worker = Arc::new(scraper_queue::ScraperQueueWorker::new(
+        scraping_queue,
+        state.event_bus.clone(),
+        Arc::clone(&state.db),
+    ));
+    worker.start().await?;
+    tracing::info!("Scraper queue worker started");
 
     let event_bus = state.event_bus.clone();
     event_bus

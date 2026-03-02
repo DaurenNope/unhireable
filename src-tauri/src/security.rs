@@ -74,14 +74,15 @@ impl InputValidator {
         Ok(())
     }
 
-    /// Sanitize input to prevent XSS and injection
+    /// Sanitize input to prevent XSS and injection.
+    /// `&` is replaced first so that subsequent substitutions are not double-escaped.
     pub fn sanitize_input(input: &str) -> String {
         input
+            .replace('&', "&amp;")
             .replace('<', "&lt;")
             .replace('>', "&gt;")
             .replace('"', "&quot;")
             .replace('\'', "&#x27;")
-            .replace('&', "&amp;")
             .replace('\0', "")
     }
 

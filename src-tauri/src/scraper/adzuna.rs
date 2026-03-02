@@ -1,3 +1,5 @@
+#![allow(dead_code)] // Fields in API response structs are needed for JSON deserialization
+
 //! Adzuna API Scraper
 //! Free tier: 250 calls/month, returns up to 50 results per call
 //! Docs: https://developer.adzuna.com/

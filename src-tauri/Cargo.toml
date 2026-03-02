@@ -103,6 +103,8 @@ mailparse = "0.14"
 # Security & Cryptography
 sha2 = "0.10"
 url = "2.5"
+# OS keychain for secure credential storage (Keychain/Credential Manager/Secret Service)
+keyring = "3"
 
 async-trait = "0.1.89"
 tokio-tungstenite = "0.28.0"

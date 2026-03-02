@@ -222,11 +222,15 @@ async fn main() {
             .expect("Failed to prepare statement");
         
         let searches = stmt
-                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+            .query_map([], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
                     row.get::<_, bool>(2)?,
                 ))
             })
-            .expect("Failed to query searches");
+            .expect("Failed to query searches")
+            .collect::<Vec<_>>();
 
         println!("\\n📈 Saved searches:");
         for search in searches {

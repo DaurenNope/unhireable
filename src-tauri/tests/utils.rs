@@ -2,12 +2,10 @@
 
 use unhireable_lib::db::models::{Job, JobStatus, Application, ApplicationStatus};
 use unhireable_lib::generator::{UserProfile, PersonalInfo, SkillsProfile, ExperienceEntry};
-use unhireable_lib::events::{Event, EventBus};
+use unhireable_lib::events::EventBus;
 use chrono::Utc;
-use std::path::PathBuf;
 use std::sync::Arc;
 use tempfile::TempDir;
-use tokio::sync::Mutex;
 use std::collections::HashMap;
 
 /// Create a temporary database for testing
@@ -21,7 +19,6 @@ pub fn create_test_db() -> (unhireable_lib::db::Database, TempDir) {
 /// Create a test job with default values
 pub fn create_test_job() -> Job {
     Job {
-        id: None,
         title: "Senior React Developer".to_string(),
         company: "Tech Corp".to_string(),
         url: "https://example.com/job/1".to_string(),
@@ -37,31 +34,26 @@ pub fn create_test_job() -> Job {
                 .to_string(),
         ),
         location: Some("Remote".to_string()),
-        salary: None,
         source: "test".to_string(),
         status: JobStatus::Saved,
-        match_score: None,
         created_at: Some(Utc::now()),
         updated_at: Some(Utc::now()),
+        ..Default::default()
     }
 }
 
 /// Create a test job with custom fields
 pub fn create_test_job_with(title: &str, company: &str, url: &str) -> Job {
     Job {
-        id: None,
         title: title.to_string(),
         company: company.to_string(),
         url: url.to_string(),
         description: Some(format!("Description for {} at {}", title, company)),
         requirements: Some("Requirements".to_string()),
         location: Some("Remote".to_string()),
-        salary: None,
         source: "test".to_string(),
         status: JobStatus::Saved,
-        match_score: None,
-        created_at: Some(Utc::now()),
-        updated_at: Some(Utc::now()),
+        ..Default::default()
     }
 }
 
@@ -129,15 +121,12 @@ pub fn create_test_profile() -> UserProfile {
 /// Create a test application
 pub fn create_test_application(job_id: i64) -> Application {
     Application {
-        id: None,
         job_id,
-        status: ApplicationStatus::Pending,
+        status: ApplicationStatus::Preparing,
         applied_at: Some(Utc::now()),
-        resume_path: None,
-        cover_letter_path: None,
-        notes: None,
         created_at: Some(Utc::now()),
         updated_at: Some(Utc::now()),
+        ..Default::default()
     }
 }
 

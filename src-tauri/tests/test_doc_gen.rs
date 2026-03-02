@@ -69,7 +69,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         id: Some(1),
         title: "Senior Full Stack Developer".to_string(),
         company: "Innovation Labs".to_string(),
-        url: Some("https://example.com/job/123".to_string()),
+        url: "https://example.com/job/123".to_string(),
         description: Some("We're looking for an experienced full stack developer to join our team...".to_string()),
         requirements: Some("5+ years experience, React, TypeScript, Node.js".to_string()),
         location: Some("Remote".to_string()),
@@ -79,6 +79,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         match_score: Some(85.5),
         created_at: Some(chrono::Utc::now()),
         updated_at: Some(chrono::Utc::now()),
+        ..Default::default()
     };
 
     // Test template listing
@@ -145,7 +146,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     println!("\n✅ All tests passed!");
-    println!("\nGenerated files:")
+    println!("\nGenerated files:");
     println!("  - Resume PDF: {}", resume_pdf.display());
     println!("  - Cover Letter DOCX: {}", cover_docx.display());
     println!("\nYou can open these files to verify the professional design!");
