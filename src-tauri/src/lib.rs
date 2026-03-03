@@ -411,6 +411,32 @@ pub struct AutoApplyResult {
     pub results: Vec<ApplicationResult>,
 }
 
+/// Core auto-apply pipeline: filter `candidate_jobs`, save to DB, and apply.
+/// Exposed publicly so tests can inject pre-seeded jobs without hitting the network.
+pub async fn run_auto_apply_with_seed_jobs(
+    db: Arc<Mutex<Option<Database>>>,
+    app_dir: std::path::PathBuf,
+    candidate_jobs: Vec<db::models::Job>,
+    jobs_scraped: usize,
+    max_applications: usize,
+    dry_run: bool,
+) -> Result<AutoApplyResult> {
+    // Load user profile
+    let db_guard = db.lock().await;
+    let profile = if let Some(db_ref) = &*db_guard {
+        let conn = db_ref.get_connection();
+        let profile = commands::user::load_user_profile_from_conn(&conn)?;
+        profile.ok_or_else(|| {
+            anyhow::anyhow!("User profile not found. Please configure your profile in Settings.")
+        })?
+    } else {
+        return Err(anyhow::anyhow!("Database not initialized").into());
+    };
+    drop(db_guard);
+
+    run_apply_pipeline(db, app_dir, profile, candidate_jobs, jobs_scraped, max_applications, dry_run).await
+}
+
 pub async fn run_auto_apply_logic(
     db: Arc<Mutex<Option<Database>>>,
     app_dir: std::path::PathBuf,
@@ -453,8 +479,33 @@ pub async fn run_auto_apply_logic(
     let jobs_count = jobs.len();
     println!("✅ Scraped {} jobs from all sources", jobs_count);
 
+    return run_apply_pipeline(db, app_dir, profile, jobs, jobs_count, max_applications, dry_run).await;
+
+    // unreachable - compiler needs to see this branch to understand the function returns
+    #[allow(unreachable_code)]
+    Ok(AutoApplyResult {
+        jobs_scraped: 0,
+        jobs_filtered: 0,
+        applications_submitted: 0,
+        applications_failed: 0,
+        results: vec![],
+    })
+}
+
+/// Inner pipeline: filter, save, and apply to a pre-assembled list of candidate jobs.
+/// Called by both `run_auto_apply_logic` (after scraping) and
+/// `run_auto_apply_with_seed_jobs` (for testing without network).
+async fn run_apply_pipeline(
+    db: Arc<Mutex<Option<Database>>>,
+    app_dir: std::path::PathBuf,
+    profile: generator::UserProfile,
+    candidate_jobs: Vec<db::models::Job>,
+    jobs_scraped: usize,
+    max_applications: usize,
+    dry_run: bool,
+) -> Result<AutoApplyResult> {
     // Step 3: Filter jobs (remote, mid-senior, $30k+)
-    let filtered_jobs: Vec<_> = jobs
+    let filtered_jobs: Vec<_> = candidate_jobs
         .into_iter()
         .filter(|job| {
             // Skip hh.kz jobs - they're mostly Russian jobs that don't match remote criteria
@@ -485,7 +536,6 @@ pub async fn run_auto_apply_logic(
                 .salary
                 .as_ref()
                 .map(|s| {
-                    // Extract numbers from salary string
                     let numbers: Vec<f64> = regex::Regex::new(r"\$?([\d,]+)")
                         .expect("Failed to compile salary regex pattern")
                         .find_iter(s)
@@ -512,7 +562,7 @@ pub async fn run_auto_apply_logic(
     if filtered_count == 0 {
         println!("⚠️  No jobs to apply to after filtering");
         return Ok(AutoApplyResult {
-            jobs_scraped: jobs_count,
+            jobs_scraped,
             jobs_filtered: 0,
             applications_submitted: 0,
             applications_failed: 0,
@@ -526,62 +576,44 @@ pub async fn run_auto_apply_logic(
     let mut applications_failed = 0;
     let mut results = Vec::new();
 
-    println!("📁 Getting application directory...");
-
     // Find resume file - look for any PDF in app dir
-    let mut resume_path = app_dir.join("resume.pdf"); // Default
-    let mut found_resume = false;
+    let mut resume_path = app_dir.join("resume.pdf");
+    let mut found_resume = resume_path.exists();
 
-    // First check if specific file exists
-    if resume_path.exists() {
-        found_resume = true;
-    } else {
-        // Search for any PDF
+    if !found_resume {
         if let Ok(entries) = std::fs::read_dir(&app_dir) {
             for entry in entries.flatten() {
                 let path = entry.path();
-                if let Some(ext) = path.extension() {
-                    if ext.eq_ignore_ascii_case("pdf") {
-                        resume_path = path;
-                        found_resume = true;
-                        break;
-                    }
+                if path.extension().map_or(false, |e| e.eq_ignore_ascii_case("pdf")) {
+                    resume_path = path;
+                    found_resume = true;
+                    break;
                 }
             }
         }
     }
 
     if !found_resume {
-        // Try dev environment fallback (if UNHIREABLE_DEV_RESUME_PATH is set)
         if let Ok(dev_resume_path) = std::env::var("UNHIREABLE_DEV_RESUME_PATH") {
             let project_resume = std::path::Path::new(&dev_resume_path);
             if project_resume.exists() {
-                println!("📋 Copying resume from dev path to app directory...");
                 let target_path = app_dir.join("resume.pdf");
-                if let Err(e) = std::fs::copy(project_resume, &target_path) {
-                    tracing::warn!("Failed to copy dev resume: {}", e);
-                } else {
+                if std::fs::copy(project_resume, &target_path).is_ok() {
                     resume_path = target_path;
-                    println!("✅ Resume copied successfully");
                     found_resume = true;
                 }
             }
         }
-
-        if !found_resume {
-            return Err(anyhow::anyhow!(
-                "No resume found. Please upload a PDF resume in Settings or set UNHIREABLE_DEV_RESUME_PATH for development."
-            )
-            .into());
-        }
     }
 
-    println!("✅ Using resume: {:?}", resume_path);
+    if !found_resume {
+        return Err(anyhow::anyhow!(
+            "No resume found. Please upload a PDF resume in Settings or set UNHIREABLE_DEV_RESUME_PATH for development."
+        )
+        .into());
+    }
+
     let resume_path_str = resume_path.to_string_lossy().to_string();
-    println!(
-        "🚀 Starting application loop for {} jobs...",
-        filtered_count
-    );
 
     for (idx, job) in filtered_jobs.iter().enumerate() {
         println!(
@@ -591,25 +623,18 @@ pub async fn run_auto_apply_logic(
             job.title,
             job.company
         );
+
         // Save job to database first
         let job_id = {
             let db_guard = db.lock().await;
             if let Some(db) = &*db_guard {
                 let conn = db.get_connection();
-
-                // Check if job already exists
                 match conn.get_job_by_url(&job.url) {
-                    Ok(Some(existing_job)) => {
-                        println!("⏭️  Job already exists: {}", job.title);
-                        existing_job.id
-                    }
+                    Ok(Some(existing)) => existing.id,
                     Ok(None) => {
                         let mut new_job = job.clone();
                         match conn.create_job(&mut new_job) {
-                            Ok(_) => {
-                                println!("💾 Saved job to database: {}", new_job.title);
-                                new_job.id
-                            }
+                            Ok(_) => new_job.id,
                             Err(e) => {
                                 eprintln!("❌ Failed to save job: {}", e);
                                 continue;
@@ -627,13 +652,10 @@ pub async fn run_auto_apply_logic(
         };
 
         if let Some(job_id_val) = job_id {
-            // Apply to job
-            println!("📝 Applying to: {} at {}", job.title, job.company);
-
             let config = ApplicationConfig {
-                auto_submit: !dry_run, // Don't auto-submit in dry run
+                auto_submit: !dry_run,
                 upload_resume: true,
-                upload_cover_letter: false, // Start without cover letter for simplicity
+                upload_cover_letter: false,
                 resume_path: Some(resume_path_str.clone()),
                 cover_letter_path: None,
                 wait_for_confirmation: false,
@@ -644,9 +666,7 @@ pub async fn run_auto_apply_logic(
             let applicator = JobApplicator::with_config(config);
 
             let result = if dry_run {
-                println!("🧪 Dry Run: Simulating application to {}", job.title);
-                // Simulate delay
-                tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+                tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
                 ApplicationResult {
                     success: true,
                     application_id: None,
@@ -657,7 +677,7 @@ pub async fn run_auto_apply_logic(
                 }
             } else {
                 match applicator
-                    .apply_to_job(&job, &profile, Some(&resume_path_str), None)
+                    .apply_to_job(job, &profile, Some(&resume_path_str), None)
                     .await
                 {
                     Ok(res) => res,
@@ -674,36 +694,25 @@ pub async fn run_auto_apply_logic(
 
             if result.success {
                 applications_submitted += 1;
-                println!("✅ Successfully applied to: {}", job.title);
-
-                // Create application record
                 let db_guard = db.lock().await;
                 if let Some(db) = &*db_guard {
                     let conn = db.get_connection();
                     let mut application = db::models::Application {
-                        id: None,
                         job_id: job_id_val,
                         applied_at: Some(chrono::Utc::now()),
                         status: db::models::ApplicationStatus::Submitted,
-                        notes: Some(format!(
-                            "Auto-applied via RemoteOK. ATS: {:?}",
-                            result.ats_type
-                        )),
-                        created_at: None,
-                        updated_at: None,
+                        notes: Some(format!("Auto-applied. ATS: {:?}", result.ats_type)),
+                        applied_via: Some("auto".to_string()),
                         ..Default::default()
                     };
-                    if let Ok(_) = conn.create_application(&mut application) {
+                    if conn.create_application(&mut application).is_ok() {
                         if let Some(app_id) = application.id {
                             let _ = log_activity(
                                 &conn,
                                 "application",
                                 app_id,
                                 "created",
-                                Some(format!(
-                                    "Auto-applied to '{}' at {}",
-                                    job.title, job.company
-                                )),
+                                Some(format!("Auto-applied to '{}' at {}", job.title, job.company)),
                                 None,
                             );
                         }
@@ -715,8 +724,9 @@ pub async fn run_auto_apply_logic(
             }
             results.push(result);
 
-            // Small delay between applications
-            tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+            if !dry_run {
+                tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+            }
         }
     }
 
@@ -726,7 +736,7 @@ pub async fn run_auto_apply_logic(
     );
 
     Ok(AutoApplyResult {
-        jobs_scraped: jobs_count,
+        jobs_scraped,
         jobs_filtered: filtered_count,
         applications_submitted,
         applications_failed,
