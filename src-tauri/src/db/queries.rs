@@ -145,9 +145,9 @@ impl JobQueries for MutexGuard<'_, rusqlite::Connection> {
         let id = self.query_row(
             r#"
             INSERT INTO jobs (
-                title, company, url, description, requirements, 
-                location, salary, source, status, match_score, created_at, updated_at
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
+                title, company, url, description, requirements,
+                location, salary, contact_email, source, status, match_score, created_at, updated_at
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
             RETURNING id
             "#,
             params![
@@ -158,6 +158,7 @@ impl JobQueries for MutexGuard<'_, rusqlite::Connection> {
                 &job.requirements,
                 &job.location,
                 &job.salary,
+                &job.contact_email,
                 &job.source,
                 job.status.to_string(),
                 &job.match_score,
@@ -176,7 +177,7 @@ impl JobQueries for MutexGuard<'_, rusqlite::Connection> {
 
     fn get_job(&self, id: i64) -> Result<Option<Job>> {
         self.query_row(
-            "SELECT id, title, company, url, description, requirements, location, salary, source, status, match_score, created_at, updated_at FROM jobs WHERE id = ?1",
+            "SELECT id, title, company, url, description, requirements, location, salary, source, status, match_score, created_at, updated_at, contact_email FROM jobs WHERE id = ?1",
             [id],
             |row| {
                 let job_id: Option<i64> = row.get(0)?;
@@ -191,7 +192,7 @@ impl JobQueries for MutexGuard<'_, rusqlite::Connection> {
                     requirements: row.get(5)?,
                     location: row.get(6)?,
                     salary: row.get(7)?,
-                    contact_email: None,
+                    contact_email: row.get(13)?,
                     source: row.get(8)?,
                     status,
                     match_score: row.get(10)?,
@@ -206,7 +207,7 @@ impl JobQueries for MutexGuard<'_, rusqlite::Connection> {
 
     fn get_job_by_url(&self, url: &str) -> Result<Option<Job>> {
         self.query_row(
-            "SELECT id, title, company, url, description, requirements, location, salary, source, status, match_score, created_at, updated_at FROM jobs WHERE url = ?1",
+            "SELECT id, title, company, url, description, requirements, location, salary, source, status, match_score, created_at, updated_at, contact_email FROM jobs WHERE url = ?1",
             [url],
             |row| {
                 let job_id: Option<i64> = row.get(0)?;
@@ -221,7 +222,7 @@ impl JobQueries for MutexGuard<'_, rusqlite::Connection> {
                     requirements: row.get(5)?,
                     location: row.get(6)?,
                     salary: row.get(7)?,
-                    contact_email: None,
+                    contact_email: row.get(13)?,
                     source: row.get(8)?,
                     status,
                     match_score: row.get(10)?,
@@ -247,10 +248,11 @@ impl JobQueries for MutexGuard<'_, rusqlite::Connection> {
                 requirements = ?6,
                 location = ?7,
                 salary = ?8,
-                source = ?9,
-                status = ?10,
-                match_score = ?11,
-                updated_at = ?12
+                contact_email = ?9,
+                source = ?10,
+                status = ?11,
+                match_score = ?12,
+                updated_at = ?13
             WHERE id = ?1
             "#,
             params![
@@ -262,6 +264,7 @@ impl JobQueries for MutexGuard<'_, rusqlite::Connection> {
                 job.requirements,
                 job.location,
                 job.salary,
+                job.contact_email,
                 job.source,
                 job.status.to_string(),
                 &job.match_score,
@@ -273,7 +276,7 @@ impl JobQueries for MutexGuard<'_, rusqlite::Connection> {
     }
 
     fn list_jobs(&self, status: Option<JobStatus>) -> Result<Vec<Job>> {
-        let mut query = "SELECT id, title, company, url, description, requirements, location, salary, source, status, match_score, created_at, updated_at FROM jobs".to_string();
+        let mut query = "SELECT id, title, company, url, description, requirements, location, salary, source, status, match_score, created_at, updated_at, contact_email FROM jobs".to_string();
         let mut params = Vec::new();
 
         if let Some(status) = status {
@@ -299,7 +302,7 @@ impl JobQueries for MutexGuard<'_, rusqlite::Connection> {
                     requirements: row.get(5)?,
                     location: row.get(6)?,
                     salary: row.get(7)?,
-                    contact_email: None,
+                    contact_email: row.get(13)?,
                     source: row.get(8)?,
                     status,
                     match_score: row.get(10)?,
@@ -325,8 +328,8 @@ impl ApplicationQueries for MutexGuard<'_, rusqlite::Connection> {
         let id = self.query_row(
             r#"
             INSERT INTO applications (
-                job_id, applied_at, status, notes, created_at, updated_at
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+                job_id, applied_at, status, notes, applied_via, created_at, updated_at
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
             RETURNING id
             "#,
             params![
@@ -334,6 +337,7 @@ impl ApplicationQueries for MutexGuard<'_, rusqlite::Connection> {
                 application.applied_at,
                 application.status.to_string(),
                 application.notes,
+                application.applied_via,
                 now,
                 now,
             ],
@@ -348,7 +352,7 @@ impl ApplicationQueries for MutexGuard<'_, rusqlite::Connection> {
     }
 
     fn get_application(&self, id: i64) -> Result<Option<Application>> {
-        self.query_row("SELECT * FROM applications WHERE id = ?1", [id], |row| {
+        self.query_row("SELECT id, job_id, applied_at, status, notes, created_at, updated_at, applied_via FROM applications WHERE id = ?1", [id], |row| {
             let application_id: Option<i64> = row.get(0)?;
             let status_str: String = row.get(3)?;
             let status = parse_application_status(&status_str, application_id);
@@ -359,7 +363,7 @@ impl ApplicationQueries for MutexGuard<'_, rusqlite::Connection> {
                 applied_at: row.get(2)?,
                 status,
                 notes: row.get(4)?,
-                applied_via: None,
+                applied_via: row.get(7)?,
                 created_at: row.get(5)?,
                 updated_at: row.get(6)?,
             })
@@ -378,7 +382,8 @@ impl ApplicationQueries for MutexGuard<'_, rusqlite::Connection> {
                 applied_at = ?3,
                 status = ?4,
                 notes = ?5,
-                updated_at = ?6
+                applied_via = ?6,
+                updated_at = ?7
             WHERE id = ?1
             "#,
             params![
@@ -387,6 +392,7 @@ impl ApplicationQueries for MutexGuard<'_, rusqlite::Connection> {
                 application.applied_at,
                 application.status.to_string(),
                 application.notes,
+                application.applied_via,
                 now,
             ],
         )?;
@@ -402,7 +408,7 @@ impl ApplicationQueries for MutexGuard<'_, rusqlite::Connection> {
         let applications = match (job_id, status) {
             (Some(job_id), Some(status)) => {
                 self.prepare(
-                    "SELECT id, job_id, applied_at, status, notes, created_at, updated_at FROM applications WHERE job_id = ?1 AND status = ?2 ORDER BY created_at DESC"
+                    "SELECT id, job_id, applied_at, status, notes, created_at, updated_at, applied_via FROM applications WHERE job_id = ?1 AND status = ?2 ORDER BY created_at DESC"
                 )?
                 .query_map(params![job_id, status.to_string()], |row| {
                     let application_id: Option<i64> = row.get(0)?;
@@ -415,7 +421,7 @@ impl ApplicationQueries for MutexGuard<'_, rusqlite::Connection> {
                         applied_at: row.get(2)?,
                         status,
                         notes: row.get(4)?,
-                        applied_via: None,
+                        applied_via: row.get(7)?,
                         created_at: row.get(5)?,
                         updated_at: row.get(6)?,
                     })
@@ -424,7 +430,7 @@ impl ApplicationQueries for MutexGuard<'_, rusqlite::Connection> {
             }
             (Some(job_id), None) => {
                 self.prepare(
-                    "SELECT id, job_id, applied_at, status, notes, created_at, updated_at FROM applications WHERE job_id = ?1 ORDER BY created_at DESC"
+                    "SELECT id, job_id, applied_at, status, notes, created_at, updated_at, applied_via FROM applications WHERE job_id = ?1 ORDER BY created_at DESC"
                 )?
                 .query_map(params![job_id], |row| {
                     let application_id: Option<i64> = row.get(0)?;
@@ -437,7 +443,7 @@ impl ApplicationQueries for MutexGuard<'_, rusqlite::Connection> {
                         applied_at: row.get(2)?,
                         status,
                         notes: row.get(4)?,
-                        applied_via: None,
+                        applied_via: row.get(7)?,
                         created_at: row.get(5)?,
                         updated_at: row.get(6)?,
                     })
@@ -446,7 +452,7 @@ impl ApplicationQueries for MutexGuard<'_, rusqlite::Connection> {
             }
             (None, Some(status)) => {
                 self.prepare(
-                    "SELECT id, job_id, applied_at, status, notes, created_at, updated_at FROM applications WHERE status = ?1 ORDER BY created_at DESC"
+                    "SELECT id, job_id, applied_at, status, notes, created_at, updated_at, applied_via FROM applications WHERE status = ?1 ORDER BY created_at DESC"
                 )?
                 .query_map(params![status.to_string()], |row| {
                     let application_id: Option<i64> = row.get(0)?;
@@ -459,7 +465,7 @@ impl ApplicationQueries for MutexGuard<'_, rusqlite::Connection> {
                         applied_at: row.get(2)?,
                         status,
                         notes: row.get(4)?,
-                        applied_via: None,
+                        applied_via: row.get(7)?,
                         created_at: row.get(5)?,
                         updated_at: row.get(6)?,
                     })
@@ -468,7 +474,7 @@ impl ApplicationQueries for MutexGuard<'_, rusqlite::Connection> {
             }
             (None, None) => {
                 self.prepare(
-                    "SELECT id, job_id, applied_at, status, notes, created_at, updated_at FROM applications ORDER BY created_at DESC"
+                    "SELECT id, job_id, applied_at, status, notes, created_at, updated_at, applied_via FROM applications ORDER BY created_at DESC"
                 )?
                 .query_map([], |row| {
                     let application_id: Option<i64> = row.get(0)?;
@@ -481,7 +487,7 @@ impl ApplicationQueries for MutexGuard<'_, rusqlite::Connection> {
                         applied_at: row.get(2)?,
                         status,
                         notes: row.get(4)?,
-                        applied_via: None,
+                        applied_via: row.get(7)?,
                         created_at: row.get(5)?,
                         updated_at: row.get(6)?,
                     })

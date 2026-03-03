@@ -245,13 +245,21 @@ async fn setup_app_state(app: &mut tauri::App) -> Result<()> {
     // Store everything in the app state
     let state: State<AppState> = app.state();
     *state.db.lock().await = Some(db);
-    *state.app_dir.lock().await = Some(app_dir);
+    *state.app_dir.lock().await = Some(app_dir.clone());
 
-    // Update Arc fields by replacing the entire AppState
-    // Note: For Arc fields, we need to use Arc::get_mut or replace the state
-    // Since Tauri manages the state, we'll update what we can through the state
-    // The Arc fields are already initialized in Default, so we just need to ensure
-    // they're set up correctly. For now, the event handlers are set up above.
+    // Start the Axum REST API server so the Chrome extension can connect on port 3030
+    let server_db_path = app_dir.join("jobhunter.db");
+    let server_db_str = server_db_path.to_string_lossy().to_string();
+    tokio::spawn(async move {
+        let port: u16 = std::env::var("UNHIREABLE_PORT")
+            .ok()
+            .and_then(|p| p.parse().ok())
+            .unwrap_or(3030);
+        tracing::info!("Starting REST API server on port {}", port);
+        if let Err(e) = crate::web_server::run_server(&server_db_str, port).await {
+            tracing::error!("REST API server exited: {}", e);
+        }
+    });
 
     tracing::info!("Application state initialized successfully");
     Ok(())

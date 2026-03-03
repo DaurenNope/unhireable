@@ -1,5 +1,7 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+// @ts-ignore - future flags suppress React Router v6→v7 console warnings
+const ROUTER_FUTURE = { v7_startTransition: true, v7_relativeSplatPath: true };
 import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query"
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
 import { Loader2 } from 'lucide-react';
@@ -164,7 +166,7 @@ function AuthenticatedApp() {
   }, [queryClient]);
 
   return (
-    <Router>
+    <Router future={ROUTER_FUTURE}>
       <SkipNavLink />
       <div className="relative flex min-h-screen bg-background">
         {/* Sidebar Navigation */}
