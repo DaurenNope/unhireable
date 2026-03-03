@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-// @ts-ignore - future flags suppress React Router v6→v7 console warnings
+// @ts-expect-error - future flags suppress React Router v6→v7 console warnings
 const ROUTER_FUTURE = { v7_startTransition: true, v7_relativeSplatPath: true };
 import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query"
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
@@ -31,16 +31,17 @@ function ThemeProviderWrapper({ children }: { children: React.ReactNode }) {
   }
 }
 
-// Pages
-import { Dashboard } from "./pages/dashboard"
-import { Jobs } from "./pages/jobs"
-import Applications from "./pages/applications"
-import { Settings } from "./pages/settings"
-import { JobDetails } from "./pages/job-details"
-import { ApplicationDetails } from "./pages/application-details"
-import { NotFound } from "./pages/not-found"
-import { AuthLogin, AuthSetup } from "./pages/auth"
-import AutoPilot from "./pages/autopilot"
+// Pages — lazy-loaded for code splitting (each page becomes its own chunk)
+const Dashboard = React.lazy(() => import('./pages/dashboard').then(m => ({ default: m.Dashboard })));
+const Jobs = React.lazy(() => import('./pages/jobs').then(m => ({ default: m.Jobs })));
+const Applications = React.lazy(() => import('./pages/applications'));
+const Settings = React.lazy(() => import('./pages/settings').then(m => ({ default: m.Settings })));
+const JobDetails = React.lazy(() => import('./pages/job-details').then(m => ({ default: m.JobDetails })));
+const ApplicationDetails = React.lazy(() => import('./pages/application-details').then(m => ({ default: m.ApplicationDetails })));
+const NotFound = React.lazy(() => import('./pages/not-found').then(m => ({ default: m.NotFound })));
+const AuthLogin = React.lazy(() => import('./pages/auth').then(m => ({ default: m.AuthLogin })));
+const AuthSetup = React.lazy(() => import('./pages/auth').then(m => ({ default: m.AuthSetup })));
+const AutoPilot = React.lazy(() => import('./pages/autopilot'));
 import { authApi } from "./api/client"
 
 // Create a client
@@ -92,7 +93,7 @@ function AuthGuard() {
   if (error) {
     console.error('Auth status check failed:', error);
     // If auth check fails, assume not configured for now
-    return <AuthSetup onSuccess={() => refetch()} />;
+    return <React.Suspense fallback={<FullScreenLoader message="Loading..." />}><AuthSetup onSuccess={() => refetch()} /></React.Suspense>;
   }
 
   if (isLoading || !data) {
@@ -100,11 +101,11 @@ function AuthGuard() {
   }
 
   if (!data.configured) {
-    return <AuthSetup onSuccess={() => refetch()} />;
+    return <React.Suspense fallback={<FullScreenLoader message="Loading..." />}><AuthSetup onSuccess={() => refetch()} /></React.Suspense>;
   }
 
   if (!data.authenticated) {
-    return <AuthLogin onSuccess={() => refetch()} />;
+    return <React.Suspense fallback={<FullScreenLoader message="Loading..." />}><AuthLogin onSuccess={() => refetch()} /></React.Suspense>;
   }
 
   return <AuthenticatedApp />;
@@ -220,18 +221,24 @@ function AuthenticatedApp() {
           {/* Page Content */}
           <main id="main-content" tabIndex={-1} className="flex-1 focus:outline-none">
             <div className="px-4 sm:px-6 lg:px-8">
-              <Routes>
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/jobs" element={<Jobs />} />
-                <Route path="/jobs/:id" element={<JobDetails />} />
-                <Route path="/applications" element={<Applications />} />
-                <Route path="/applications/:id" element={<ApplicationDetails />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/autopilot" element={<AutoPilot />} />
-                <Route path="/404" element={<NotFound />} />
-                <Route path="*" element={<Navigate to="/404" replace />} />
-              </Routes>
+              <React.Suspense fallback={
+                <div className="flex items-center justify-center min-h-screen">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              }>
+                <Routes>
+                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/jobs" element={<Jobs />} />
+                  <Route path="/jobs/:id" element={<JobDetails />} />
+                  <Route path="/applications" element={<Applications />} />
+                  <Route path="/applications/:id" element={<ApplicationDetails />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/autopilot" element={<AutoPilot />} />
+                  <Route path="/404" element={<NotFound />} />
+                  <Route path="*" element={<Navigate to="/404" replace />} />
+                </Routes>
+              </React.Suspense>
             </div>
           </main>
         </div>

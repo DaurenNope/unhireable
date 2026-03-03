@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { invoke } from '@tauri-apps/api/core';
 import {
   Play,
   Pause,
-  Settings,
   Activity,
   Mail,
   Clock,
@@ -16,10 +15,8 @@ import {
   Target,
   Calendar,
   RefreshCw,
-  Eye,
   Bell,
   Shield,
-  Rocket,
 } from 'lucide-react';
 
 import ApplyModeSelector from '@/components/apply-mode-selector';
@@ -31,23 +28,13 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 
 import type {
   AutoPilotStatus,
   AutoPilotConfig,
   PipelineResult,
   Alert,
-  ActivityEntry,
   ClassifiedEmail,
 } from '@/types/autopilot';
 
@@ -56,7 +43,7 @@ export default function AutoPilotPage() {
   const [activeTab, setActiveTab] = useState('overview');
 
   // Fetch status
-  const { data: status, isLoading: statusLoading, refetch: refetchStatus } = useQuery<AutoPilotStatus>({
+  const { data: status, isLoading: statusLoading } = useQuery<AutoPilotStatus>({
     queryKey: ['autopilot-status'],
     queryFn: () => invoke('get_autopilot_status'),
     refetchInterval: 5000, // Refresh every 5 seconds

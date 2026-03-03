@@ -65,7 +65,7 @@ export function sanitizeForLogging(data: string): string {
 
   // Redact API keys, tokens, passwords
   return data
-    .replace(/(api[_-]?key|apikey|token|secret|password)\s*[:=]\s*['"]?([a-zA-Z0-9_\-]{20,})['"]?/gi, '$1: ***REDACTED***')
+    .replace(/(api[_-]?key|apikey|token|secret|password)\s*[:=]\s*['"]?([a-zA-Z0-9_-]{20,})['"]?/gi, '$1: ***REDACTED***')
     .replace(/sk-[a-zA-Z0-9]{32,}/g, 'sk-***REDACTED***')
     .replace(/pk_[a-zA-Z0-9]{32,}/g, 'pk_***REDACTED***');
 }

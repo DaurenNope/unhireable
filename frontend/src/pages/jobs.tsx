@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import DOMPurify from 'dompurify';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -12,7 +12,6 @@ import {
   SlidersHorizontal,
   ThumbsUp,
   ThumbsDown,
-  Compass,
   Flame,
   Clock,
   Mail,
@@ -137,7 +136,7 @@ export function Jobs() {
     gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
   });
 
-  const jobs = jobsData ?? [];
+  const jobs = useMemo(() => jobsData ?? [], [jobsData]);
 
   const getJobKey = (job: Job, fallbackIndex: number) => {
     if (job.id !== undefined && job.id !== null) {
@@ -300,7 +299,7 @@ export function Jobs() {
     }
   };
 
-  const handleRunDueSearches = async () => {
+  const handleRunDueSearches = useCallback(async () => {
     if (isRunningSavedSearches) return;
     setIsRunningSavedSearches(true);
     try {
@@ -312,9 +311,9 @@ export function Jobs() {
     } finally {
       setIsRunningSavedSearches(false);
     }
-  };
+  }, [isRunningSavedSearches, queryClient]);
 
-  const handleToggleScheduler = async () => {
+  const handleToggleScheduler = useCallback(async () => {
     if (!schedulerStatus || isTogglingScheduler) return;
     setIsTogglingScheduler(true);
     try {
@@ -329,7 +328,7 @@ export function Jobs() {
     } finally {
       setIsTogglingScheduler(false);
     }
-  };
+  }, [schedulerStatus, isTogglingScheduler, queryClient]);
 
   const handleEnrichBatch = async () => {
     setIsEnriching(true);
@@ -485,7 +484,7 @@ export function Jobs() {
         icon: Flame,
       },
     ];
-  }, [userProfile, savedSearchStatus, schedulerStatus]);
+  }, [userProfile, savedSearchStatus, schedulerStatus, handleRunDueSearches, handleToggleScheduler]);
 
   const skillGapSuggestions = useMemo(() => {
     return marketInsights?.skills_to_learn?.slice(0, 6) ?? [];

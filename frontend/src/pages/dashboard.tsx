@@ -143,7 +143,7 @@ export function Dashboard() {
     staleTime: 60_000,
   });
 
-  const jobs = jobsData ?? [];
+  const jobs = useMemo(() => jobsData ?? [], [jobsData]);
   const isLoading = jobsLoading || insightsLoading;
 
   useEffect(() => {
@@ -465,7 +465,6 @@ export function Dashboard() {
     },
   ];
 
-  const heroName = friendlyName(profile);
   const totalMatches = jobs.filter((job) => (job.match_score ?? -1) >= 0).length;
   const remotePercentage = marketInsights?.remote_percentage ?? 0;
   const topSkill = marketInsights?.trending_skills?.[0];
@@ -620,7 +619,7 @@ export function Dashboard() {
             <div className="space-y-4">
               <div>
                 <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-foreground">
-                  Level up your job hunt
+                  Hey {friendlyName(profile)}, level up your job hunt
                 </h1>
                 <p className="mt-3 max-w-xl text-base text-muted-foreground leading-relaxed">
                   {totalMatches > 0

@@ -200,7 +200,7 @@ export function JobDetails() {
           setIsEnriching(false);
         });
     }
-  }, [job?.id, job?.description, job?.url, jobId, queryClient]);
+  }, [job, isEnriching, jobId, queryClient]);
 
   // Get sanitizer instance (must be before early returns to maintain hook order)
   const sanitizer = useMemo(() => {

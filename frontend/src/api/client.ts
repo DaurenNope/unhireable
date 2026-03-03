@@ -35,69 +35,68 @@ import {
   ApiError,
   getErrorMessage
 } from '@/utils/errors'
-import { restApi, shouldUseRestApi } from './rest'
+import { restApi } from './rest'
 
 // Map Tauri commands to REST API calls
 async function handleRestCommand<T>(command: string, args?: Record<string, unknown>): Promise<T> {
   switch (command) {
-    case 'get_jobs':
+    case 'get_jobs': {
       return restApi.jobs.list({
-        status: args?.['status'] as any,
+        status: args?.['status'] as string | undefined,
         query: args?.['query'] as string,
         page: args?.['page'] as number,
         page_size: args?.['page_size'] as number,
       }) as Promise<T>;
-
+    }
     case 'get_job':
       return restApi.jobs.get(args?.['id'] as number) as Promise<T>;
 
     case 'create_job':
-      return restApi.jobs.create(args?.['job'] as any) as Promise<T>;
+      return restApi.jobs.create(args?.['job'] as Parameters<typeof restApi.jobs.create>[0]) as Promise<T>;
 
-    case 'update_job':
-      const job = args?.['job'] as any;
+    case 'update_job': {
+      const job = args?.['job'] as { id: number } & Parameters<typeof restApi.jobs.update>[1];
       return restApi.jobs.update(job.id, job) as Promise<T>;
-
+    }
     case 'delete_job':
       return restApi.jobs.delete(args?.['id'] as number) as Promise<T>;
 
-    case 'get_applications':
+    case 'get_applications': {
       return restApi.applications.list({
-        status: args?.['status'] as any,
+        status: args?.['status'] as string | undefined,
         job_id: args?.['job_id'] as number,
       }) as Promise<T>;
-
+    }
     case 'get_application':
       return restApi.applications.get(args?.['id'] as number) as Promise<T>;
 
     case 'create_application':
-      return restApi.applications.create(args?.['application'] as any) as Promise<T>;
+      return restApi.applications.create(args?.['application'] as Parameters<typeof restApi.applications.create>[0]) as Promise<T>;
 
-    case 'update_application':
-      const app = args?.['application'] as any;
+    case 'update_application': {
+      const app = args?.['application'] as { id: number } & Parameters<typeof restApi.applications.update>[1];
       return restApi.applications.update(app.id, app) as Promise<T>;
-
+    }
     case 'scrape_jobs_selected':
       return restApi.jobs.scrape(
         args?.['sources'] as string[],
-        args?.['query'] as string || ''
+        (args?.['query'] as string) || ''
       ) as Promise<T>;
 
     case 'auto_apply_to_jobs':
       return restApi.applications.autoApply(
-        args?.['query'] as string || 'developer',
-        args?.['max_applications'] as number || 5,
-        args?.['dry_run'] as boolean ?? true
+        (args?.['query'] as string) || 'developer',
+        (args?.['max_applications'] as number) || 5,
+        (args?.['dry_run'] as boolean) ?? true
       ) as Promise<T>;
 
-    // Auth commands (for web mode)
     case 'auth_get_status':
       return restApi.auth.getStatus() as Promise<T>;
 
     case 'auth_setup':
       return restApi.auth.setup(
-        args?.['email'] as string || '',
-        args?.['password'] as string || ''
+        (args?.['email'] as string) || '',
+        (args?.['password'] as string) || ''
       ) as Promise<T>;
 
     default:
@@ -618,7 +617,7 @@ export interface TestResult {
   passed: boolean;
   message: string;
   duration_ms: number;
-  details?: any;
+  details?: Record<string, unknown>;
 }
 
 export interface SystemTestResults {
@@ -644,7 +643,7 @@ export interface ClassifiedEmail {
 
 export const testingApi = {
   runSystemTests: () => apiCall<SystemTestResults>('run_system_tests'),
-  testAutomationPipeline: (query?: string) => apiCall<any>('test_automation_pipeline', { query }),
+  testAutomationPipeline: (query?: string) => apiCall<Record<string, unknown>>('test_automation_pipeline', { query }),
   testEmailSending: (toEmail: string) => apiCall<TestResult>('test_email_sending', { toEmail }),
   testClassifyEmail: (subject: string, body: string) => apiCall<ClassifiedEmail>('test_classify_email', { subject, body }),
 };

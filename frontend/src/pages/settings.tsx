@@ -28,46 +28,6 @@ export function Settings() {
   const [searchParams, setSearchParams] = useSearchParams();
   const defaultTab = searchParams.get('tab') || 'profile';
 
-  // Get scheduler status
-  const { data: schedulerStatus } = useQuery({
-    queryKey: ['scheduler-status'],
-    queryFn: () => schedulerApi.getStatus(),
-    refetchInterval: 5000,
-  });
-
-  // Get email config to check if enabled
-  const [emailEnabled, setEmailEnabled] = useState(false);
-
-  // Load email enabled state from localStorage
-  useEffect(() => {
-    const loadEmailEnabled = () => {
-      const savedConfig = localStorage.getItem('emailConfig');
-      if (savedConfig) {
-        try {
-          const config = JSON.parse(savedConfig);
-          setEmailEnabled(config.email_enabled || false);
-        } catch (e) {
-          console.error('Failed to load email config:', e);
-        }
-      }
-    };
-
-    loadEmailEnabled();
-    // Listen for storage changes (when email config is saved)
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'emailConfig') {
-        loadEmailEnabled();
-      }
-    };
-    window.addEventListener('storage', handleStorageChange);
-    // Also poll for changes (since same-window storage events don't fire)
-    const interval = setInterval(loadEmailEnabled, 1000);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      clearInterval(interval);
-    };
-  }, []);
 
   return (
     <div className="space-y-6 p-6">
@@ -89,6 +49,8 @@ export function Settings() {
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="automation">Automation</TabsTrigger>
           <TabsTrigger value="scraper">Job Sources</TabsTrigger>
+          <TabsTrigger value="credentials">API Keys</TabsTrigger>
+          <TabsTrigger value="preferences">Preferences</TabsTrigger>
           <TabsTrigger value="appearance">Appearance</TabsTrigger>
         </TabsList>
 
@@ -137,6 +99,14 @@ export function Settings() {
               <ScraperSettings />
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="credentials" className="space-y-4">
+          <CredentialsSettings />
+        </TabsContent>
+
+        <TabsContent value="preferences" className="space-y-4">
+          <JobPreferences />
         </TabsContent>
 
         <TabsContent value="appearance" className="space-y-4">

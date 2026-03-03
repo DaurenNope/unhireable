@@ -2,21 +2,14 @@ import { useState } from 'react';
 import {
     Rocket,
     FileText,
-    Download,
     ExternalLink,
     CheckCircle2,
     User,
-    Mail,
-    Phone,
-    Linkedin,
-    Github,
-    Globe,
     Loader2,
     Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { CopyField } from '@/components/ui/copy-field';
 import { DocumentGenerator } from '@/components/document-generator';
 import { Job, UserProfile } from '@/types/models';
