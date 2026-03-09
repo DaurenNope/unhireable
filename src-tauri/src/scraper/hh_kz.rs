@@ -533,7 +533,7 @@ impl JobScraper for HhKzScraper {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    
 
     #[test]
     fn test_hh_kz_scraper() {

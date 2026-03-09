@@ -778,7 +778,7 @@ impl WellfoundScraper {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    
 
     #[test]
     fn test_wellfound_scraper() {

@@ -471,7 +471,7 @@ impl ApplicationQueue {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::automation::bridge::create_bridge;
+    
 
     #[test]
     fn test_apply_method_detection() {

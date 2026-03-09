@@ -699,7 +699,7 @@ mod tests {
             conn.create_job(&mut job).unwrap();
         }
         
-        let config = SchedulerConfig {
+        let _config = SchedulerConfig {
             enabled: true,
             ..Default::default()
         };

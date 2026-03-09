@@ -1,5 +1,4 @@
 use unhireable_lib::db::models::{Job, JobStatus};
-use unhireable_lib::db::queries::JobQueries;
 use unhireable_lib::db::Database;
 use unhireable_lib::generator::{
     EducationEntry, ExperienceEntry, PersonalInfo, SkillsProfile, UserProfile,

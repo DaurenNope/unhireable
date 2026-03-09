@@ -1,9 +1,8 @@
 // Quick test script for document generation
 use unhireable_lib::generator::{
-    CoverLetterGenerator, DocumentFormat, DocumentMetadata, GeneratedDocument, PDFExporter,
+    CoverLetterGenerator, PDFExporter,
     ResumeGenerator, UserProfile,
 };
-use std::path::Path;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("🧪 Testing Document Generation");
