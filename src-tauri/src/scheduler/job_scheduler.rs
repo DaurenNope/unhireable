@@ -6,7 +6,7 @@ use anyhow::Result;
 use chrono::Utc;
 use serde_json;
 use std::sync::Arc;
-use tauri::Emitter;
+
 use tokio::sync::Mutex;
 use tokio::time::{sleep, Duration};
 

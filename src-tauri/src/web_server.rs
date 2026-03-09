@@ -18,14 +18,10 @@ use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::TraceLayer;
 
 use crate::db::models::{
-    Activity, AlertFrequency, AnswerCacheEntry, Application, ApplicationStatus, Contact,
-    Credential, Document, DocumentType, Interview, Job, JobSnapshot, JobStatus, SavedSearch,
-    SavedSearchFilters, SnapshotCount, UserAuth,
+    AnswerCacheEntry, Application, ApplicationStatus, Job, JobStatus,
 };
 use crate::db::queries::{
-    ActivityQueries, AnswerCacheQueries, AnswerPatternsQueries, ApplicationQueries, AuthQueries,
-    ContactQueries, CredentialQueries, DocumentQueries, JobQueries, ProfileQueries,
-    SavedSearchQueries, SnapshotQueries,
+    AnswerCacheQueries, AnswerPatternsQueries, ApplicationQueries, JobQueries,
 };
 use crate::db::Database;
 use crate::generator::UserProfile;

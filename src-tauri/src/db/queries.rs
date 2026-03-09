@@ -4,8 +4,8 @@ use crate::db::models::{
     SavedSearchFilters, SnapshotCount, UserAuth,
 };
 use anyhow::{Context, Result};
-use chrono::{DateTime, Utc};
-use rusqlite::{params, types::Type, OptionalExtension, Connection};
+use chrono::Utc;
+use rusqlite::{params, types::Type, OptionalExtension};
 use std::str::FromStr;
 use std::sync::MutexGuard;
 use crate::generator::UserProfile;

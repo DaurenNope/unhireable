@@ -5,7 +5,6 @@ use crate::matching::JobMatcher;
 use anyhow::{Context, Result};
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use rusqlite::Connection;
 
 pub struct Brain {
     matcher: JobMatcher,
