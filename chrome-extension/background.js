@@ -16,7 +16,7 @@ function connectToTauriApp() {
             clearInterval(wsReconnectInterval);
             wsReconnectInterval = null;
         }
-        console.log('[Unhireable] Tauri app not running - using standalone mode');
+        console.debug('[Unhireable] Tauri app not running - using standalone mode');
         return;
     }
 
@@ -30,7 +30,7 @@ function connectToTauriApp() {
         ws = new WebSocket(WS_URL);
 
         ws.onopen = () => {
-            console.log('[Unhireable] Connected to Tauri app');
+            console.debug('[Unhireable] Connected to Tauri app');
             chrome.action.setBadgeText({ text: '✓' });
             chrome.action.setBadgeBackgroundColor({ color: '#22c55e' });
             wsConnectAttempts = 0; // Reset on successful connection
@@ -45,7 +45,7 @@ function connectToTauriApp() {
         ws.onmessage = async (event) => {
             try {
                 const command = JSON.parse(event.data);
-                console.log('[Unhireable] Received command:', command.action);
+                console.debug('[Unhireable] Received command:', command.action);
 
                 const response = await handleCommand(command);
                 ws.send(JSON.stringify(response));
@@ -62,7 +62,7 @@ function connectToTauriApp() {
             ws = null;
             // Only try to reconnect if we were previously connected
             if (wsConnectAttempts === 1) {
-                console.log('[Unhireable] Disconnected from Tauri app');
+                console.debug('[Unhireable] Disconnected from Tauri app');
             }
         };
 
@@ -386,6 +386,41 @@ chrome.runtime.onStartup.addListener(() => {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log('[Unhireable Background] Received:', message.type || message.action);
 
+    // Unknown field needs user input — show browser notification + ensure it's visible (works when tab in background)
+    if (message.action === 'showUnknownFieldNotification') {
+        const label = (message.field?.label || 'Unknown question').substring(0, 80);
+        const tabId = sender.tab?.id;
+        const windowId = sender.tab?.windowId;
+        chrome.notifications.create({
+            type: 'basic',
+            iconUrl: 'icons/icon128.png',
+            title: 'Unhireable: Answer needed',
+            message: label + (label.length >= 80 ? '…' : ''),
+            priority: 2,
+            requireInteraction: true,
+            silent: false,
+            buttons: [{ title: 'Open tab' }],
+        }, (notifId) => {
+            if (chrome.runtime.lastError) {
+                console.warn('[Unhireable] Notification failed:', chrome.runtime.lastError.message);
+                return;
+            }
+            if (notifId && tabId) {
+                const handler = (n, btnIdx) => {
+                    if (n === notifId && btnIdx === 0) {
+                        chrome.tabs.update(tabId, { active: true });
+                        if (windowId) chrome.windows.update(windowId, { focused: true });
+                        chrome.notifications.clear(notifId);
+                        chrome.notifications.onButtonClicked.removeListener(handler);
+                    }
+                };
+                chrome.notifications.onButtonClicked.addListener(handler);
+            }
+        });
+        sendResponse({ ok: true });
+        return false;
+    }
+
     if (message.type === 'saveJob') {
         // Forward to Tauri if connected
         if (ws && ws.readyState === WebSocket.OPEN) {
@@ -622,9 +657,65 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return true;
     }
 
+    if (message.type === 'externalApplyOpenUrl') {
+        // Open ATS URL directly when we have it from the Apply button href (more reliable than clicking)
+        (async () => {
+            const linkedInTabId = sender.tab?.id;
+            const { atsUrl, profile, jobTitle } = message;
+            if (!atsUrl || !profile) {
+                sendResponse({ success: false, error: 'Missing atsUrl or profile' });
+                return;
+            }
+            try {
+                const tab = await chrome.tabs.create({ url: atsUrl, active: true });
+                await new Promise((resolve) => {
+                    const onLoad = (tabId, info) => {
+                        if (tabId === tab.id && info.status === 'complete') {
+                            chrome.tabs.onUpdated.removeListener(onLoad);
+                            clearTimeout(timeout);
+                            resolve();
+                        }
+                    };
+                    const timeout = setTimeout(() => {
+                        chrome.tabs.onUpdated.removeListener(onLoad);
+                        resolve();
+                    }, 45000);
+                    chrome.tabs.onUpdated.addListener(onLoad);
+                });
+                await new Promise(r => setTimeout(r, 2000));
+                const updated = await chrome.tabs.get(tab.id);
+                const url = updated.url || atsUrl;
+                const isSupportedATS = /ashbyhq\.com|boards\.greenhouse\.io|lever\.co|myworkdayjobs\.com|workday\.com.*\/job\/|icims\.com|smartrecruiters\.com|bamboohr\.com|jazz\.co|jobvite\.com|breezy\.hr|applytojob\.com|recruitee\.com/.test(url);
+                if (!isSupportedATS) {
+                    await chrome.tabs.remove(tab.id);
+                    if (linkedInTabId) chrome.tabs.update(linkedInTabId, { active: true });
+                    sendResponse({ success: false, error: `Unsupported ATS: ${url}`, type: 'unsupported_ats' });
+                    return;
+                }
+                let fillResult;
+                try {
+                    fillResult = await Promise.race([
+                        chrome.tabs.sendMessage(tab.id, { action: 'fillForm', profile, autoSubmit: false, humanMode: true }),
+                        new Promise((_, rej) => setTimeout(() => rej(new Error('fillForm timed out')), 60000))
+                    ]);
+                } catch (e) {
+                    fillResult = { success: false, error: e.message };
+                }
+                await new Promise(r => setTimeout(r, 2000));
+                await chrome.tabs.remove(tab.id);
+                if (linkedInTabId) chrome.tabs.update(linkedInTabId, { active: true });
+                sendResponse({ success: fillResult?.success || false, type: 'external', atsUrl: url, fillResult });
+            } catch (err) {
+                if (linkedInTabId) chrome.tabs.update(linkedInTabId, { active: true });
+                sendResponse({ success: false, error: err.message });
+            }
+        })();
+        return true;
+    }
+
     if (message.type === 'externalApply') {
         // Handle external application with proper sequencing:
-        // 1. Set up tab watcher FIRST, 2. Tell content script to click, 3. Process new tab
+        // 1. Set up tab watchers FIRST (new tab OR same-tab navigation), 2. Tell content script to click, 3. Process
         (async () => {
             const linkedInTabId = sender.tab?.id;
             const profile = message.profile;
@@ -633,20 +724,35 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             console.log(`[Unhireable Background] External apply: ${jobTitle}`);
 
             try {
-                // Step 1: Set up chrome.tabs.onCreated listener BEFORE the click
-                const newTabPromise = new Promise((resolve) => {
+                // Step 1: Set up listeners for EITHER new tab OR same-tab navigation (LinkedIn may redirect in-place)
+                const resultPromise = new Promise((resolve) => {
                     const timeout = setTimeout(() => {
                         chrome.tabs.onCreated.removeListener(onCreated);
-                        resolve(null);
+                        chrome.tabs.onUpdated.removeListener(onUpdated);
+                        resolve({ type: 'timeout' });
                     }, 30000);
 
                     const onCreated = (tab) => {
                         chrome.tabs.onCreated.removeListener(onCreated);
+                        chrome.tabs.onUpdated.removeListener(onUpdated);
                         clearTimeout(timeout);
                         console.log(`[Unhireable Background] onCreated fired: tab ${tab.id}`);
-                        resolve(tab);
+                        resolve({ type: 'newTab', tab });
                     };
+
+                    const onUpdated = (tabId, info, tab) => {
+                        if (tabId !== linkedInTabId || !info.url) return;
+                        if (!/linkedin\.com/.test(info.url)) {
+                            chrome.tabs.onCreated.removeListener(onCreated);
+                            chrome.tabs.onUpdated.removeListener(onUpdated);
+                            clearTimeout(timeout);
+                            console.log(`[Unhireable Background] Same-tab navigation: ${info.url}`);
+                            resolve({ type: 'sameTab', tab });
+                        }
+                    };
+
                     chrome.tabs.onCreated.addListener(onCreated);
+                    chrome.tabs.onUpdated.addListener(onUpdated);
                 });
 
                 // Step 2: Tell content script to click the Apply button NOW
@@ -667,41 +773,42 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     return;
                 }
 
-                console.log('[Unhireable Background] Apply button clicked, waiting for new tab...');
+                console.log('[Unhireable Background] Apply button clicked, waiting for new tab or same-tab navigation...');
 
-                // Step 3: Wait for the new tab (onCreated will fire)
-                const newTab = await newTabPromise;
+                // Step 3: Wait for new tab OR same-tab navigation
+                const result = await resultPromise;
 
-                if (!newTab) {
-                    console.log('[Unhireable Background] No new tab detected after 30s — LinkedIn may need manual action or confirmation modal was missed');
+                if (result.type === 'timeout') {
+                    console.log('[Unhireable Background] No navigation detected after 30s — LinkedIn may need manual action or confirmation modal was missed');
                     sendResponse({ success: false, error: 'No new tab detected for external application' });
                     return;
                 }
 
-                console.log(`[Unhireable Background] New tab detected: tab ${newTab.id} (${newTab.url || 'loading...'})`);
+                const atsTab = result.tab;
+                console.log(`[Unhireable Background] Navigation detected: tab ${atsTab.id} (${atsTab.url || 'loading...'}) [${result.type}]`);
 
-                // Step 4: Wait for the new tab to fully load (up to 30s)
+                // Step 4: Wait for the ATS tab to fully load (up to 30s)
                 await new Promise((resolve) => {
                     // Check if already complete
-                    chrome.tabs.get(newTab.id, (tab) => {
+                    chrome.tabs.get(atsTab.id, (tab) => {
                         if (tab?.status === 'complete') {
                             resolve();
                             return;
                         }
 
                         const timeout = setTimeout(() => {
-                            chrome.tabs.onUpdated.removeListener(onUpdated);
+                            chrome.tabs.onUpdated.removeListener(onLoadComplete);
                             resolve();
                         }, 30000);
 
-                        const onUpdated = (tabId, info) => {
-                            if (tabId === newTab.id && info.status === 'complete') {
-                                chrome.tabs.onUpdated.removeListener(onUpdated);
+                        const onLoadComplete = (tabId, info) => {
+                            if (tabId === atsTab.id && info.status === 'complete') {
+                                chrome.tabs.onUpdated.removeListener(onLoadComplete);
                                 clearTimeout(timeout);
                                 resolve();
                             }
                         };
-                        chrome.tabs.onUpdated.addListener(onUpdated);
+                        chrome.tabs.onUpdated.addListener(onLoadComplete);
                     });
                 });
 
@@ -709,7 +816,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 await new Promise(r => setTimeout(r, 3000));
 
                 // Step 5: Check if this is a supported ATS page
-                const updatedTab = await chrome.tabs.get(newTab.id);
+                const updatedTab = await chrome.tabs.get(atsTab.id);
                 const url = updatedTab.url || '';
                 console.log(`[Unhireable Background] Final URL: ${url}`);
 
@@ -730,9 +837,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
                 if (!isSupportedATS) {
                     console.log(`[Unhireable Background] Unsupported ATS: ${url}`);
-                    try { await chrome.tabs.remove(newTab.id); } catch (_) { }
-                    if (linkedInTabId) {
+                    if (result.type === 'newTab') {
+                        try { await chrome.tabs.remove(atsTab.id); } catch (_) { }
+                    }
+                    if (linkedInTabId && result.type === 'newTab') {
                         try { await chrome.tabs.update(linkedInTabId, { active: true }); } catch (_) { }
+                    } else {
+                        try { await chrome.tabs.update(atsTab.id, { active: true }); } catch (_) { }
                     }
                     sendResponse({ success: false, error: `Unsupported ATS: ${url}`, type: 'unsupported_ats' });
                     return;
@@ -742,11 +853,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 await new Promise(r => setTimeout(r, 2000));
 
                 // Step 6: Send fillForm to the ATS content script
-                console.log(`[Unhireable Background] Sending fillForm to tab ${newTab.id} (${url})`);
+                console.log(`[Unhireable Background] Sending fillForm to tab ${atsTab.id} (${url})`);
                 let fillResult;
                 try {
                     fillResult = await Promise.race([
-                        chrome.tabs.sendMessage(newTab.id, {
+                        chrome.tabs.sendMessage(atsTab.id, {
                             action: 'fillForm',
                             profile: profile,
                             autoSubmit: false,
@@ -763,11 +874,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
                 console.log(`[Unhireable Background] Fill result:`, fillResult);
 
-                // Step 7: Wait a moment, then close
+                // Step 7: Wait a moment, then close (only if we opened a new tab)
                 await new Promise(r => setTimeout(r, 3000));
-                try { await chrome.tabs.remove(newTab.id); } catch (_) { }
-                if (linkedInTabId) {
-                    try { await chrome.tabs.update(linkedInTabId, { active: true }); } catch (_) { }
+                if (result.type === 'newTab') {
+                    try { await chrome.tabs.remove(atsTab.id); } catch (_) { }
+                    if (linkedInTabId) {
+                        try { await chrome.tabs.update(linkedInTabId, { active: true }); } catch (_) { }
+                    }
+                } else {
+                    try { await chrome.tabs.update(atsTab.id, { active: true }); } catch (_) { }
                 }
 
                 sendResponse({
@@ -783,6 +898,77 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     try { await chrome.tabs.update(linkedInTabId, { active: true }); } catch (_) { }
                 }
                 sendResponse({ success: false, error: err.message });
+            }
+        })();
+        return true;
+    }
+
+    // Local LLM (Ollama): always proxy in background so content script never hits CORS.
+    if (message.type === 'llmLocalFetch') {
+        const url = message.url;
+        const body = message.body;
+        const timeoutMs = Math.min(Math.max(message.timeoutMs || 60000, 5000), 120000);
+        (async () => {
+            let timeoutId;
+            try {
+                const controller = new AbortController();
+                timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: body,
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                const text = await response.text();
+                let data = text;
+                try {
+                    data = JSON.parse(text);
+                } catch (_) { }
+                sendResponse({ success: true, status: response.status, statusText: response.statusText, data });
+            } catch (err) {
+                if (timeoutId) clearTimeout(timeoutId);
+                sendResponse({
+                    success: false,
+                    error: err.name === 'AbortError' ? 'Request timeout' : (err.message || 'Network error')
+                });
+            }
+        })();
+        return true;
+    }
+
+    if (message.type === 'proxyFetch') {
+        (async () => {
+            let timeoutHandle;
+            try {
+                const options = message.options || {};
+                if (message.timeout) {
+                    const controller = new AbortController();
+                    options.signal = controller.signal;
+                    timeoutHandle = setTimeout(() => controller.abort(), message.timeout);
+                }
+                const response = await fetch(message.url, options);
+                if (timeoutHandle) clearTimeout(timeoutHandle);
+                const responseHeaders = {};
+                response.headers.forEach((v, k) => { responseHeaders[k] = v; });
+                const text = await response.text();
+                let data = text;
+                try {
+                    data = JSON.parse(text);
+                } catch (e) { }
+                sendResponse({
+                    success: true,
+                    status: response.status,
+                    statusText: response.statusText,
+                    headers: responseHeaders,
+                    data: data
+                });
+            } catch (err) {
+                if (timeoutHandle) clearTimeout(timeoutHandle);
+                sendResponse({
+                    success: false,
+                    error: err.name === 'AbortError' ? 'Request timeout' : err.message
+                });
             }
         })();
         return true;
@@ -851,5 +1037,95 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     }
 });
 
+// ========== DISCOVERY ENGINE (Unhireable 2.0) ==========
+
+// Receive jobs from scout.js and push to backend
+async function handleScoutedJobs(jobs) {
+    if (!jobs || jobs.length === 0) return;
+
+    console.debug(`[Unhireable] 📡 Pushing ${jobs.length} scouted jobs to backend...`);
+
+    try {
+        const response = await fetch('http://localhost:3030/api/discovery/batch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ jobs })
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            console.debug(`[Unhireable] ✅ Successfully scouted ${result.data?.scouted} new jobs.`);
+
+            // Notify user via badge
+            chrome.action.setBadgeText({ text: result.data?.scouted.toString() });
+            chrome.action.setBadgeBackgroundColor({ color: '#22c55e' });
+            setTimeout(() => chrome.action.setBadgeText({ text: '' }), 10000);
+        }
+    } catch (err) {
+        console.warn('[Unhireable] Discovery engine offline - backend not reachable');
+    }
+}
+
 // Initial connection attempt
 connectToTauriApp();
+
+// Listener for messages
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === 'jobsScouted') {
+        handleScoutedJobs(request.jobs);
+        return true;
+    }
+    if (request.action === 'getMaturity') {
+        getAccountMaturity().then(sendResponse);
+        return true;
+    }
+    if (request.action === 'incrementApply') {
+        incrementApplyCount().then(sendResponse);
+        return true;
+    }
+});
+
+// ========== ACCOUNT MATURITY ENGINE (Unhireable 2.0) ==========
+async function getAccountMaturity() {
+    const store = await chrome.storage.local.get(['accountCreatedDate', 'dailyApplyCount', 'lastApplyResetDate']);
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+
+    // Initialize creation date if missing
+    let createdDate = store.accountCreatedDate;
+    if (!createdDate) {
+        createdDate = now.toISOString();
+        await chrome.storage.local.set({ accountCreatedDate: createdDate });
+    }
+
+    const ageDays = Math.floor((now - new Date(createdDate)) / (1000 * 60 * 60 * 24));
+
+    // Reset daily count if date changed
+    let dailyCount = store.dailyApplyCount || 0;
+    if (store.lastApplyResetDate !== todayStr) {
+        dailyCount = 0;
+        await chrome.storage.local.set({ dailyApplyCount: 0, lastApplyResetDate: todayStr });
+    }
+
+    let level = 1;
+    let limit = 3;
+    let status = 'Warm-up';
+
+    if (ageDays >= 30) { level = 5; limit = 100; status = 'Mature'; }
+    else if (ageDays >= 14) { level = 4; limit = 50; status = 'Scale'; }
+    else if (ageDays >= 7) { level = 3; limit = 25; status = 'Stabilization'; }
+    else if (ageDays >= 3) { level = 2; limit = 10; status = 'Growth'; }
+
+    return { level, limit, count: dailyCount, ageDays, status, remaining: Math.max(0, limit - dailyCount) };
+}
+
+// Increment apply count and check limits
+async function incrementApplyCount() {
+    const maturity = await getAccountMaturity();
+    if (maturity.count >= maturity.limit) {
+        console.warn(`[Unhireable] 🛡️ Safety Limit Reached (${maturity.limit}). Step back for today.`);
+        return false;
+    }
+    await chrome.storage.local.set({ dailyApplyCount: maturity.count + 1 });
+    return true;
+}

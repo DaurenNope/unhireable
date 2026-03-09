@@ -2,14 +2,15 @@ use crate::db::models::Job;
 use crate::deduplication::fuzzy_matcher::FuzzyMatcher;
 use anyhow::Result;
 
-/// Merge multiple jobs into one, keeping the best information from each
-pub fn merge_jobs(jobs: &[Job]) -> Job {
+/// Merge multiple jobs into one, keeping the best information from each.
+/// Returns `None` if the slice is empty.
+pub fn merge_jobs(jobs: &[Job]) -> Option<Job> {
     if jobs.is_empty() {
-        panic!("Cannot merge empty job list");
+        return None;
     }
 
     if jobs.len() == 1 {
-        return jobs[0].clone();
+        return Some(jobs[0].clone());
     }
 
     // Find the job with the most complete information
@@ -119,7 +120,7 @@ pub fn merge_jobs(jobs: &[Job]) -> Job {
         }
     }
 
-    merged
+    Some(merged)
 }
 
 pub struct JobMerger;
@@ -148,9 +149,10 @@ impl JobMerger {
                 }
             }
 
-            // Merge them
-            let merged = merge_jobs(&jobs_to_merge);
-            merged_jobs.push((merged, duplicate_ids));
+            // Merge them (safe — jobs_to_merge always has at least 1 element)
+            if let Some(merged) = merge_jobs(&jobs_to_merge) {
+                merged_jobs.push((merged, duplicate_ids));
+            }
         }
 
         Ok(merged_jobs)

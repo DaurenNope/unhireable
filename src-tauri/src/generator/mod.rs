@@ -4,7 +4,7 @@ pub mod cache;
 pub mod cover_letter;
 pub mod docx_export;
 pub mod event_handler;
-pub mod multi_provider_ai;
+// multi_provider_ai removed — AIIntegration is the single AI path
 pub mod pdf_export;
 pub mod quality_scorer;
 pub mod resume;
@@ -17,7 +17,6 @@ pub use cache::{CacheStats, DocumentCache};
 pub use cover_letter::CoverLetterGenerator;
 pub use docx_export::DOCXExporter;
 pub use event_handler::DocumentGenerationEventHandler;
-pub use multi_provider_ai::{AIProvider, AIProviderConfig, MultiProviderAI};
 pub use pdf_export::PDFExporter;
 pub use quality_scorer::{QualityScore, QualityScorer};
 pub use resume::ResumeGenerator;

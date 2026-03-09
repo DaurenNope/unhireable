@@ -3,11 +3,12 @@ use crate::db::models::{
     Credential, Document, DocumentType, Interview, Job, JobSnapshot, JobStatus, SavedSearch,
     SavedSearchFilters, SnapshotCount, UserAuth,
 };
-use anyhow::Result;
-use chrono::Utc;
-use rusqlite::{params, types::Type, OptionalExtension};
+use anyhow::{Context, Result};
+use chrono::{DateTime, Utc};
+use rusqlite::{params, types::Type, OptionalExtension, Connection};
 use std::str::FromStr;
 use std::sync::MutexGuard;
+use crate::generator::UserProfile;
 
 // Helper function to parse ApplicationStatus with proper error handling
 fn parse_application_status(status_str: &str, application_id: Option<i64>) -> ApplicationStatus {
@@ -48,6 +49,7 @@ pub trait JobQueries {
     fn update_job(&self, job: &Job) -> Result<()>;
     fn list_jobs(&self, status: Option<JobStatus>) -> Result<Vec<Job>>;
     fn delete_job(&self, id: i64) -> Result<()>;
+    fn batch_upsert_jobs(&self, jobs: &mut [Job]) -> Result<usize>;
 }
 
 pub trait ApplicationQueries {
@@ -133,192 +135,251 @@ pub trait SavedSearchQueries {
     fn update_saved_search_last_run(&self, id: i64) -> Result<()>;
 }
 
+pub trait ProfileQueries {
+    fn get_user_profile(&self) -> Result<Option<UserProfile>>;
+    fn update_user_profile(&self, profile: &UserProfile) -> Result<()>;
+}
+
+macro_rules! impl_profile_queries {
+    ($target:ty) => {
+        impl ProfileQueries for $target {
+            fn get_user_profile(&self) -> Result<Option<UserProfile>> {
+                self.query_row(
+                    "SELECT profile_data FROM user_profile WHERE id = 1",
+                    [],
+                    |row| {
+                        let data: String = row.get(0)?;
+                        serde_json::from_str(&data).map_err(|e| rusqlite::Error::FromSqlConversionFailure(0, Type::Text, Box::new(e)))
+                    },
+                ).optional().map_err(Into::into)
+            }
+
+            fn update_user_profile(&self, profile: &UserProfile) -> Result<()> {
+                let data = serde_json::to_string(profile).map_err(|e| anyhow::anyhow!("Failed to serialize profile: {}", e))?;
+                let now = Utc::now();
+                self.execute(
+                    "INSERT OR REPLACE INTO user_profile (id, profile_data, updated_at) VALUES (1, ?1, ?2)",
+                    params![data, now.to_rfc3339()],
+                )?;
+                Ok(())
+            }
+        }
+    };
+}
+
+impl_profile_queries!(rusqlite::Connection);
+impl_profile_queries!(MutexGuard<'_, rusqlite::Connection>);
+
+macro_rules! impl_job_queries {
+    ($target:ty) => {
+        impl JobQueries for $target {
+            fn create_job(&self, job: &mut Job) -> Result<()> {
+                let now = Utc::now();
+
+                let id = self.query_row(
+                    r#"
+                    INSERT INTO jobs (
+                        title, company, url, description, requirements,
+                        location, salary, contact_email, source, status, match_score, created_at, updated_at
+                    ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
+                    RETURNING id
+                    "#,
+                    params![
+                        &job.title,
+                        &job.company,
+                        &job.url,
+                        &job.description,
+                        &job.requirements,
+                        &job.location,
+                        &job.salary,
+                        &job.contact_email,
+                        &job.source,
+                        job.status.to_string(),
+                        &job.match_score,
+                        now.to_rfc3339(),
+                        now.to_rfc3339(),
+                    ],
+                    |row| row.get(0),
+                )?;
+
+                job.id = Some(id);
+                job.created_at = Some(now);
+                job.updated_at = Some(now);
+                Ok(())
+            }
+
+            fn get_job(&self, id: i64) -> Result<Option<Job>> {
+                self.query_row(
+                    "SELECT id, title, company, url, description, requirements, location, salary, contact_email, source, status, match_score, created_at, updated_at FROM jobs WHERE id = ?1",
+                    [id],
+                    |row| {
+                        let job_id: i64 = row.get(0)?;
+                        let status_str: String = row.get(10)?;
+                        let created_at_str: String = row.get(12)?;
+                        let updated_at_str: String = row.get(13)?;
+
+                        Ok(Job {
+                            id: Some(job_id),
+                            title: row.get(1)?,
+                            company: row.get(2)?,
+                            url: row.get(3)?,
+                            description: row.get(4)?,
+                            requirements: row.get(5)?,
+                            location: row.get(6)?,
+                            salary: row.get(7)?,
+                            contact_email: row.get(8)?,
+                            source: row.get(9)?,
+                            status: parse_job_status(&status_str, Some(job_id)),
+                            match_score: row.get(11)?,
+                            created_at: chrono::DateTime::<chrono::Utc>::from_str(&created_at_str).ok(),
+                            updated_at: chrono::DateTime::<chrono::Utc>::from_str(&updated_at_str).ok(),
+                        })
+                    },
+                ).optional().map_err(Into::into)
+            }
+
+            fn get_job_by_url(&self, url: &str) -> Result<Option<Job>> {
+                self.query_row(
+                    "SELECT id, title, company, url, description, requirements, location, salary, contact_email, source, status, match_score, created_at, updated_at FROM jobs WHERE url = ?1",
+                    [url],
+                    |row| {
+                        let job_id: i64 = row.get(0)?;
+                        let status_str: String = row.get(10)?;
+                        let created_at_str: String = row.get(12)?;
+                        let updated_at_str: String = row.get(13)?;
+
+                        Ok(Job {
+                            id: Some(job_id),
+                            title: row.get(1)?,
+                            company: row.get(2)?,
+                            url: row.get(3)?,
+                            description: row.get(4)?,
+                            requirements: row.get(5)?,
+                            location: row.get(6)?,
+                            salary: row.get(7)?,
+                            contact_email: row.get(8)?,
+                            source: row.get(9)?,
+                            status: parse_job_status(&status_str, Some(job_id)),
+                            match_score: row.get(11)?,
+                            created_at: chrono::DateTime::<chrono::Utc>::from_str(&created_at_str).ok(),
+                            updated_at: chrono::DateTime::<chrono::Utc>::from_str(&updated_at_str).ok(),
+                        })
+                    },
+                ).optional().map_err(Into::into)
+            }
+
+            fn update_job(&self, job: &Job) -> Result<()> {
+                let id = job.id.context("Cannot update job without id")?;
+                let now = Utc::now();
+
+                self.execute(
+                    "UPDATE jobs SET title = ?1, company = ?2, url = ?3, description = ?4, requirements = ?5, location = ?6, salary = ?7, contact_email = ?8, source = ?9, status = ?10, match_score = ?11, updated_at = ?12 WHERE id = ?13",
+                    params![
+                        &job.title,
+                        &job.company,
+                        &job.url,
+                        &job.description,
+                        &job.requirements,
+                        &job.location,
+                        &job.salary,
+                        &job.contact_email,
+                        &job.source,
+                        job.status.to_string(),
+                        &job.match_score,
+                        now.to_rfc3339(),
+                        id,
+                    ],
+                )?;
+
+                Ok(())
+            }
+
+            fn list_jobs(&self, status: Option<JobStatus>) -> Result<Vec<Job>> {
+                let mut query = "SELECT id, title, company, url, description, requirements, location, salary, contact_email, source, status, match_score, created_at, updated_at FROM jobs".to_string();
+                let mut params = Vec::new();
+
+                if let Some(s) = status {
+                    query.push_str(" WHERE status = ?1");
+                    params.push(s.to_string());
+                }
+
+                query.push_str(" ORDER BY created_at DESC");
+
+                let mut stmt = self.prepare(&query)?;
+                let job_iter = stmt.query_map(rusqlite::params_from_iter(params), |row| {
+                    let job_id: i64 = row.get(0)?;
+                    let status_str: String = row.get(10)?;
+                    let created_at_str: String = row.get(12)?;
+                    let updated_at_str: String = row.get(13)?;
+
+                    Ok(Job {
+                        id: Some(job_id),
+                        title: row.get(1)?,
+                        company: row.get(2)?,
+                        url: row.get(3)?,
+                        description: row.get(4)?,
+                        requirements: row.get(5)?,
+                        location: row.get(6)?,
+                        salary: row.get(7)?,
+                        contact_email: row.get(8)?,
+                        source: row.get(9)?,
+                        status: parse_job_status(&status_str, Some(job_id)),
+                        match_score: row.get(11)?,
+                        created_at: chrono::DateTime::<chrono::Utc>::from_str(&created_at_str).ok(),
+                        updated_at: chrono::DateTime::<chrono::Utc>::from_str(&updated_at_str).ok(),
+                    })
+                })?;
+
+                let mut jobs = Vec::new();
+                for job in job_iter {
+                    jobs.push(job?);
+                }
+
+                Ok(jobs)
+            }
+
+            fn delete_job(&self, id: i64) -> Result<()> {
+                self.execute("DELETE FROM jobs WHERE id = ?1", [id])?;
+                Ok(())
+            }
+
+            fn batch_upsert_jobs(&self, jobs: &mut [Job]) -> Result<usize> {
+                let mut count = 0;
+                for job in jobs {
+                    // Check if exists
+                    let existing = self.get_job_by_url(&job.url)?;
+                    if let Some(mut existing_job) = existing {
+                        // Update
+                        existing_job.title = job.title.clone();
+                        existing_job.company = job.company.clone();
+                        existing_job.description = job.description.clone();
+                        existing_job.requirements = job.requirements.clone();
+                        existing_job.location = job.location.clone();
+                        existing_job.salary = job.salary.clone();
+                        existing_job.contact_email = job.contact_email.clone();
+                        existing_job.source = job.source.clone();
+                        existing_job.status = job.status.clone();
+                        existing_job.match_score = job.match_score;
+                        self.update_job(&existing_job)?;
+                        job.id = existing_job.id;
+                    } else {
+                        // Create
+                        self.create_job(job)?;
+                        count += 1;
+                    }
+                }
+                Ok(count)
+            }
+        }
+    };
+}
+
+impl_job_queries!(rusqlite::Connection);
+impl_job_queries!(MutexGuard<'_, rusqlite::Connection>);
+
 fn parse_snapshot_counts_json(json: &str) -> Result<Vec<SnapshotCount>, rusqlite::Error> {
     serde_json::from_str(json)
         .map_err(|err| rusqlite::Error::FromSqlConversionFailure(0, Type::Text, Box::new(err)))
-}
-
-impl JobQueries for MutexGuard<'_, rusqlite::Connection> {
-    fn create_job(&self, job: &mut Job) -> Result<()> {
-        let now = Utc::now();
-
-        let id = self.query_row(
-            r#"
-            INSERT INTO jobs (
-                title, company, url, description, requirements,
-                location, salary, contact_email, source, status, match_score, created_at, updated_at
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
-            RETURNING id
-            "#,
-            params![
-                &job.title,
-                &job.company,
-                &job.url,
-                &job.description,
-                &job.requirements,
-                &job.location,
-                &job.salary,
-                &job.contact_email,
-                &job.source,
-                job.status.to_string(),
-                &job.match_score,
-                now,
-                now,
-            ],
-            |row| row.get::<_, i64>(0),
-        )?;
-
-        job.id = Some(id);
-        job.created_at = Some(now);
-        job.updated_at = Some(now);
-
-        Ok(())
-    }
-
-    fn get_job(&self, id: i64) -> Result<Option<Job>> {
-        self.query_row(
-            "SELECT id, title, company, url, description, requirements, location, salary, source, status, match_score, created_at, updated_at, contact_email FROM jobs WHERE id = ?1",
-            [id],
-            |row| {
-                let job_id: Option<i64> = row.get(0)?;
-                let status_str: String = row.get(9)?;
-                let status = parse_job_status(&status_str, job_id);
-                Ok(Job {
-                    id: job_id,
-                    title: row.get(1)?,
-                    company: row.get(2)?,
-                    url: row.get(3)?,
-                    description: row.get(4)?,
-                    requirements: row.get(5)?,
-                    location: row.get(6)?,
-                    salary: row.get(7)?,
-                    contact_email: row.get(13)?,
-                    source: row.get(8)?,
-                    status,
-                    match_score: row.get(10)?,
-                    created_at: row.get(11)?,
-                    updated_at: row.get(12)?,
-                })
-            },
-        )
-        .optional()
-        .map_err(Into::into)
-    }
-
-    fn get_job_by_url(&self, url: &str) -> Result<Option<Job>> {
-        self.query_row(
-            "SELECT id, title, company, url, description, requirements, location, salary, source, status, match_score, created_at, updated_at, contact_email FROM jobs WHERE url = ?1",
-            [url],
-            |row| {
-                let job_id: Option<i64> = row.get(0)?;
-                let status_str: String = row.get(9)?;
-                let status = parse_job_status(&status_str, job_id);
-                Ok(Job {
-                    id: job_id,
-                    title: row.get(1)?,
-                    company: row.get(2)?,
-                    url: row.get(3)?,
-                    description: row.get(4)?,
-                    requirements: row.get(5)?,
-                    location: row.get(6)?,
-                    salary: row.get(7)?,
-                    contact_email: row.get(13)?,
-                    source: row.get(8)?,
-                    status,
-                    match_score: row.get(10)?,
-                    created_at: row.get(11)?,
-                    updated_at: row.get(12)?,
-                })
-            },
-        )
-        .optional()
-        .map_err(Into::into)
-    }
-
-    fn update_job(&self, job: &Job) -> Result<()> {
-        let now = Utc::now();
-
-        self.execute(
-            r#"
-            UPDATE jobs SET
-                title = ?2,
-                company = ?3,
-                url = ?4,
-                description = ?5,
-                requirements = ?6,
-                location = ?7,
-                salary = ?8,
-                contact_email = ?9,
-                source = ?10,
-                status = ?11,
-                match_score = ?12,
-                updated_at = ?13
-            WHERE id = ?1
-            "#,
-            params![
-                job.id,
-                job.title,
-                job.company,
-                job.url,
-                job.description,
-                job.requirements,
-                job.location,
-                job.salary,
-                job.contact_email,
-                job.source,
-                job.status.to_string(),
-                &job.match_score,
-                now,
-            ],
-        )?;
-
-        Ok(())
-    }
-
-    fn list_jobs(&self, status: Option<JobStatus>) -> Result<Vec<Job>> {
-        let mut query = "SELECT id, title, company, url, description, requirements, location, salary, source, status, match_score, created_at, updated_at, contact_email FROM jobs".to_string();
-        let mut params = Vec::new();
-
-        if let Some(status) = status {
-            query.push_str(" WHERE status = ?1");
-            params.push(status.to_string());
-        }
-
-        query.push_str(" ORDER BY created_at DESC");
-
-        let mut stmt = self.prepare(&query)?;
-        let jobs = stmt
-            .query_map(rusqlite::params_from_iter(params), |row| {
-                let job_id: Option<i64> = row.get(0)?;
-                let status_str: String = row.get(9)?;
-                let status = parse_job_status(&status_str, job_id);
-
-                Ok(Job {
-                    id: job_id,
-                    title: row.get(1)?,
-                    company: row.get(2)?,
-                    url: row.get(3)?,
-                    description: row.get(4)?,
-                    requirements: row.get(5)?,
-                    location: row.get(6)?,
-                    salary: row.get(7)?,
-                    contact_email: row.get(13)?,
-                    source: row.get(8)?,
-                    status,
-                    match_score: row.get(10)?,
-                    created_at: row.get(11)?,
-                    updated_at: row.get(12)?,
-                })
-            })?
-            .collect::<Result<Vec<_>, _>>()?;
-
-        Ok(jobs)
-    }
-
-    fn delete_job(&self, id: i64) -> Result<()> {
-        self.execute("DELETE FROM jobs WHERE id = ?1", [id])?;
-        Ok(())
-    }
 }
 
 impl ApplicationQueries for MutexGuard<'_, rusqlite::Connection> {
@@ -864,6 +925,7 @@ impl DocumentQueries for MutexGuard<'_, rusqlite::Connection> {
         Ok(())
     }
 }
+
 
 impl AuthQueries for MutexGuard<'_, rusqlite::Connection> {
     fn get_user_auth(&self) -> Result<Option<UserAuth>> {
@@ -1585,6 +1647,39 @@ impl AnswerCacheQueries for MutexGuard<'_, rusqlite::Connection> {
         self.execute(
             "DELETE FROM answer_cache WHERE normalized_key = ?1",
             [normalized_key],
+        )?;
+        Ok(())
+    }
+}
+
+// =============================================================================
+// Answer Patterns Queries (user-customizable form field mappings)
+// =============================================================================
+
+pub trait AnswerPatternsQueries {
+    fn get_answer_patterns(&self, persona_id: &str) -> Result<Option<String>>;
+    fn save_answer_patterns(&self, persona_id: &str, patterns_json: &str) -> Result<()>;
+}
+
+impl AnswerPatternsQueries for MutexGuard<'_, rusqlite::Connection> {
+    fn get_answer_patterns(&self, persona_id: &str) -> Result<Option<String>> {
+        let mut stmt = self.prepare(
+            "SELECT patterns_json FROM answer_patterns WHERE persona_id = ?1",
+        )?;
+        let result = stmt.query_row([persona_id], |row| row.get::<_, String>(0)).optional()?;
+        Ok(result)
+    }
+
+    fn save_answer_patterns(&self, persona_id: &str, patterns_json: &str) -> Result<()> {
+        self.execute(
+            r#"
+            INSERT INTO answer_patterns (persona_id, patterns_json, updated_at)
+            VALUES (?1, ?2, datetime('now'))
+            ON CONFLICT(persona_id) DO UPDATE SET
+                patterns_json = excluded.patterns_json,
+                updated_at = datetime('now')
+            "#,
+            params![persona_id, patterns_json],
         )?;
         Ok(())
     }

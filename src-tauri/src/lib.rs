@@ -23,6 +23,7 @@ pub mod matching;
 // pub mod migration;
 pub mod notifications;
 pub mod persona;
+pub mod pinchtab;
 pub mod queue;
 pub mod recommendations;
 pub mod resume_analyzer;
@@ -94,7 +95,11 @@ async fn setup_app_state(app: &mut tauri::App) -> Result<()> {
             tracing::warn!("DATABASE_URL set but postgres feature not enabled, using SQLite");
         }
         tracing::info!("Using SQLite database");
-        let db_path = app_dir.join("jobhunter.db");
+        let db_path = if let Ok(custom_db) = std::env::var("UNHIREABLE_DB_PATH") {
+            std::path::PathBuf::from(custom_db)
+        } else {
+            app_dir.join("jobhunter.db")
+        };
         Database::new(db_path)?
     };
 
@@ -214,9 +219,12 @@ async fn setup_app_state(app: &mut tauri::App) -> Result<()> {
                                 let db = db_clone.lock().await;
                                 if let Some(db) = &*db {
                                     let conn = db.get_connection();
-                                    Ok(conn.get_credential("openai").ok().flatten().and_then(
-                                        |cred| cred.tokens.as_deref().map(|s| s.to_string()),
-                                    ))
+                                    // Check Mistral → Gemini → OpenAI for the active AI key
+                                    let ai_key = ["mistral", "gemini", "openai"].iter().find_map(|platform| {
+                                        conn.get_credential(platform).ok().flatten()
+                                            .and_then(|cred| cred.tokens.as_deref().map(|s| s.to_string()))
+                                    });
+                                    Ok(ai_key)
                                 } else {
                                     Err(anyhow::anyhow!("Database not initialized"))
                                 }
@@ -298,6 +306,7 @@ struct AutomationHealthReport {
     credential_platforms: Vec<String>,
     chromium_available: bool,
     playwright_available: bool,
+    pinchtab_available: bool,
 }
 
 #[tauri::command]
@@ -389,6 +398,8 @@ async fn automation_health_check(state: State<'_, AppState>) -> Result<Automatio
 
     let resume_documents = db_resume_count + file_resume_count;
 
+    let pinchtab_available = pinchtab::PinchTabClient::default().ping().await;
+
     Ok(AutomationHealthReport {
         profile_configured,
         missing_fields,
@@ -396,6 +407,7 @@ async fn automation_health_check(state: State<'_, AppState>) -> Result<Automatio
         credential_platforms,
         chromium_available: BrowserScraper::is_chromium_available(),
         playwright_available: BrowserScraper::is_playwright_available(),
+        pinchtab_available,
     })
 }
 
@@ -801,6 +813,7 @@ pub fn run() {
             commands::jobs::delete_job,
             commands::jobs::scrape_jobs,
             commands::jobs::scrape_jobs_selected,
+            commands::jobs::discovery_qualify,
             // Application commands
             commands::applications::get_applications,
             commands::applications::create_application,

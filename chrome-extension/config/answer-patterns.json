@@ -1,0 +1,359 @@
+{
+  "patterns": [
+    {
+      "id": "city",
+      "labelPatterns": [
+        "city"
+      ],
+      "excludePatterns": [
+        "country",
+        "state"
+      ],
+      "source": "profile",
+      "profilePath": "personal_info.location",
+      "transform": "location_city"
+    },
+    {
+      "id": "state",
+      "labelPatterns": [
+        "state",
+        "province"
+      ],
+      "excludePatterns": [
+        "country"
+      ],
+      "source": "profile",
+      "profilePath": "personal_info.location",
+      "transform": "location_state"
+    },
+    {
+      "id": "country",
+      "labelPatterns": [
+        "country"
+      ],
+      "source": "profile",
+      "profilePath": "personal_info.location",
+      "transform": "location_country"
+    },
+    {
+      "id": "address_location",
+      "labelPatterns": [
+        "address",
+        "location",
+        "where do you live"
+      ],
+      "excludePatterns": [
+        "linkedin",
+        "url",
+        "website"
+      ],
+      "source": "profile",
+      "profilePath": "personal_info.location"
+    },
+    {
+      "id": "tell_about_yourself",
+      "labelPatterns": [
+        "tell us about yourself",
+        "about yourself",
+        "introduce yourself",
+        "describe yourself",
+        "brief summary",
+        "summary about you"
+      ],
+      "matchType": "any",
+      "source": "profile",
+      "profilePath": "summary"
+    },
+    {
+      "id": "why_work_here",
+      "labelPatterns": [
+        "why do you want to work",
+        "why are you interested",
+        "what interests you about",
+        "why this company",
+        "why this role"
+      ],
+      "matchType": "any",
+      "source": "profile",
+      "profilePath": "summary",
+      "default": "I am excited about this opportunity and believe my experience aligns well with the role."
+    },
+    {
+      "id": "portfolio_website",
+      "labelPatterns": [
+        "website",
+        "portfolio",
+        "personal website",
+        "personal site",
+        "online portfolio"
+      ],
+      "matchType": "any",
+      "source": "profile",
+      "profilePath": "personal_info.portfolio_url",
+      "fallbackPath": "personal_info.website"
+    },
+    {
+      "id": "github",
+      "labelPatterns": [
+        "github",
+        "git hub"
+      ],
+      "source": "profile",
+      "profilePath": "personal_info.github_url"
+    },
+    {
+      "id": "eeo_decline",
+      "labelPatterns": [
+        "race",
+        "ethnicity",
+        "veteran status",
+        "disability status",
+        "gender",
+        "sexual orientation",
+        "decline to self"
+      ],
+      "matchType": "any",
+      "source": "literal",
+      "literalValue": "Decline to self-identify"
+    },
+    {
+      "id": "eeo_prefer_not",
+      "labelPatterns": [
+        "prefer not to say",
+        "choose not to"
+      ],
+      "matchType": "any",
+      "source": "literal",
+      "literalValue": "Prefer not to say"
+    },
+    {
+      "id": "linkedin_url",
+      "labelPatterns": [
+        "linkedin",
+        "linked in",
+        "linkedin profile",
+        "linkedin url"
+      ],
+      "source": "profile",
+      "profilePath": "personal_info.linkedin_url",
+      "fallbackPath": "personal_info.linkedin"
+    },
+    {
+      "id": "first_name",
+      "labelPatterns": [
+        "first name"
+      ],
+      "source": "profile",
+      "profilePath": "personal_info.name",
+      "transform": "first_word"
+    },
+    {
+      "id": "last_name",
+      "labelPatterns": [
+        "last name"
+      ],
+      "source": "profile",
+      "profilePath": "personal_info.name",
+      "transform": "rest_after_first"
+    },
+    {
+      "id": "full_name",
+      "labelPatterns": [
+        "full name"
+      ],
+      "source": "profile",
+      "profilePath": "personal_info.name"
+    },
+    {
+      "id": "name",
+      "labelPatterns": [
+        "name"
+      ],
+      "excludePatterns": [
+        "first name",
+        "last name",
+        "full name"
+      ],
+      "source": "profile",
+      "profilePath": "personal_info.name"
+    },
+    {
+      "id": "email",
+      "labelPatterns": [
+        "email"
+      ],
+      "excludePatterns": [
+        "country"
+      ],
+      "source": "profile",
+      "profilePath": "personal_info.email"
+    },
+    {
+      "id": "phone",
+      "labelPatterns": [
+        "phone",
+        "mobile"
+      ],
+      "excludePatterns": [
+        "country"
+      ],
+      "source": "profile",
+      "profilePath": "personal_info.phone"
+    },
+    {
+      "id": "work_authorization",
+      "labelPatterns": [
+        "authorized",
+        "legally",
+        "right to work"
+      ],
+      "source": "literal",
+      "literalValue": "Yes"
+    },
+    {
+      "id": "sponsorship",
+      "labelPatterns": [
+        "sponsorship",
+        "require visa",
+        "need sponsorship",
+        "require the support of",
+        "maintain that authorization",
+        "require support to maintain"
+      ],
+      "matchType": "any",
+      "source": "profile",
+      "profilePath": "personal_info.requires_sponsorship",
+      "transform": "sponsorship_yes_no"
+    },
+    {
+      "id": "relocation",
+      "labelPatterns": [
+        "relocat",
+        "willing to move"
+      ],
+      "source": "literal",
+      "literalValue": "Yes"
+    },
+    {
+      "id": "start_date",
+      "labelPatterns": [
+        "start date",
+        "available to start",
+        "when can you start"
+      ],
+      "source": "literal",
+      "literalValue": "Immediately"
+    },
+    {
+      "id": "how_did_you_hear",
+      "labelPatterns": [
+        "how did you hear",
+        "how did you find",
+        "referral source"
+      ],
+      "source": "literal",
+      "literalValue": "LinkedIn"
+    },
+    {
+      "id": "salary",
+      "labelPatterns": [
+        "salary",
+        "compensation",
+        "expected pay"
+      ],
+      "source": "literal",
+      "literalValue": "Open to discussion"
+    },
+    {
+      "id": "years_experience",
+      "labelPatterns": [
+        "years",
+        "experience"
+      ],
+      "matchType": "all",
+      "source": "profile",
+      "profilePath": "personal_info.years_experience",
+      "default": "5"
+    },
+    {
+      "id": "years_experience_alt",
+      "labelPatterns": [
+        "how many years",
+        "years of experience"
+      ],
+      "matchType": "any",
+      "source": "profile",
+      "profilePath": "personal_info.years_experience",
+      "default": "5"
+    },
+    {
+      "id": "consent_checkbox",
+      "labelPatterns": [
+        "agree",
+        "consent",
+        "terms",
+        "certify",
+        "acknowledge"
+      ],
+      "matchType": "any",
+      "source": "literal",
+      "literalValue": "check"
+    },
+    {
+      "id": "messaging_app",
+      "labelPatterns": [
+        "messaging app",
+        "telegram",
+        "whatsapp",
+        "contact via",
+        "messenger"
+      ],
+      "matchType": "any",
+      "source": "profile",
+      "profilePath": "personal_info.messaging",
+      "fallbackPath": "personal_info.telegram"
+    },
+    {
+      "id": "notice_period",
+      "labelPatterns": [
+        "notice period",
+        "how soon",
+        "when can you start",
+        "available to join"
+      ],
+      "matchType": "any",
+      "source": "literal",
+      "literalValue": "2 weeks"
+    },
+    {
+      "id": "disability_no",
+      "labelPatterns": [
+        "disability",
+        "physical or mental impairment"
+      ],
+      "matchType": "any",
+      "source": "literal",
+      "literalValue": "No, I don't have a disability"
+    },
+    {
+      "id": "veteran_no",
+      "labelPatterns": [
+        "veteran",
+        "military"
+      ],
+      "matchType": "any",
+      "source": "literal",
+      "literalValue": "I am not a protected veteran"
+    },
+    {
+      "id": "hispanic_no",
+      "labelPatterns": [
+        "hispanic",
+        "latino"
+      ],
+      "matchType": "any",
+      "source": "literal",
+      "literalValue": "No"
+    }
+  ]
+}

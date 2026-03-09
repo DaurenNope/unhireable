@@ -5,6 +5,7 @@ import {
   BookmarkCheck,
   Settings,
   Bot,
+  Sparkles,
 } from 'lucide-react'
 
 export interface NavItem {
@@ -24,6 +25,11 @@ export const navigation: NavItem[] = [
     name: 'Dashboard',
     href: '/dashboard',
     icon: LayoutDashboard,
+  },
+  {
+    name: 'Discovery',
+    href: '/discovery',
+    icon: Sparkles,
   },
   {
     name: 'Jobs',

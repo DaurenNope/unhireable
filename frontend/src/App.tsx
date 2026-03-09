@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-// @ts-expect-error - future flags suppress React Router v6→v7 console warnings
 const ROUTER_FUTURE = { v7_startTransition: true, v7_relativeSplatPath: true };
 import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query"
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
@@ -42,6 +41,7 @@ const NotFound = React.lazy(() => import('./pages/not-found').then(m => ({ defau
 const AuthLogin = React.lazy(() => import('./pages/auth').then(m => ({ default: m.AuthLogin })));
 const AuthSetup = React.lazy(() => import('./pages/auth').then(m => ({ default: m.AuthSetup })));
 const AutoPilot = React.lazy(() => import('./pages/autopilot'));
+const Discovery = React.lazy(() => import('./pages/discovery').then(m => ({ default: m.Discovery })));
 import { authApi } from "./api/client"
 
 // Create a client
@@ -230,6 +230,7 @@ function AuthenticatedApp() {
                   <Route path="/" element={<Navigate to="/dashboard" replace />} />
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/jobs" element={<Jobs />} />
+                  <Route path="/discovery" element={<Discovery />} />
                   <Route path="/jobs/:id" element={<JobDetails />} />
                   <Route path="/applications" element={<Applications />} />
                   <Route path="/applications/:id" element={<ApplicationDetails />} />

@@ -3,16 +3,19 @@
   "private": true,
   "version": "0.1.0",
   "scripts": {
+    "test:extension": "node tools/scripts/test-extension-linkedin.mjs",
     "dev": "npm run dev:tauri",
     "dev:web": "npm --prefix frontend run dev",
     "dev:tauri": "lsof -ti:3003 | xargs kill -9 2>/dev/null; sleep 1; npm --prefix frontend exec tauri dev",
     "tauri:dev": "lsof -ti:3003 | xargs kill -9 2>/dev/null; sleep 1; npm --prefix frontend exec tauri dev",
     "tauri": "npm --prefix frontend exec tauri",
-    "build": "npm --prefix frontend run tauri:build",
+    "build": "npm run build:web && env -u CI npm --prefix frontend exec tauri build",
     "build:web": "npm --prefix frontend run build",
     "preview": "npm --prefix frontend run preview",
-    "lint": "npm --prefix frontend run lint"
+    "lint": "npm --prefix frontend run lint",
+    "deploy:ai-proxy": "cd tools/cloudflare/unhireable-ai-proxy && npm run deploy"
   },
-  "devDependencies": {},
-  "dependencies": {}
+  "devDependencies": {
+    "playwright": "^1.58.2"
+  }
 }

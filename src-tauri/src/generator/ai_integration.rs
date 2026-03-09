@@ -12,14 +12,36 @@ pub struct AIIntegration {
 
 impl AIIntegration {
     pub fn new() -> Self {
-        Self {
-            api_key: env::var("OPENAI_API_KEY")
-                .ok()
-                .or_else(|| env::var("AI_API_KEY").ok()),
-            base_url: env::var("OPENAI_BASE_URL")
-                .unwrap_or_else(|_| "https://api.openai.com/v1".to_string()),
-            model: env::var("OPENAI_MODEL").unwrap_or_else(|_| "gpt-3.5-turbo".to_string()),
-        }
+        // Check providers in priority order: Mistral → Gemini → OpenAI → generic AI_API_KEY
+        let (api_key, base_url, model) = if let Ok(key) = env::var("MISTRAL_API_KEY") {
+            (
+                Some(key),
+                env::var("MISTRAL_BASE_URL")
+                    .unwrap_or_else(|_| "https://api.mistral.ai/v1".to_string()),
+                env::var("MISTRAL_MODEL")
+                    .unwrap_or_else(|_| "mistral-small-latest".to_string()),
+            )
+        } else if let Ok(key) = env::var("GEMINI_API_KEY") {
+            (
+                Some(key),
+                env::var("GEMINI_BASE_URL")
+                    .unwrap_or_else(|_| "https://generativelanguage.googleapis.com/v1beta/openai".to_string()),
+                env::var("GEMINI_MODEL")
+                    .unwrap_or_else(|_| "gemini-1.5-flash".to_string()),
+            )
+        } else if let Ok(key) = env::var("OPENAI_API_KEY").or_else(|_| env::var("AI_API_KEY")) {
+            (
+                Some(key),
+                env::var("OPENAI_BASE_URL")
+                    .unwrap_or_else(|_| "https://api.openai.com/v1".to_string()),
+                env::var("OPENAI_MODEL")
+                    .unwrap_or_else(|_| "gpt-3.5-turbo".to_string()),
+            )
+        } else {
+            (None, "https://api.openai.com/v1".to_string(), "gpt-3.5-turbo".to_string())
+        };
+
+        Self { api_key, base_url, model }
     }
 
     pub fn with_api_key(mut self, api_key: String) -> Self {
@@ -437,9 +459,41 @@ Keep it professional and authentic - don't invent new experiences, just improve 
         prioritized.extend(remaining);
         prioritized
     }
+
+    /// Return the name of the active provider for display (e.g. "Mistral", "Gemini", "OpenAI").
+    pub fn active_provider_name(&self) -> &'static str {
+        if self.base_url.contains("mistral.ai") {
+            "Mistral"
+        } else if self.base_url.contains("googleapis.com") {
+            "Gemini"
+        } else if self.base_url.contains("openai.com") {
+            "OpenAI"
+        } else {
+            "Custom"
+        }
+    }
+
+    /// List providers that have API keys configured, ordered by priority.
+    pub fn list_configured_providers() -> Vec<String> {
+        let mut providers = Vec::new();
+        if env::var("MISTRAL_API_KEY").is_ok() {
+            providers.push("Mistral".to_string());
+        }
+        if env::var("GEMINI_API_KEY").is_ok() {
+            providers.push("Gemini".to_string());
+        }
+        if env::var("OPENAI_API_KEY").is_ok() || env::var("AI_API_KEY").is_ok() {
+            providers.push("OpenAI".to_string());
+        }
+        if providers.is_empty() {
+            providers.push("None (templates only)".to_string());
+        }
+        providers
+    }
 }
 
 impl Default for AIIntegration {
+
     fn default() -> Self {
         Self::new()
     }

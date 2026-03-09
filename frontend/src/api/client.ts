@@ -11,6 +11,7 @@ import type {
   GeneratedDocument,
   Interview,
   Job,
+  JobStatus,
   JobAnalysis,
   JobMatchResult,
   RecommendedJob,
@@ -42,7 +43,7 @@ async function handleRestCommand<T>(command: string, args?: Record<string, unkno
   switch (command) {
     case 'get_jobs': {
       return restApi.jobs.list({
-        status: args?.['status'] as string | undefined,
+        status: args?.['status'] as JobStatus | undefined,
         query: args?.['query'] as string,
         page: args?.['page'] as number,
         page_size: args?.['page_size'] as number,
@@ -63,7 +64,7 @@ async function handleRestCommand<T>(command: string, args?: Record<string, unkno
 
     case 'get_applications': {
       return restApi.applications.list({
-        status: args?.['status'] as string | undefined,
+        status: args?.['status'] as ApplicationStatus | undefined,
         job_id: args?.['job_id'] as number,
       }) as Promise<T>;
     }
@@ -232,6 +233,8 @@ export const jobApi = {
   getSimilar: (jobId: number, limit?: number) => apiCall<Array<[Job, number]>>('get_similar_jobs', { jobId, limit }),
   trackInteraction: (jobId: number, interactionType: 'view' | 'save' | 'apply' | 'dismiss' | 'ignore') =>
     apiCall<void>('track_job_interaction', { jobId, interactionType }),
+  // Discovery methods
+  qualify: () => apiCall<number>('discovery_qualify'),
 };
 
 export const insightsApi = {

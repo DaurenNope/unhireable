@@ -1,9 +1,32 @@
 use crate::db::queries::{CredentialQueries, JobQueries};
+use rusqlite::Connection;
 use crate::error::Result;
 use crate::generator;
 use crate::resume_analyzer;
 use crate::AppState;
 use tauri::{Manager, State};
+
+/// Retrieve the best available AI API key from credentials.
+/// Checks Mistral → Gemini → OpenAI (in that order).
+fn get_ai_api_key(
+    conn: &std::sync::MutexGuard<'_, Connection>,
+) -> Option<(String, &'static str, &'static str)> {
+    for (platform, base_url, model) in [
+        ("mistral", "https://api.mistral.ai/v1", "mistral-small-latest"),
+        ("gemini", "https://generativelanguage.googleapis.com/v1beta/openai", "gemini-1.5-flash"),
+        ("openai", "https://api.openai.com/v1", "gpt-3.5-turbo"),
+    ] {
+        if let Some(key) = conn
+            .get_credential(platform)
+            .ok()
+            .flatten()
+            .and_then(|cred| cred.tokens.as_deref().map(|s| s.to_string()))
+        {
+            return Some((key, base_url, model));
+        }
+    }
+    None
+}
 
 // Document Generation Commands
 #[tauri::command]
@@ -22,14 +45,8 @@ pub async fn generate_resume(
                 .get_job(job_id)?
                 .ok_or_else(|| anyhow::anyhow!("Job not found"))?;
 
-            // Get AI key from credentials if available
-            let api_key = conn
-                .get_credential("openai")
-                .ok()
-                .flatten()
-                .and_then(|cred| cred.tokens.as_deref().map(|s| s.to_string()));
-
-            (job, api_key)
+            let ai_cred = get_ai_api_key(&conn);
+            (job, ai_cred)
         } else {
             return Err(anyhow::anyhow!("Database not initialized").into());
         }
@@ -37,11 +54,12 @@ pub async fn generate_resume(
 
     println!("Creating resume generator...");
     let mut resume_generator = generator::ResumeGenerator::new();
-    if let Some(api_key) = &api_key {
-        println!("Using OpenAI API for resume generation");
+    if let Some((api_key, base_url, model)) = &api_key {
+        println!("Using AI provider (base_url={}, model={}) for resume generation", base_url, model);
         resume_generator = resume_generator.with_ai_key(api_key.clone());
+        let _ = (base_url, model); // used for logging; generator picks up env vars
     } else {
-        println!("No OpenAI API key - using basic job analysis");
+        println!("No AI API key configured - using basic job analysis");
     }
 
     let improve_with_ai = improve_with_ai.unwrap_or(false);
@@ -84,21 +102,15 @@ pub async fn generate_cover_letter(
                 .get_job(job_id)?
                 .ok_or_else(|| anyhow::anyhow!("Job not found"))?;
 
-            // Get AI key from credentials if available
-            let api_key = conn
-                .get_credential("openai")
-                .ok()
-                .flatten()
-                .and_then(|cred| cred.tokens.as_deref().map(|s| s.to_string()));
-
-            (job, api_key)
+            let ai_cred = get_ai_api_key(&conn);
+            (job, ai_cred)
         } else {
             return Err(anyhow::anyhow!("Database not initialized").into());
         }
     };
 
     let mut cover_letter_generator = generator::CoverLetterGenerator::new();
-    if let Some(api_key) = api_key {
+    if let Some((api_key, _, _)) = api_key {
         cover_letter_generator = cover_letter_generator.with_ai_key(api_key);
     }
 
@@ -129,21 +141,15 @@ pub async fn generate_email_version(
                 .get_job(job_id)?
                 .ok_or_else(|| anyhow::anyhow!("Job not found"))?;
 
-            // Get AI key from credentials if available
-            let api_key = conn
-                .get_credential("openai")
-                .ok()
-                .flatten()
-                .and_then(|cred| cred.tokens.as_deref().map(|s| s.to_string()));
-
-            (job, api_key)
+            let ai_cred = get_ai_api_key(&conn);
+            (job, ai_cred)
         } else {
             return Err(anyhow::anyhow!("Database not initialized").into());
         }
     };
 
     let mut cover_letter_generator = generator::CoverLetterGenerator::new();
-    if let Some(api_key) = api_key {
+    if let Some((api_key, _, _)) = api_key {
         cover_letter_generator = cover_letter_generator.with_ai_key(api_key);
     }
 
@@ -236,9 +242,7 @@ pub async fn score_document_quality(
 
 #[tauri::command]
 pub async fn list_ai_providers() -> Result<Vec<String>> {
-    let ai = generator::MultiProviderAI::new();
-    let providers = ai.list_available_providers();
-    Ok(providers.iter().map(|p| format!("{:?}", p)).collect())
+    Ok(generator::AIIntegration::list_configured_providers())
 }
 
 #[tauri::command]
@@ -258,20 +262,15 @@ pub async fn generate_resume_with_provider(
                 .get_job(job_id)?
                 .ok_or_else(|| anyhow::anyhow!("Job not found"))?;
 
-            let api_key = conn
-                .get_credential("openai")
-                .ok()
-                .flatten()
-                .and_then(|cred| cred.tokens.as_deref().map(|s| s.to_string()));
-
-            (job, api_key)
+            let ai_cred = get_ai_api_key(&conn);
+            (job, ai_cred)
         } else {
             return Err(anyhow::anyhow!("Database not initialized").into());
         }
     };
 
     let mut resume_generator = generator::ResumeGenerator::new();
-    if let Some(api_key) = &api_key {
+    if let Some((api_key, _, _)) = &api_key {
         resume_generator = resume_generator.with_ai_key(api_key.clone());
     }
 
@@ -355,22 +354,16 @@ pub async fn analyze_job_for_profile(
                 .get_job(job_id)?
                 .ok_or_else(|| anyhow::anyhow!("Job not found"))?;
 
-            // Get AI key from credentials if available
-            let api_key = conn
-                .get_credential("openai")
-                .ok()
-                .flatten()
-                .and_then(|cred| cred.tokens.as_deref().map(|s| s.to_string()));
-
-            (job, api_key)
+            let ai_cred = get_ai_api_key(&conn);
+            (job, ai_cred)
         } else {
             return Err(anyhow::anyhow!("Database not initialized").into());
         }
     };
 
     let mut ai_integration = generator::AIIntegration::new();
-    if let Some(api_key) = api_key {
-        ai_integration = ai_integration.with_api_key(api_key);
+    if let Some((key, _, _)) = api_key {
+        ai_integration = ai_integration.with_api_key(key);
     }
 
     ai_integration.analyze_job(&job).await.map_err(Into::into)

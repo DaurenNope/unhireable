@@ -196,6 +196,34 @@ export const restHealthApi = {
     check: () => restCall<HealthStatus>('/api/health'),
 };
 
+export interface AnswerPattern {
+    id: string;
+    labelPatterns: string[];
+    excludePatterns?: string[];
+    matchType?: 'all' | 'any';
+    source: 'literal' | 'profile';
+    literalValue?: string;
+    profilePath?: string;
+    fallbackPath?: string;
+    default?: string;
+    transform?: string;
+}
+
+export interface AnswerPatternsConfig {
+    patterns: AnswerPattern[];
+}
+
+export const restAnswerPatternsApi = {
+    get: (personaId = 'default') =>
+        restCall<AnswerPatternsConfig>(`/api/answer-patterns?persona_id=${encodeURIComponent(personaId)}`),
+
+    save: (config: AnswerPatternsConfig, personaId = 'default') =>
+        restCall<{ status: string; persona_id: string }>(`/api/answer-patterns?persona_id=${encodeURIComponent(personaId)}`, {
+            method: 'PUT',
+            body: JSON.stringify(config),
+        }),
+};
+
 // Unified REST API export
 export const restApi = {
     jobs: restJobApi,
@@ -203,6 +231,7 @@ export const restApi = {
     auth: restAuthApi,
     stats: restStatsApi,
     health: restHealthApi,
+    answerPatterns: restAnswerPatternsApi,
 };
 
 // Check if we should use REST API (no Tauri available)

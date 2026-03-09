@@ -6,6 +6,7 @@ use anyhow::Result;
 use chrono::Utc;
 use serde_json;
 use std::sync::Arc;
+use tauri::Emitter;
 use tokio::sync::Mutex;
 use tokio::time::{sleep, Duration};
 
@@ -68,7 +69,7 @@ impl JobScheduler {
                 if config.enabled {
                     println!("🕐 Scheduled job scraping started at {}", Utc::now());
                     // Run both legacy config-based scraping and saved searches
-                    Self::run_scheduled_scrape(config.clone(), Arc::clone(&db_clone)).await;
+                    Self::run_scheduled_scrape(config.clone(), Arc::clone(&db_clone), Arc::clone(&app_handle_clone)).await;
                 }
 
                 // Always check and run saved searches (they have their own enabled flag)
@@ -166,7 +167,11 @@ impl JobScheduler {
     }
 
     /// Run a scheduled scraping job
-    async fn run_scheduled_scrape(config: SchedulerConfig, db: Arc<Mutex<Option<Database>>>) {
+    async fn run_scheduled_scrape(
+        config: SchedulerConfig,
+        db: Arc<Mutex<Option<Database>>>,
+        app_handle: Arc<std::sync::Mutex<Option<tauri::AppHandle>>>,
+    ) {
         println!(
             "🔍 Starting scheduled job scrape for query: '{}'",
             config.query
@@ -218,33 +223,52 @@ impl JobScheduler {
                 println!("✅ Scraped {} jobs", scraped_jobs.len());
 
                 // Save jobs to database
-                let db_guard = db.lock().await;
-                if let Some(db) = db_guard.as_ref() {
-                    let conn = db.get_connection();
-                    let mut saved_count = 0;
-
-                    for mut job in scraped_jobs {
-                        // Check if job already exists
-                        if conn.get_job_by_url(&job.url).unwrap_or(None).is_none() {
-                            if conn.create_job(&mut job).is_ok() {
-                                saved_count += 1;
+                let mut saved_count = 0;
+                {
+                    let db_guard = db.lock().await;
+                    if let Some(db_ref) = db_guard.as_ref() {
+                        let conn = db_ref.get_connection();
+                        for mut job in scraped_jobs {
+                            // Check if job already exists
+                            if conn.get_job_by_url(&job.url).unwrap_or(None).is_none() {
+                                if conn.create_job(&mut job).is_ok() {
+                                    saved_count += 1;
+                                }
                             }
                         }
                     }
+                } // db_guard and conn dropped here
 
+                if saved_count > 0 {
                     println!("💾 Saved {} new jobs to database", saved_count);
 
-                    // TODO: Send notifications if enabled and jobs match criteria
-                    if config.send_notifications && saved_count > 0 {
-                        println!(
-                            "📧 {} new jobs found (notifications not yet implemented)",
-                            saved_count
-                        );
+                    // --- CLOSED LOOP: Qualify Scouted Jobs ---
+                    println!("🧠 Running Brain qualification on new scouted jobs...");
+                    let brain = crate::intelligence::Brain::new(Arc::clone(&db));
+                    if let Ok(qualified_count) = brain.process_scouted_jobs().await {
+                        if qualified_count > 0 {
+                            println!("✅ Qualified {} jobs", qualified_count);
+                            
+                            // --- CLOSED LOOP: Trigger Auto-Apply for Top-Tier Prospects ---
+                            println!("🚀 Checking for top-tier prospects to auto-apply...");
+                            if let Ok(applied_count) = brain.auto_apply_prospects().await {
+                                if applied_count > 0 {
+                                    println!("✨ Auto-applied to {} high-match prospects!", applied_count);
+                                    
+                                    // Trigger event for frontend
+                                    let handler = app_handle.lock().unwrap();
+                                    if let Some(h) = handler.as_ref() {
+                                        use tauri::Emitter;
+                                        let _ = h.emit("auto-apply-triggered", applied_count);
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
             Err(e) => {
-                eprintln!("❌ Scheduled scraping failed: {}", e);
+                eprintln!("❌ Scraping failed: {}", e);
             }
         }
     }
@@ -643,5 +667,63 @@ mod tests {
         // Stop scheduler that's not running (should not error)
         let result = scheduler.stop().await;
         assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_autonomous_loop_logic() {
+        let (db_arc, _temp_dir) = create_test_db();
+        
+        // 1. Setup a profile (user_profile table with profile_data JSON)
+        {
+            let db_guard = db_arc.lock().await;
+            let db = db_guard.as_ref().unwrap();
+            let conn = db.get_connection();
+            let profile_json = r#"{"personal_info":{"name":"Test User","email":"test@example.com","phone":null,"location":"Remote","linkedin":null,"github":null,"portfolio":null},"summary":"Expert in Rust and React with 5+ years experience","skills":{"technical_skills":["Rust","React"],"soft_skills":[],"experience_years":{"Rust":5,"React":5},"proficiency_levels":{}},"experience":[{"company":"Tech Corp","position":"Senior Rust Engineer","duration":"5 years","description":["Built systems in Rust"],"technologies":["Rust","React"]}],"education":[],"projects":[]}"#;
+            conn.execute(
+                "INSERT OR REPLACE INTO user_profile (id, profile_data, updated_at) VALUES (1, ?1, datetime('now'))",
+                [profile_json],
+            ).unwrap();
+            
+            // 2. Setup a scouted job that matches well
+            let mut job = crate::db::models::Job {
+                id: None,
+                title: "Senior Rust Engineer".to_string(),
+                company: "Tech Corp".to_string(),
+                url: "https://example.com/rust-job".to_string(),
+                location: Some("Remote".to_string()),
+                description: Some("Rust and React developer.".to_string()),
+                status: crate::db::models::JobStatus::Scouted,
+                match_score: None,
+                ..Default::default()
+            };
+            conn.create_job(&mut job).unwrap();
+        }
+        
+        let config = SchedulerConfig {
+            enabled: true,
+            ..Default::default()
+        };
+        
+        // 3. Manually trigger the "scraped" logic part
+        let brain = crate::intelligence::Brain::new(Arc::clone(&db_arc));
+        let qualified = brain.process_scouted_jobs().await.unwrap();
+        assert_eq!(qualified, 1);
+        
+        // Check if promoted
+        {
+            let db_guard = db_arc.lock().await;
+            let db = db_guard.as_ref().unwrap();
+            let conn = db.get_connection();
+            let updated_job = conn.get_job_by_url("https://example.com/rust-job").unwrap().unwrap();
+            let score = updated_job.match_score.unwrap();
+            assert!(score >= 50.0, "match_score should be >= 50, got {}", score);
+            // Promotion to Prospect happens when heuristic score >= 80
+            let expected_status = if score >= 80.0 {
+                crate::db::models::JobStatus::Prospect
+            } else {
+                crate::db::models::JobStatus::Scouted
+            };
+            assert_eq!(updated_job.status, expected_status, "status should match score threshold");
+        }
     }
 }

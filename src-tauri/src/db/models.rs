@@ -26,7 +26,9 @@ pub struct Job {
 #[serde(rename_all = "snake_case")]
 pub enum JobStatus {
     #[default]
-    Saved,
+    Scouted,    // Found by crawler, unreviewed
+    Prospect,   // High-match score, awaiting approval
+    Saved,      // Approved/Saved by user
     Applied,
     Interviewing,
     Rejected,
@@ -39,6 +41,8 @@ impl FromStr for JobStatus {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
+            "scouted" => Ok(JobStatus::Scouted),
+            "prospect" => Ok(JobStatus::Prospect),
             "saved" => Ok(JobStatus::Saved),
             "applied" => Ok(JobStatus::Applied),
             "interviewing" => Ok(JobStatus::Interviewing),
@@ -53,6 +57,8 @@ impl FromStr for JobStatus {
 impl std::fmt::Display for JobStatus {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let s = match self {
+            JobStatus::Scouted => "scouted",
+            JobStatus::Prospect => "prospect",
             JobStatus::Saved => "saved",
             JobStatus::Applied => "applied",
             JobStatus::Interviewing => "interviewing",

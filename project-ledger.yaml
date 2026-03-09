@@ -1,0 +1,200 @@
+version: 1
+
+meta:
+  project_name: Unhireable
+  canonical_file: project-ledger.yaml
+  last_updated: 2026-03-09
+  updated_by: founder_and_agents
+  repo_mode: local_first
+  primary_surface: chrome_extension
+  secondary_surface: desktop_crm
+  current_status: active
+
+mission:
+  one_liner: >
+    Help any job seeker get hired faster by making applications faster,
+    easier to track, and smarter over time.
+  current_product_definition: >
+    Unhireable is an extension-first product. The browser extension is the
+    main user experience. The desktop app is an optional local-first CRM,
+    document workspace, and secure settings hub.
+  long_term_vision: >
+    Move toward autonomous job assistance only after the extension plus CRM
+    loop is reliable, complete, and trusted by users.
+
+brand:
+  name: Unhireable
+  positioning: >
+    They called you unhireable. Prove them wrong.
+  notes:
+    - brand is intentional and ironic from the employer/system perspective
+    - product must feel empowering, not discouraging
+
+product_decisions:
+  target_user:
+    primary: non_technical_job_seekers
+    examples:
+      - recent_graduates
+      - laid_off_workers
+      - overwhelmed_job_seekers
+  priorities:
+    - reliability
+    - completeness
+  direction:
+    near_term: extension_first_local_product
+    long_term: platform_play
+  storage:
+    extension: chrome_storage_local
+    desktop: sqlite_plus_os_keychain
+    default_mode: local_first
+  ai_strategy:
+    free_default: unhireable_proxy
+    proxy_backing_provider: gemini_flash
+    power_user_options:
+      - groq
+      - gemini
+      - mistral
+      - local_model
+  desktop_policy: optional_power_hub
+  automation_policy: human_in_the_loop_first
+
+current_strategy:
+  active_phase: phase_1_extension_foundation
+  summary: >
+    Stop trying to do everything. Make the extension a strong standalone
+    product first. Reposition the desktop app as a CRM and document workspace.
+  now_building:
+    - free_ai_proxy
+    - popup_ats_detection
+    - universal_page_scan
+    - onboarding
+    - preview_fill
+    - save_job
+    - local_application_tracking
+  explicitly_deprioritized:
+    - scraper_first_experience
+    - autopilot_scheduler
+    - email_monitoring_ui
+    - playwright_engine
+    - fully_autonomous_pipeline
+
+non_goals_right_now:
+  - building_the_full_two_sided_marketplace_now
+  - replacing_the_user_entirely
+  - adding_large_cloud_infrastructure
+  - making_scrapers_the_core_product_surface
+  - shipping_half_built_features
+
+architecture_rules:
+  - extension_must_work_without_desktop
+  - desktop_may_enhance_but_must_not_block_core_flows
+  - deterministic_answers_beat_ai
+  - never_hide_uncertainty_from_the_user
+  - every_meaningful_user_action_should_be_structured_data
+  - no_new_root_markdown_files
+  - follow_repo_structure_rules_in_cursorrules
+
+source_of_truth:
+  root_control: project-ledger.yaml
+  process_folder: docs/process/project-control/
+  ticket_index: docs/tickets/README.md
+  active_tickets_folder: docs/tickets/
+  frontend_code: frontend/
+  desktop_backend: src-tauri/
+
+read_order_for_agents:
+  - project-ledger.yaml
+  - docs/process/project-control/current-phase.md
+  - docs/tickets/README.md
+  - only_the_specific_active_ticket_needed_for_the_task
+
+phases:
+  phase_0:
+    name: repo_hygiene
+    status: planned
+    goal: clean_and_secure_the_foundation
+  phase_1:
+    name: extension_foundation
+    status: active
+    goal: standalone_extension_with_real_user_value
+  phase_2:
+    name: desktop_crm
+    status: planned
+    goal: simplify_desktop_into_job_application_crm
+  phase_3:
+    name: intelligence_layer
+    status: planned
+    goal: recommendations_and_learning_from_real_usage
+
+active_work:
+  current_focus:
+    ticket_id: E1
+    title: Cloudflare Worker free AI tier
+    status: active
+  next_up:
+    - E2
+    - E3
+    - E4
+    - E5
+    - E6
+
+tickets:
+  E1:
+    title: Add Cloudflare Worker free AI tier
+    status: active
+    priority: critical
+  E2:
+    title: Expand popup ATS detection
+    status: proposed
+    priority: critical
+  E3:
+    title: Universal page scan from popup
+    status: proposed
+    priority: high
+  E4:
+    title: Popup onboarding flow
+    status: proposed
+    priority: critical
+  E5:
+    title: Preview fill and gap report
+    status: proposed
+    priority: high
+  E6:
+    title: Save jobs and local application tracking
+    status: proposed
+    priority: critical
+
+blocked_items: []
+
+risks:
+  - name: scope_creep
+    severity: high
+    mitigation: strict_phase_boundaries
+  - name: ai_cost_growth
+    severity: medium
+    mitigation: cache_first_plus_daily_rate_limits
+  - name: user_trust_loss
+    severity: high
+    mitigation: preview_mode_confidence_labels_gap_reports
+  - name: architecture_drift
+    severity: high
+    mitigation: mandatory_project_ledger_updates
+
+working_rules_for_agents:
+  - read_project_ledger_first
+  - update_project_ledger_when_status_or_strategy_changes
+  - do_not_expand_scope_without_recording_it
+  - do_not_create_parallel_systems_without_explicit_decision
+  - prefer_completing_current_phase_before_starting_new_ones
+  - if_blocked_record_the_blocker
+  - if_a_feature_is_deferred_remove_it_from_the_active_narrative
+
+recent_changes:
+  - date: 2026-03-09
+    change: Extension-first strategy adopted
+  - date: 2026-03-09
+    change: Desktop repositioned as optional CRM and document hub
+  - date: 2026-03-09
+    change: Free AI tier decided via Unhireable proxy backed by Gemini Flash
+  - date: 2026-03-09
+    change: Reliability and completeness set as top priorities

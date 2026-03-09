@@ -758,3 +758,9 @@ pub async fn scrape_jobs_selected(
 
     Ok(jobs)
 }
+
+#[tauri::command]
+pub async fn discovery_qualify(state: State<'_, AppState>) -> Result<usize> {
+    let brain = crate::intelligence::Brain::new(state.db.clone());
+    brain.process_scouted_jobs().await.map_err(Into::into)
+}

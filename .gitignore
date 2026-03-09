@@ -70,3 +70,7 @@ cobertura.xml
 
 # Pre-commit
 .secrets.baseline
+
+# Extension test
+.playwright-chrome-profile
+.test-*.png

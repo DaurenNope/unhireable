@@ -286,27 +286,7 @@ fn main() -> anyhow::Result<()> {
         let use_ai = matches.contains_id("ai");
         let auto_submit = matches.contains_id("auto_submit");
 
-        // Initialize database (allow override via UNHIREABLE_DB_PATH)
-        let (app_dir, db_path) = if let Ok(custom_db) = std::env::var("UNHIREABLE_DB_PATH") {
-            let p = std::path::PathBuf::from(&custom_db);
-            let dir = p
-                .parent()
-                .unwrap_or(std::path::Path::new("."))
-                .to_path_buf();
-            (dir, p)
-        } else {
-            let app_dir = dirs::data_dir()
-                .ok_or_else(|| {
-                    std::io::Error::new(
-                        std::io::ErrorKind::NotFound,
-                        "Could not find data directory",
-                    )
-                })?
-                .join("unhireable");
-            std::fs::create_dir_all(&app_dir)?;
-            let db_path = app_dir.join("jobhunter.db");
-            (app_dir, db_path)
-        };
+        let (app_dir, db_path) = resolve_app_paths()?;
         let db = Database::new(db_path)?;
         let conn = db.get_connection();
 
@@ -329,13 +309,11 @@ fn main() -> anyhow::Result<()> {
             .map(|s| serde_json::from_str(s).expect("Invalid profile JSON"))
             .expect("No user profile found. Save your profile first.");
 
-        // Load OpenAI key from credentials if present
-        let ai_key: Option<String> = conn
-            .get_credential("openai")
-            .ok()
-            .flatten()
-            .and_then(|cred| cred.tokens)
-            .map(|s| s);
+        // Load best available AI key: Mistral → Gemini → OpenAI
+        let ai_key: Option<String> = ["mistral", "gemini", "openai"].iter().find_map(|platform| {
+            conn.get_credential(platform).ok().flatten()
+                .and_then(|cred| cred.tokens)
+        });
 
         // Generators
         let mut resume_gen = ResumeGenerator::new();
@@ -394,17 +372,7 @@ fn main() -> anyhow::Result<()> {
     if let Some(query) = matches.get_one::<String>("query") {
         println!("Scraping jobs for: {}", query);
 
-        // Initialize database
-        let app_dir = dirs::data_dir()
-            .ok_or_else(|| {
-                std::io::Error::new(
-                    std::io::ErrorKind::NotFound,
-                    "Could not find data directory",
-                )
-            })?
-            .join("unhireable");
-        std::fs::create_dir_all(&app_dir)?;
-        let db_path = app_dir.join("jobhunter.db");
+        let (_app_dir, db_path) = resolve_app_paths()?;
         let db = Database::new(db_path)?;
 
         // Get sources if specified
@@ -497,17 +465,7 @@ fn main() -> anyhow::Result<()> {
     if let Some(query) = matches.get_one::<String>("scrape") {
         println!("Scraping jobs for: {}", query);
 
-        // Initialize database
-        let app_dir = dirs::data_dir()
-            .ok_or_else(|| {
-                std::io::Error::new(
-                    std::io::ErrorKind::NotFound,
-                    "Could not find data directory",
-                )
-            })?
-            .join("unhireable");
-        std::fs::create_dir_all(&app_dir)?;
-        let db_path = app_dir.join("jobhunter.db");
+        let (_app_dir, db_path) = resolve_app_paths()?;
         let db = Database::new(db_path)?;
 
         // Get sources if specified

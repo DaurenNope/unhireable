@@ -17,11 +17,21 @@ use tokio::task;
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::TraceLayer;
 
-use crate::db::models::{AnswerCacheEntry, Application, ApplicationStatus, Job, JobStatus};
-use crate::db::queries::{AnswerCacheQueries, ApplicationQueries, JobQueries};
+use crate::db::models::{
+    Activity, AlertFrequency, AnswerCacheEntry, Application, ApplicationStatus, Contact,
+    Credential, Document, DocumentType, Interview, Job, JobSnapshot, JobStatus, SavedSearch,
+    SavedSearchFilters, SnapshotCount, UserAuth,
+};
+use crate::db::queries::{
+    ActivityQueries, AnswerCacheQueries, AnswerPatternsQueries, ApplicationQueries, AuthQueries,
+    ContactQueries, CredentialQueries, DocumentQueries, JobQueries, ProfileQueries,
+    SavedSearchQueries, SnapshotQueries,
+};
 use crate::db::Database;
 use crate::generator::UserProfile;
+use crate::intelligence::Brain;
 use crate::matching::{JobMatchResult, JobMatcher};
+use crate::pinchtab;
 use crate::run_auto_apply_logic;
 use crate::scraper;
 
@@ -697,127 +707,125 @@ pub async fn apply_to_job_handler(
         ..Default::default()
     };
 
-    // Run application synchronously for reliability (browser automation)
+    // Run application asynchronously to avoid blocking the REST API
     println!(
-        "🚀 Starting application for job: {} at {}",
+        "🚀 Queueing background application for job: {} at {}",
         job.title, job.company
     );
 
     let applicator = JobApplicator::with_config(config);
-    let resume_ref = resume_path_str.as_deref();
+    let resume_ref = resume_path_str.clone();
 
-    let app_result = applicator
-        .apply_to_job(&job, &profile, resume_ref, None)
-        .await;
+    // Create the initial "Preparing" application record
+    let mut application = crate::db::models::Application {
+        id: None,
+        job_id: job.id.unwrap_or(0),
+        applied_at: None,
+        status: crate::db::models::ApplicationStatus::Preparing,
+        notes: Some("Application queued for background processing".to_string()),
+        created_at: None,
+        updated_at: None,
+        ..Default::default()
+    };
 
-    // Persist the application result to database
-    match app_result {
-        Ok(result) => {
-            println!("✅ Application completed: {:?}", result);
+    let mut initial_app_id = 0;
+    let db_guard = state.db.lock().await;
+    if let Some(db) = &*db_guard {
+        let conn = db.get_connection();
+        if let Ok(_) = conn.create_application(&mut application) {
+            initial_app_id = application.id.unwrap_or(0);
+            println!("💾 Initial application saved to database with id: {}", initial_app_id);
+        }
+    }
+    drop(db_guard);
+    
+    // Clone necessary state for the background task
+    let bg_job = job.clone();
+    let bg_profile = profile.clone();
+    let bg_db_state = state.db.clone();
 
-            // Save to database
-            if let Some(job_id_val) = job.id {
-                let db_guard = state.db.lock().await;
-                if let Some(db) = &*db_guard {
-                    let conn = db.get_connection();
-                    let status = if result.success {
-                        crate::db::models::ApplicationStatus::Submitted
-                    } else {
-                        crate::db::models::ApplicationStatus::Preparing
-                    };
-                    let mut application = crate::db::models::Application {
-                        id: None,
-                        job_id: job_id_val,
-                        applied_at: result.applied_at,
-                        status: status.clone(),
-                        notes: Some(format!(
-                            "ATS: {:?}. Message: {}",
-                            result.ats_type, result.message
-                        )),
-                        created_at: None,
-                        updated_at: None,
-                        ..Default::default()
-                    };
-                    match conn.create_application(&mut application) {
-                        Ok(_) => {
-                            println!(
-                                "💾 Application saved to database with id: {:?}",
-                                application.id
-                            );
+    // Spawn the background task
+    tokio::spawn(async move {
+        // Run the browser automation
+        let app_result = applicator
+            .apply_to_job(&bg_job, &bg_profile, resume_ref.as_deref(), None)
+            .await;
 
-                            // Return success response
-                            return (
-                                StatusCode::CREATED,
-                                Json(serde_json::json!({
-                                    "status": "success",
-                                    "job_id": job_id_val,
-                                    "job_title": job.title,
-                                    "job_company": job.company,
-                                    "application_id": application.id,
-                                    "result": {
-                                        "success": result.success,
-                                        "message": result.message,
-                                        "ats_type": format!("{:?}", result.ats_type)
-                                    }
-                                })),
-                            )
-                                .into_response();
-                        }
-                        Err(e) => {
-                            eprintln!("❌ Failed to save application to database: {}", e);
+        match app_result {
+            Ok(result) => {
+                println!("✅ Background application completed: {:?}", result);
+                
+                // Update the database record
+                if let Some(job_id_val) = bg_job.id {
+                    let db_guard = bg_db_state.lock().await;
+                    if let Some(db) = &*db_guard {
+                        let conn = db.get_connection();
+                        let status = if result.success {
+                            crate::db::models::ApplicationStatus::Submitted
+                        } else {
+                            crate::db::models::ApplicationStatus::Preparing
+                        };
+                        
+                        let updated_app = crate::db::models::Application {
+                            id: Some(initial_app_id),
+                            job_id: job_id_val,
+                            applied_at: result.applied_at,
+                            status,
+                            notes: Some(format!(
+                                "ATS: {:?}. Message: {}",
+                                result.ats_type, result.message
+                            )),
+                            created_at: None,
+                            updated_at: None,
+                            ..Default::default()
+                        };
+                        
+                        if let Err(e) = conn.update_application(&updated_app) {
+                            eprintln!("❌ Failed to update application in database: {}", e);
+                        } else {
+                            println!("💾 Application {} updated successfully.", initial_app_id);
                         }
                     }
                 }
             }
-
-            (
-                StatusCode::OK,
-                Json(serde_json::json!({
-                    "status": "completed",
-                    "job_id": job.id,
-                    "result": {
-                        "success": result.success,
-                        "message": result.message
-                    },
-                    "note": "Application completed but may not have been saved to database"
-                })),
-            )
-        }
-        Err(e) => {
-            println!("❌ Application failed: {}", e);
-
-            // Save failed attempt to database
-            if let Some(job_id_val) = job.id {
-                let db_guard = state.db.lock().await;
-                if let Some(db) = &*db_guard {
-                    let conn = db.get_connection();
-                    let mut application = crate::db::models::Application {
-                        id: None,
-                        job_id: job_id_val,
-                        applied_at: None,
-                        status: crate::db::models::ApplicationStatus::Preparing,
-                        notes: Some(format!("Failed: {}", e)),
-                        applied_via: None,
-                        created_at: None,
-                        updated_at: None,
-                        ..Default::default()
-                    };
-                    let _ = conn.create_application(&mut application);
-                    println!("💾 Failed application attempt saved to database");
+            Err(e) => {
+                println!("❌ Background application failed: {}", e);
+                
+                // Update database with failure
+                if let Some(job_id_val) = bg_job.id {
+                    let db_guard = bg_db_state.lock().await;
+                    if let Some(db) = &*db_guard {
+                        let conn = db.get_connection();
+                        let failed_app = crate::db::models::Application {
+                            id: Some(initial_app_id),
+                            job_id: job_id_val,
+                            applied_at: None,
+                            status: crate::db::models::ApplicationStatus::Preparing,
+                            notes: Some(format!("Failed: {}", e)),
+                            created_at: None,
+                            updated_at: None,
+                            ..Default::default()
+                        };
+                        if let Err(db_err) = conn.update_application(&failed_app) {
+                            eprintln!("❌ Failed to log application error to database: {}", db_err);
+                        }
+                    }
                 }
             }
-
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({
-                    "status": "failed",
-                    "job_id": job.id,
-                    "error": e.to_string()
-                })),
-            )
         }
-    }
-    .into_response()
+    });
+
+    // Return immediately to the client
+    (
+        StatusCode::ACCEPTED,
+        Json(serde_json::json!({
+            "status": "queued",
+            "job_id": job.id,
+            "application_id": initial_app_id,
+            "message": "Application is processing in the background."
+        })),
+    )
+        .into_response()
 }
 
 /// Create a test profile for testing
@@ -1028,6 +1036,73 @@ pub async fn match_jobs_handler(
 // =============================================================================
 
 /// Create the Axum router with all API routes
+#[derive(Deserialize)]
+pub struct DiscoveryBatchRequest {
+    pub jobs: Vec<Job>,
+}
+
+/// POST /api/discovery/batch - Batch submission of scouted jobs from extension
+pub async fn discovery_batch_handler(
+    AxumState(state): AxumState<WebAppState>,
+    Json(mut req): Json<DiscoveryBatchRequest>,
+) -> impl IntoResponse {
+    let db_guard = state.db.lock().await;
+    let db = match db_guard.as_ref() {
+        Some(db) => db,
+        None => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ApiError::new("Database not initialized")),
+            )
+                .into_response()
+        }
+    };
+
+    let conn = db.get_connection();
+    match conn.batch_upsert_jobs(&mut req.jobs) {
+        Ok(count) => (
+            StatusCode::OK,
+            Json(ApiResponse {
+                data: serde_json::json!({
+                    "scouted": count,
+                    "total": req.jobs.len(),
+                    "status": "success"
+                }),
+            }),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ApiError::new(format!("Batch upsert failed: {}", e))),
+        )
+            .into_response(),
+    }
+}
+
+/// POST /api/discovery/qualify - Trigger Brain to qualify all 'Scouted' jobs
+pub async fn discovery_qualify_handler(
+    AxumState(state): AxumState<WebAppState>,
+) -> impl IntoResponse {
+    let brain = Brain::new(state.db.clone());
+    match brain.process_scouted_jobs().await {
+        Ok(count) => (
+            StatusCode::OK,
+            Json(ApiResponse {
+                data: serde_json::json!({
+                    "processed": count,
+                    "status": "success"
+                }),
+            }),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ApiError::new(format!("Brain qualification failed: {}", e))),
+        )
+            .into_response(),
+    }
+}
+
 pub fn create_router(state: WebAppState) -> Router {
     let cors = CorsLayer::new()
         .allow_origin(Any)
@@ -1063,6 +1138,9 @@ pub fn create_router(state: WebAppState) -> Router {
         )
         // Auto-apply
         .route("/api/apply/auto", post(auto_apply_handler))
+        // Discovery Batch & Qualify
+        .route("/api/discovery/batch", post(discovery_batch_handler))
+        .route("/api/discovery/qualify", post(discovery_qualify_handler))
         // Direct apply to a specific job
         .route("/api/jobs/:id/apply", post(apply_to_job_handler))
         // Job matching
@@ -1076,9 +1154,74 @@ pub fn create_router(state: WebAppState) -> Router {
             "/api/answer-cache/:key",
             delete(delete_answer_cache_handler),
         )
+        .route(
+            "/api/answer-patterns",
+            get(get_answer_patterns_handler).put(put_answer_patterns_handler),
+        )
+        // External apply via PinchTab (when extension has ATS URL upfront)
+        .route("/api/external-apply-pinchtab", post(external_apply_pinchtab_handler))
+        // LLM Proxy (bypasses CORS/Origin issues for local Ollama)
+        .route("/api/proxy/ollama", post(ollama_proxy_handler))
         .layer(TraceLayer::new_for_http())
         .layer(cors)
         .with_state(state)
+}
+
+// =============================================================================
+// External Apply via PinchTab
+// =============================================================================
+
+#[derive(Deserialize)]
+struct ExternalApplyPinchTabRequest {
+    ats_url: String,
+    profile: Option<serde_json::Value>,
+}
+
+/// POST /api/external-apply-pinchtab - Apply to external ATS via PinchTab
+async fn external_apply_pinchtab_handler(
+    AxumState(state): AxumState<WebAppState>,
+    Json(req): Json<ExternalApplyPinchTabRequest>,
+) -> impl IntoResponse {
+    let profile = if let Some(p) = req.profile {
+        p
+    } else {
+        let db_guard = state.db.lock().await;
+        match db_guard.as_ref() {
+            Some(db) => {
+                let conn = db.get_connection();
+                match crate::commands::user::load_user_profile_from_conn(&conn) {
+                    Ok(Some(profile)) => serde_json::to_value(profile).unwrap_or(serde_json::Value::Null),
+                    _ => serde_json::Value::Null,
+                }
+            }
+            None => serde_json::Value::Null,
+        }
+    };
+
+    if profile.is_null() || profile.get("personal_info").is_none() {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(ApiError::new("Profile required (provide in body or configure in app)")),
+        )
+            .into_response();
+    }
+
+    match pinchtab::external_apply_via_pinchtab(&req.ats_url, &profile).await {
+        Ok(result) => (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "success": result.success,
+                "used_pinchtab": result.used_pinchtab,
+                "error": result.error
+            })),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ApiError::new(&format!("PinchTab error: {}", e))),
+        )
+            .into_response(),
+    }
 }
 
 // =============================================================================
@@ -1154,6 +1297,98 @@ async fn sync_answer_cache_handler(
     (StatusCode::OK, Json(ApiResponse { data: result })).into_response()
 }
 
+/// GET /api/answer-patterns - Get user's answer patterns (persona-scoped)
+async fn get_answer_patterns_handler(
+    AxumState(state): AxumState<WebAppState>,
+    Query(params): Query<std::collections::HashMap<String, String>>,
+) -> impl IntoResponse {
+    let db_guard = state.db.lock().await;
+    let db = match db_guard.as_ref() {
+        Some(d) => d,
+        None => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ApiError::new("Database not initialized")),
+            )
+                .into_response()
+        }
+    };
+    let persona_id = params.get("persona_id").map(|s| s.as_str()).unwrap_or("default");
+    let conn = db.get_connection();
+    match conn.get_answer_patterns(persona_id) {
+        Ok(Some(json)) => {
+            let parsed: Result<serde_json::Value, _> = serde_json::from_str(&json);
+            match parsed {
+                Ok(v) => (StatusCode::OK, Json(ApiResponse { data: v })).into_response(),
+                Err(_) => (
+                    StatusCode::OK,
+                    Json(ApiResponse {
+                        data: serde_json::json!({ "patterns": [] }),
+                    }),
+                )
+                    .into_response(),
+            }
+        }
+        Ok(None) => (
+            StatusCode::OK,
+            Json(ApiResponse {
+                data: serde_json::json!({ "patterns": [] }),
+            }),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ApiError::new(&format!("Failed to get patterns: {}", e))),
+        )
+            .into_response(),
+    }
+}
+
+/// PUT /api/answer-patterns - Save user's answer patterns (persona-scoped)
+async fn put_answer_patterns_handler(
+    AxumState(state): AxumState<WebAppState>,
+    Query(params): Query<std::collections::HashMap<String, String>>,
+    Json(body): Json<serde_json::Value>,
+) -> impl IntoResponse {
+    let db_guard = state.db.lock().await;
+    let db = match db_guard.as_ref() {
+        Some(d) => d,
+        None => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ApiError::new("Database not initialized")),
+            )
+                .into_response()
+        }
+    };
+    let persona_id = params.get("persona_id").map(|s| s.as_str()).unwrap_or("default");
+    let json_str = match serde_json::to_string(&body) {
+        Ok(s) => s,
+        Err(e) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(ApiError::new(format!("Invalid JSON: {}", e))),
+            )
+                .into_response()
+        }
+    };
+    let conn = db.get_connection();
+    match conn.save_answer_patterns(persona_id, &json_str) {
+        Ok(()) => (
+            StatusCode::OK,
+            Json(ApiResponse {
+                data: serde_json::json!({ "status": "saved", "persona_id": persona_id }),
+            }),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ApiError::new(&format!("Failed to save patterns: {}", e))),
+        )
+            .into_response(),
+    }
+}
+
 /// DELETE /api/answer-cache/:key - Delete a single cached answer
 async fn delete_answer_cache_handler(
     AxumState(state): AxumState<WebAppState>,
@@ -1185,6 +1420,69 @@ async fn delete_answer_cache_handler(
             Json(ApiError::new(&format!("Failed to delete: {}", e))),
         )
             .into_response(),
+    }
+}
+
+// =============================================================================
+// LLM Proxy Handler
+// =============================================================================
+
+#[derive(Deserialize)]
+pub struct OllamaProxyRequest {
+    pub url: String,
+    pub body: serde_json::Value,
+}
+
+/// POST /api/proxy/ollama - Proxy request to local Ollama to bypass browser CORS/Origin blocks
+async fn ollama_proxy_handler(
+    Json(mut req): Json<OllamaProxyRequest>,
+) -> impl IntoResponse {
+    // Re-create client with NO PROXIES to ensure local communication works
+    let client = reqwest::Client::builder()
+        .no_proxy()
+        .timeout(std::time::Duration::from_secs(300))
+        .danger_accept_invalid_certs(true)
+        .build()
+        .unwrap_or_else(|_| reqwest::Client::new());
+    
+    // Normalize localhost to 127.0.0.1
+    if req.url.contains("localhost") {
+        req.url = req.url.replace("localhost", "127.0.0.1");
+    }
+
+    println!("🤖 Proxying request -> {}", req.url);
+    
+    let request_start = std::time::Instant::now();
+    let response = match client
+        .post(&req.url)
+        .json(&req.body)
+        .send()
+        .await 
+    {
+        Ok(res) => res,
+        Err(e) => {
+            let elapsed = request_start.elapsed();
+            println!("❌ Proxy failed ({:?}): {}", elapsed, e);
+            return (
+                StatusCode::BAD_GATEWAY,
+                Json(serde_json::json!({
+                    "error": "Ollama unreachable",
+                    "details": format!("{}", e),
+                    "elapsed_ms": elapsed.as_millis(),
+                    "url": req.url
+                })),
+            ).into_response();
+        }
+    };
+
+    let status = response.status();
+    let body_text = response.text().await.unwrap_or_default();
+    
+    println!("✅ Proxy success ({}) in {:?}", status, request_start.elapsed());
+
+    match serde_json::from_str::<serde_json::Value>(&body_text) {
+        Ok(json) => (status, Json(ApiResponse { data: json })).into_response(),
+        Err(_) => (status, body_text).into_response(),
     }
 }
 

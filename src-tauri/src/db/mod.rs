@@ -114,6 +114,18 @@ impl Database {
                 .is_ok()
             };
 
+            // Check if answer_patterns table exists (for migration 0014)
+            let answer_patterns_exists = {
+                let mut stmt = conn.prepare(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name='answer_patterns'",
+                )?;
+                stmt.query_row([], |row| {
+                    let _: String = row.get(0)?;
+                    Ok(())
+                })
+                .is_ok()
+            };
+
             for entry in migration_files {
                 let migration_sql = std::fs::read_to_string(entry.path())?;
                 let file_name = entry.file_name().to_string_lossy().to_string();
@@ -172,6 +184,12 @@ impl Database {
                     continue;
                 }
 
+                // Skip migration 0014 if answer_patterns table already exists
+                if file_name.contains("0014_add_answer_patterns") && answer_patterns_exists {
+                    println!("Skipping migration {} - table already exists", file_name);
+                    continue;
+                }
+
                 // Execute migration with error handling for duplicate column/table errors
                 match conn.execute_batch(&migration_sql) {
                     Ok(_) => {
@@ -184,6 +202,8 @@ impl Database {
                             && error_msg.contains("duplicate column name: match_score"))
                             || (file_name.contains("0006_add_user_profile")
                                 && error_msg.contains("table user_profile already exists"))
+                            || (file_name.contains("0014_add_answer_patterns")
+                                && error_msg.contains("table answer_patterns already exists"))
                         {
                             println!("Skipping migration {} - already exists", file_name);
                             continue;

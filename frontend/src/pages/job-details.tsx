@@ -309,6 +309,8 @@ export function JobDetails() {
   const needsEnrichment = job && (!job.description || job.description.trim() === '');
 
   const statusVariant: Record<JobStatus, string> = {
+    'scouted': 'bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-200',
+    'prospect': 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-200',
     'saved': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200',
     'applied': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200',
     'interviewing': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200',
@@ -430,7 +432,7 @@ export function JobDetails() {
 
               <div className="flex flex-wrap items-center gap-3">
                 {isEditing ? (
-                  (['saved', 'applied', 'interviewing', 'offer', 'rejected', 'archived'] as JobStatus[]).map((status) => (
+                  (['scouted', 'prospect', 'saved', 'applied', 'interviewing', 'offer', 'rejected', 'archived'] as JobStatus[]).map((status) => (
                     <button
                       key={status}
                       type="button"

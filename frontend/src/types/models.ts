@@ -33,6 +33,7 @@ export interface AutomationHealth {
   credential_platforms: string[];
   chromium_available: boolean;
   playwright_available: boolean;
+  pinchtab_available?: boolean;
 }
 
 export interface ResumeEnvironmentStatus {
@@ -50,6 +51,8 @@ export interface BaseModel {
 
 // Job Status (matches backend snake_case)
 export type JobStatus =
+  | 'scouted'
+  | 'prospect'
   | 'saved'
   | 'applied'
   | 'interviewing'

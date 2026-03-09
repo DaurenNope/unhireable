@@ -1,0 +1,19 @@
+{
+  "name": "unhireable-ai-proxy",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "kv:create": "wrangler kv namespace create RATE_LIMIT_KV",
+    "secret:gemini": "wrangler secret put GEMINI_API_KEY"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "wrangler": "^4.71.0"
+  }
+}

@@ -6,10 +6,12 @@ use std::collections::HashMap;
 mod client;
 mod event_handler;
 mod models;
+pub mod brain;
 
 pub use client::IntelligenceClient;
 pub use event_handler::IntelligenceEventHandler;
 pub use models::*;
+pub use brain::Brain;
 
 /// Intelligence Agent service wrapper
 pub struct IntelligenceAgent {

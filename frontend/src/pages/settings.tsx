@@ -13,6 +13,7 @@ import { Badge } from "../components/ui/badge"
 import { Alert, AlertDescription } from "../components/ui/alert"
 import { Sun, Moon, Monitor, Key, Trash2, Plus, Save, AlertCircle, CheckCircle2, Mail, Send, Rocket, Shield, Zap, Search, Play } from "lucide-react"
 import { credentialApi, schedulerApi, profileApi, savedSearchApi, automationApi } from "@/api/client"
+import { restApi, type AnswerPatternsConfig } from "@/api/rest"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { UserProfileForm } from "@/components/user-profile-form"
 import type { UserProfile, SchedulerConfig, ApplicationMode, AutomationHealth, AlertFrequency } from "@/types/models"
@@ -50,6 +51,7 @@ export function Settings() {
           <TabsTrigger value="automation">Automation</TabsTrigger>
           <TabsTrigger value="scraper">Job Sources</TabsTrigger>
           <TabsTrigger value="credentials">API Keys</TabsTrigger>
+          <TabsTrigger value="patterns">Answer Patterns</TabsTrigger>
           <TabsTrigger value="preferences">Preferences</TabsTrigger>
           <TabsTrigger value="appearance">Appearance</TabsTrigger>
         </TabsList>
@@ -105,6 +107,10 @@ export function Settings() {
           <CredentialsSettings />
         </TabsContent>
 
+        <TabsContent value="patterns" className="space-y-4">
+          <AnswerPatternsSettings />
+        </TabsContent>
+
         <TabsContent value="preferences" className="space-y-4">
           <JobPreferences />
         </TabsContent>
@@ -115,6 +121,144 @@ export function Settings() {
       </Tabs>
     </div>
   )
+}
+
+const DEFAULT_ANSWER_PATTERNS: AnswerPatternsConfig = {
+  patterns: [
+    { id: "first_name", labelPatterns: ["first name"], source: "profile", profilePath: "personal_info.name", transform: "first_word" },
+    { id: "last_name", labelPatterns: ["last name"], source: "profile", profilePath: "personal_info.name", transform: "rest_after_first" },
+    { id: "full_name", labelPatterns: ["full name"], source: "profile", profilePath: "personal_info.name" },
+    { id: "name", labelPatterns: ["name"], excludePatterns: ["first name", "last name", "full name"], source: "profile", profilePath: "personal_info.name" },
+    { id: "email", labelPatterns: ["email"], excludePatterns: ["country"], source: "profile", profilePath: "personal_info.email" },
+    { id: "phone", labelPatterns: ["phone", "mobile"], excludePatterns: ["country"], source: "profile", profilePath: "personal_info.phone" },
+    { id: "linkedin", labelPatterns: ["linkedin", "linked in"], source: "profile", profilePath: "personal_info.linkedin", fallbackPath: "personal_info.linkedin_url" },
+    { id: "work_authorization", labelPatterns: ["authorized", "legally", "right to work"], source: "literal", literalValue: "Yes" },
+    { id: "sponsorship", labelPatterns: ["sponsorship", "require visa", "need sponsorship"], source: "profile", profilePath: "personal_info.requires_sponsorship", transform: "sponsorship_yes_no" },
+    { id: "relocation", labelPatterns: ["relocat", "willing to move"], source: "literal", literalValue: "Yes" },
+    { id: "start_date", labelPatterns: ["start date", "available to start", "when can you start"], source: "literal", literalValue: "Immediately" },
+    { id: "how_did_you_hear", labelPatterns: ["how did you hear", "how did you find", "referral source"], source: "literal", literalValue: "LinkedIn" },
+    { id: "salary", labelPatterns: ["salary", "compensation", "expected pay"], source: "literal", literalValue: "Open to discussion" },
+    { id: "years_experience", labelPatterns: ["years", "experience"], matchType: "all", source: "profile", profilePath: "personal_info.years_experience", default: "5" },
+    { id: "years_experience_alt", labelPatterns: ["how many years", "years of experience"], matchType: "any", source: "profile", profilePath: "personal_info.years_experience", default: "5" },
+    { id: "consent_checkbox", labelPatterns: ["agree", "consent", "terms", "certify", "acknowledge"], matchType: "any", source: "literal", literalValue: "check" },
+    { id: "messaging_app", labelPatterns: ["messaging app", "telegram", "whatsapp", "contact via", "messenger"], matchType: "any", source: "profile", profilePath: "personal_info.messaging", fallbackPath: "personal_info.telegram" },
+  ],
+};
+
+function AnswerPatternsSettings() {
+  const { toast } = useToast();
+  const [jsonText, setJsonText] = useState("");
+  const [parseError, setParseError] = useState<string | null>(null);
+
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["answer-patterns"],
+    queryFn: () => restApi.answerPatterns.get("default"),
+    retry: 1,
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: (config: AnswerPatternsConfig) => restApi.answerPatterns.save(config, "default"),
+    onSuccess: () => {
+      toast({ title: "Saved", description: "Answer patterns saved. The extension will use them on next apply." });
+      refetch();
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+
+  useEffect(() => {
+    if (data) {
+      setJsonText(JSON.stringify(data, null, 2));
+      setParseError(null);
+    } else if (!isLoading && !error) {
+      setJsonText(JSON.stringify({ patterns: [] }, null, 2));
+    }
+  }, [data, isLoading, error]);
+
+  const handleSave = () => {
+    try {
+      const parsed = JSON.parse(jsonText) as AnswerPatternsConfig;
+      if (!parsed.patterns || !Array.isArray(parsed.patterns)) {
+        setParseError("Must have a 'patterns' array");
+        return;
+      }
+      setParseError(null);
+      saveMutation.mutate(parsed);
+    } catch (e) {
+      setParseError(e instanceof Error ? e.message : "Invalid JSON");
+    }
+  };
+
+  const handleLoadDefaults = () => {
+    setJsonText(JSON.stringify(DEFAULT_ANSWER_PATTERNS, null, 2));
+    setParseError(null);
+  };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Answer Patterns</CardTitle>
+          <CardDescription>Loading...</CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Answer Patterns</CardTitle>
+          <CardDescription>
+            Could not load patterns. Is the app running? The extension will use bundled defaults.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={() => refetch()} variant="outline">Retry</Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Answer Patterns</CardTitle>
+        <CardDescription>
+          Map form questions to your profile or fixed values. Used by the Chrome extension for auto-fill.
+          Add patterns for common questions; the extension falls back to LLM or asks you for unknowns.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex gap-2">
+          <Button onClick={handleLoadDefaults} variant="outline" size="sm">
+            Load defaults
+          </Button>
+          <Button onClick={handleSave} disabled={saveMutation.isPending}>
+            {saveMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            Save
+          </Button>
+        </div>
+        {parseError && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{parseError}</AlertDescription>
+          </Alert>
+        )}
+        <div className="space-y-2">
+          <Label>Patterns (JSON)</Label>
+          <textarea
+            className="min-h-[400px] w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-sm"
+            value={jsonText}
+            onChange={(e) => setJsonText(e.target.value)}
+            placeholder='{"patterns": [...]}'
+          />
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 function AppearanceSettings() {
@@ -333,7 +477,9 @@ function CredentialsSettings() {
   }
 
   const platforms = [
-    { name: 'OpenAI', key: 'openai', description: 'For AI-powered document generation' },
+    { name: 'Mistral AI', key: 'mistral', description: 'Preferred AI provider for document generation (free tier available)' },
+    { name: 'Google Gemini', key: 'gemini', description: 'Google AI — free tier works great for resume & cover letter generation' },
+    { name: 'OpenAI', key: 'openai', description: 'GPT-based AI (optional, used as fallback)' },
     { name: 'Firecrawl', key: 'firecrawl', description: 'For advanced web scraping' },
     { name: 'LinkedIn', key: 'linkedin', description: 'For LinkedIn scraping (high risk)' },
     { name: 'Wellfound', key: 'wellfound', description: 'For Wellfound scraping' },
@@ -1519,6 +1665,15 @@ function AutomationHealthCard() {
                 health
                   ? `Chromium: ${health.chromium_available ? 'ready ✅' : 'missing ❌'}, Playwright: ${health.playwright_available ? 'ready ✅' : 'missing ❌'}`
                   : "Browser runtimes will be detected automatically."
+              }
+            />
+            <HealthRow
+              label="PinchTab (external apply)"
+              ok={Boolean(health?.pinchtab_available)}
+              description={
+                health?.pinchtab_available
+                  ? "PinchTab running — external ATS forms can be auto-filled."
+                  : "Optional: run 'pinchtab' for better external apply support."
               }
             />
           </>
