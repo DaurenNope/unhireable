@@ -1,21 +1,34 @@
-# Unhireable - Neural Career System
+# Unhireable - AI-Powered Job Application System
 
-A desktop application for automating job search, application tracking, and document generation with AI-powered job matching and personalized career assessment.
+A **hybrid job application system** combining Career-Ops style deep evaluation with browser automation. Find quality jobs, get AI-evaluated scores, and auto-apply with tailored CVs.
+
+## 🚀 The Hybrid Approach
+
+```
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│   SCANNER   │───▶│  EVALUATOR  │───▶│  DASHBOARD  │───▶│  EXTENSION  │
+│ (Find jobs) │    │ (Score A-F) │    │ (Review)    │    │ (Auto-apply)│
+└─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
+```
+
+**Why this works:**
+- ✅ **Career-Ops style**: Deep A-F scoring, tailored CV highlights, interview prep
+- ✅ **Any AI provider**: OpenAI, Anthropic, Ollama (local/free)
+- ✅ **No Claude Code required**: Works with any API key or local LLM
+- ✅ **Quality over quantity**: Apply to 20 great jobs, not 100 random ones
+- ✅ **Stealthy**: Human-like delays, no detection
+- ✅ **Free tier available**: Use Ollama for completely free operation
 
 ## 🚀 Features
 
-- **Job Scraping**: Scrape jobs from hh.kz, Wellfound, and LinkedIn (with safety measures)
-- **AI-Powered Job Matching**: Neural matching algorithm that calculates match scores based on skills, experience, and location
-- **Application Tracking**: Track applications, interviews, contacts, and documents
-- **Dashboard**: Visualize application statistics, match scores, and activity feed
-- **Resume & Cover Letter Generation**: AI-powered document generation with templates
-- **User Profile Management**: Manage your professional profile for resume generation and job matching
-- **Credential Management**: Secure storage of API keys and platform credentials
-- **Background Scheduler**: Automated job scraping at scheduled intervals
-- **Email Notifications**: Email alerts for new job matches and updates
-- **Browser Automation**: Open-source browser automation support (Playwright/Chrome)
-- **Activity Feed**: Track all application and job changes
-- **PDF Export**: Export generated documents to PDF
+- **Job Discovery**: Scan LinkedIn + 10+ company career pages
+- **AI Evaluation**: A-F scoring (Role Fit, Skills, Logistics, Company)
+- **Tailored CVs**: AI generates custom highlights per job
+- **Interview Prep**: STAR stories prepared for each application
+- **Dashboard**: Review, filter, queue jobs visually
+- **Auto-Apply**: One-click application to queued jobs
+- **Any AI Provider**: OpenAI, Anthropic, Ollama (local/free)
+- **No Cloud Storage**: All data stays local on your machine
 
 ## 🎯 Branding
 
@@ -25,62 +38,69 @@ A desktop application for automating job search, application tracking, and docum
 - **89% Success Rate**: vs 12% industry average
 - **21 Days**: Average time to get matched with perfect jobs
 
-## 📋 Setup
+## 📋 Quick Start
 
 ### Prerequisites
-- **Rust** (latest stable) - [Install Rust](https://rustup.rs)
 - **Node.js** (v18 or higher) - [Install Node.js](https://nodejs.org)
-- **Tauri CLI** - `npm install -g @tauri-apps/cli`
+- **Chrome browser** (for extension)
+- **AI API key** (optional - can use free local Ollama)
 
 ### Installation
 
-#### From Source
-
 ```bash
 # Clone the repository
-git clone https://github.com/DaurenNope/jobEz.git
-cd jobEz
+git clone https://github.com/DaurenNope/unhireable.git
+cd unhireable
 
 # Install dependencies
-npm install
-cd frontend && npm install
+cd scanner && npm install
+cd ../evaluator && npm install
 ```
 
-#### Development
+### Configuration
 
 ```bash
-# From the root directory
-npm run dev:tauri
+cd ../evaluator
+# Edit config.yml with your details
+cat > data/config.yml << EOF
+ai:
+  provider: openai        # or anthropic, ollama
+  api_key: sk-...         # Your API key (skip if using ollama)
 
-# Or from the frontend directory
-cd frontend
-npm run dev:tauri
+cv:
+  name: "Your Name"
+  title: "Senior Software Engineer"
+  skills: ["React", "Node.js", "Python"]
+  experience_years: 5
+  salary_target: { min: 150000, max: 200000 }
+EOF
 ```
 
-#### Production Build
+### Quick Start (5 minutes)
 
-```bash
-# Build for current platform
-npm run tauri build
+1. **Find jobs**
+   ```bash
+   cd ../scanner
+   npm run scan -- --limit=30
+   ```
 
-# Build for specific platform
-npm run tauri build -- --target x86_64-apple-darwin  # macOS
-npm run tauri build -- --target x86_64-pc-windows-msvc  # Windows
-npm run tauri build -- --target x86_64-unknown-linux-gnu  # Linux
-```
+2. **Evaluate with AI**
+   ```bash
+   cd ../evaluator
+   npm run evaluate
+   ```
 
-### Quick Start
+3. **Review & Queue**
+   ```bash
+   open ../dashboard/index.html
+   # Load evaluated jobs → Add good ones to queue → Export
+   ```
 
-1. **Launch the app** - Run `npm run dev:tauri`
-2. **Set up profile** - Go to Settings → Profile and fill in your information
-3. **Configure AI (optional)** - Add OpenAI/Anthropic API key in Settings → Credentials
-4. **Search for jobs** - Go to Jobs page and scrape jobs
-5. **Calculate matches** - Click "Calculate Match Scores" to see your best matches
-6. **Generate documents** - Select a job and generate tailored resume/cover letter
-7. **Apply** - Use manual or automated application
+4. **Apply**
+   - Load `chrome-extension/` in Chrome (chrome://extensions/ → Developer mode)
+   - Click extension icon → Import Queue → Apply to All Jobs
 
-See [Getting Started Guide](./docs/user/getting-started.md) for detailed instructions.
-Internal contributors can follow the consolidated [process handbook](./docs/process/getting-started.md) for environment setup and next steps.
+See [USAGE.md](./USAGE.md) for detailed instructions and [ARCHITECTURE.md](./ARCHITECTURE.md) for technical details.
 
 ## 🧰 Tools & Scripts
 
@@ -370,10 +390,10 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 🔗 Links
 
-- **GitHub Repository**: https://github.com/DaurenNope/jobEz.git
+- **GitHub Repository**: https://github.com/DaurenNope/unhireable.git
 - **Website**: https://unhireable.com (coming soon)
-- **Issues**: [GitHub Issues](https://github.com/DaurenNope/jobEz/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/DaurenNope/jobEz/discussions)
+- **Issues**: [GitHub Issues](https://github.com/DaurenNope/unhireable/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/DaurenNope/unhireable/discussions)
 
 ## 🙏 Acknowledgments
 
