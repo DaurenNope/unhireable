@@ -1,256 +1,480 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="UTF-8">
-    <title>Unhireable</title>
+    <title>Unhireable Auto-Apply</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            width: 300px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #1a1a2e;
-            color: #e4e4e7;
-            padding: 16px;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
+
+        body {
+            width: 320px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e1e2e 0%, #2d2d44 100%);
+            color: #fff;
+            padding: 20px;
+        }
+
         .header {
             display: flex;
             align-items: center;
-            gap: 10px;
-            margin-bottom: 16px;
+            gap: 12px;
+            margin-bottom: 20px;
         }
+
         .logo {
-            width: 36px;
-            height: 36px;
+            width: 40px;
+            height: 40px;
             background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            border-radius: 8px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
+            font-size: 20px;
         }
-        .title { font-size: 16px; font-weight: 600; }
-        .subtitle { font-size: 11px; color: #71717a; }
-        .status {
+
+        .title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .subtitle {
             font-size: 12px;
             color: #a1a1aa;
-            margin-bottom: 12px;
+        }
+
+        .status-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .status-header {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
+            margin-bottom: 8px;
         }
+
         .status-dot {
-            width: 6px;
-            height: 6px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
             background: #22c55e;
         }
-        .status-dot.inactive { background: #71717a; }
-        .btn {
-            width: 100%;
-            padding: 12px 16px;
-            border: none;
-            border-radius: 8px;
+
+        .status-dot.inactive {
+            background: #ef4444;
+        }
+
+        .status-text {
             font-size: 14px;
             font-weight: 500;
+        }
+
+        .ats-name {
+            font-size: 13px;
+            color: #a1a1aa;
+        }
+
+        .profile-preview {
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 16px;
+        }
+
+        .profile-name {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .profile-email {
+            font-size: 12px;
+            color: #a1a1aa;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
-            transition: opacity 0.2s;
+            transition: all 0.2s;
         }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
         .btn-primary {
             background: linear-gradient(135deg, #6366f1, #8b5cf6);
             color: white;
         }
-        .btn-primary:hover:not(:disabled) { opacity: 0.95; }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
         .btn-secondary {
-            background: rgba(255,255,255,0.08);
-            color: #e4e4e7;
-            margin-top: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            margin-top: 8px;
         }
-        .btn-secondary:hover { background: rgba(255,255,255,0.12); }
-        .profile-line {
-            font-size: 12px;
-            color: #a1a1aa;
-            margin: 12px 0;
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .settings-row {
             display: flex;
+            align-items: center;
             justify-content: space-between;
-            align-items: center;
+            padding: 12px 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
-        .profile-line a { color: #6366f1; cursor: pointer; font-size: 11px; }
-        .expand {
-            margin-top: 12px;
-            border-top: 1px solid rgba(255,255,255,0.08);
-            padding-top: 12px;
+
+        .settings-label {
+            font-size: 13px;
         }
-        .expand-header {
-            font-size: 12px;
-            color: #71717a;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            margin-bottom: 8px;
-        }
-        .expand-header:hover { color: #a1a1aa; }
-        .expand-content { display: none; }
-        .expand-content.open { display: block; }
-        .row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 0;
-            font-size: 12px;
-        }
-        .row label { color: #a1a1aa; }
-        select, input[type="text"], input[type="password"] {
-            width: 100%;
-            padding: 8px;
-            margin: 4px 0 8px;
-            border-radius: 6px;
-            border: 1px solid rgba(255,255,255,0.15);
-            background: rgba(0,0,0,0.3);
-            color: #fff;
-            font-size: 12px;
-        }
+
         .toggle {
             position: relative;
-            width: 40px;
-            height: 22px;
+            width: 44px;
+            height: 24px;
         }
-        .toggle input { opacity: 0; width: 0; height: 0; }
+
+        .toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
         .toggle-slider {
             position: absolute;
-            inset: 0;
-            background: rgba(255,255,255,0.2);
-            border-radius: 22px;
             cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 24px;
+            transition: 0.3s;
         }
+
         .toggle-slider:before {
-            content: "";
             position: absolute;
-            height: 16px;
-            width: 16px;
+            content: "";
+            height: 18px;
+            width: 18px;
             left: 3px;
             bottom: 3px;
             background: white;
             border-radius: 50%;
-            transition: 0.2s;
+            transition: 0.3s;
         }
-        .toggle input:checked + .toggle-slider { background: #6366f1; }
-        .toggle input:checked + .toggle-slider:before { transform: translateX(18px); }
-        .toast {
-            background: rgba(34, 197, 94, 0.15);
-            border-radius: 6px;
-            padding: 8px 12px;
-            font-size: 12px;
-            margin-bottom: 12px;
+
+        .toggle input:checked+.toggle-slider {
+            background: #6366f1;
+        }
+
+        .toggle input:checked+.toggle-slider:before {
+            transform: translateX(20px);
+        }
+
+        .footer {
+            margin-top: 16px;
+            text-align: center;
+            font-size: 11px;
+            color: #71717a;
+        }
+
+        .success-message {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 16px;
+            text-align: center;
             display: none;
         }
-        .toast.show { display: block; }
+
+        .success-message.show {
+            display: block;
+        }
     </style>
 </head>
+
 <body>
     <div class="header">
         <div class="logo">🚀</div>
         <div>
             <div class="title">Unhireable</div>
-            <div class="subtitle">Auto-Apply</div>
+            <div class="subtitle">Auto-Apply Assistant</div>
         </div>
     </div>
 
-    <div id="toast" class="toast"></div>
+    <div id="successMessage" class="success-message">
+        ✅ Form filled successfully!
+    </div>
 
-    <div class="status">
-        <div id="statusDot" class="status-dot inactive"></div>
-        <span id="statusText">Checking...</span>
+    <div class="status-card">
+        <div class="status-header">
+            <div id="statusDot" class="status-dot inactive"></div>
+            <span id="statusText" class="status-text">Checking page...</span>
+        </div>
+        <div id="atsName" class="ats-name">Navigate to a job application</div>
+    </div>
+
+    <div id="profilePreview" class="profile-preview" style="display: none;">
+        <div id="profileName" class="profile-name">-</div>
+        <div id="profileEmail" class="profile-email">-</div>
+        <button id="editProfileBtn" class="btn btn-secondary"
+            style="font-size: 11px; padding: 4px 8px; margin-top: 4px;">✏️ Edit</button>
+    </div>
+
+    <!-- Quick Profile Editor -->
+    <div id="profileEditor" class="profile-editor"
+        style="display: none; background: rgba(255,255,255,0.05); border-radius: 12px; padding: 12px; margin-bottom: 12px;">
+        <input type="text" id="inputName" placeholder="Your Name"
+            style="width: 100%; padding: 8px; margin-bottom: 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: #fff;">
+        <input type="email" id="inputEmail" placeholder="your@email.com"
+            style="width: 100%; padding: 8px; margin-bottom: 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: #fff;">
+        <input type="tel" id="inputPhone" placeholder="+1 555-123-4567"
+            style="width: 100%; padding: 8px; margin-bottom: 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: #fff;">
+        <input type="text" id="inputLocation" placeholder="City, Country"
+            style="width: 100%; padding: 8px; margin-bottom: 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: #fff;">
+        <input type="text" id="inputSkills" placeholder="Skills (comma separated): React, Python, Node.js"
+            style="width: 100%; padding: 8px; margin-bottom: 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: #fff;">
+        <textarea id="inputSummary" placeholder="Brief summary (optional)" rows="2"
+            style="width: 100%; padding: 8px; margin-bottom: 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: #fff; resize: none;"></textarea>
+        <button id="saveProfileBtn" class="btn btn-primary"
+            style="width: 100%; background: linear-gradient(135deg, #22c55e, #16a34a);">💾 Save Profile</button>
     </div>
 
     <button id="fillBtn" class="btn btn-primary" disabled>
         <span>⚡</span>
-        <span>Apply to this job</span>
+        <span>Auto-Fill Application</span>
     </button>
 
-    <button id="justApplyBtn" class="btn btn-primary" style="margin-top: 6px; display: none;" disabled>
-        <span>🎯</span>
-        <span>Apply to current job</span>
+    <button id="autopilotBtn" class="btn btn-primary"
+        style="background: linear-gradient(135deg, #22c55e, #16a34a); margin-top: 8px;">
+        <span>🚀</span>
+        <span>Start Autopilot (Scan All Jobs)</span>
     </button>
 
-    <button id="scoutBtn" class="btn btn-secondary">
-        <span>🔍</span>
-        <span>Scout jobs</span>
+    <button id="stopAutopilotBtn" class="btn btn-secondary"
+        style="background: rgba(239, 68, 68, 0.3); display: none; margin-top: 8px;">
+        <span>⏹️</span>
+        <span>Stop Autopilot</span>
     </button>
 
-    <div class="profile-line">
-        <span id="profileSummary">No profile</span>
-        <a id="editProfileLink">Edit</a>
+    <div id="autopilotStatus" class="status-card" style="display: none; margin-top: 8px;">
+        <div style="font-size: 13px;">
+            <span id="apApplied">0</span> applied ·
+            <span id="apSkipped">0</span> skipped ·
+            <span id="apProgress">0/0</span> processed
+        </div>
     </div>
 
-    <div class="expand">
-        <div id="settingsToggle" class="expand-header">
-            <span>▶</span>
-            <span>Settings</span>
+    <button id="scanOnlyBtn" class="btn btn-secondary" style="margin-top: 8px;">
+        <span>🔍</span>
+        <span>Scan Only (No Apply)</span>
+    </button>
+
+    <button id="applyMatchesBtn" class="btn btn-primary"
+        style="background: linear-gradient(135deg, #22c55e, #16a34a); margin-top: 8px; display: none;">
+        <span>✅</span>
+        <span>Apply to Matches (0)</span>
+    </button>
+
+    <hr style="border: none; border-top: 1px solid #333; margin: 12px 0;">
+
+    <div style="font-size: 11px; color: #888; margin-bottom: 8px;">🧪 Test on current job (open a job first):</div>
+
+    <button id="testApplyBtn" class="btn btn-secondary" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+        <span>🎯</span>
+        <span>Test Apply This Job</span>
+    </button>
+
+    <button id="viewUnknownFieldsBtn" class="btn btn-secondary" style="margin-top: 8px; font-size: 11px;">
+        <span>🔍</span>
+        <span>View Unknown Fields (0)</span>
+    </button>
+
+    <div class="settings-row">
+        <span class="settings-label">Auto-submit after fill</span>
+        <label class="toggle">
+            <input type="checkbox" id="autoSubmitToggle">
+            <span class="toggle-slider"></span>
+        </label>
+    </div>
+
+    <div class="settings-row">
+        <span class="settings-label">🧑 Human-like behavior</span>
+        <label class="toggle">
+            <input type="checkbox" id="humanModeToggle" checked>
+            <span class="toggle-slider"></span>
+        </label>
+    </div>
+
+    <!-- Schedule Configuration -->
+    <div class="status-card" style="margin-top: 12px; margin-bottom: 12px;">
+        <div class="status-header">
+            <span>⏰</span>
+            <span class="status-text">Auto Schedule</span>
         </div>
-        <div id="settingsPanel" class="expand-content">
-            <div class="row">
-                <label>Auto-submit</label>
-                <label class="toggle">
-                    <input type="checkbox" id="autoSubmitToggle">
-                    <span class="toggle-slider"></span>
-                </label>
-            </div>
-            <div class="row">
-                <label>AI provider</label>
-            </div>
-            <select id="llmProviderSelect">
-                <option value="chrome_ai">Chrome AI (no setup)</option>
-                <option value="unhireable_proxy">Unhireable Free</option>
-                <option value="groq">Groq</option>
-                <option value="gemini">Gemini</option>
-                <option value="local">Ollama (local)</option>
-                <option value="mistral">Mistral</option>
-            </select>
-            <div id="llmProxySection" style="display: none; margin-top: 8px;">
-                <label style="font-size: 11px; color: #71717a;">Proxy URL</label>
-                <input type="text" id="unhireableProxyUrlInput" placeholder="https://your-worker.workers.dev">
-                <button id="saveProxyUrlBtn" class="btn btn-secondary" style="padding: 8px; font-size: 11px; margin-top: 4px;">Save</button>
-            </div>
-            <div id="llmLocalSection" style="display: none; margin-top: 8px;">
-                <label style="font-size: 11px; color: #71717a;">Ollama URL</label>
-                <input type="text" id="llmLocalUrlInput" placeholder="http://localhost:11434">
-                <label style="font-size: 11px; color: #71717a; margin-top: 6px; display: block;">Model</label>
-                <select id="llmLocalModelSelect">
-                    <option value="qwen3.5:2b">qwen3.5:2b</option>
-                    <option value="qwen3.5:4b">qwen3.5:4b</option>
-                    <option value="llama3.1:8b">llama3.1:8b</option>
+
+        <div class="settings-row" style="border-top: none; padding-top: 4px;">
+            <span class="settings-label">Enable auto-scan</span>
+            <label class="toggle">
+                <input type="checkbox" id="scheduleEnabledToggle">
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+
+        <div id="scheduleOptions" style="display: none;">
+            <div style="margin-bottom: 8px;">
+                <label style="font-size: 11px; color: #888;">Scan every:</label>
+                <select id="scanFrequency"
+                    style="width: 100%; padding: 6px; margin-top: 4px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: #fff; font-size: 12px;">
+                    <option value="1">1 hour</option>
+                    <option value="2">2 hours</option>
+                    <option value="4" selected>4 hours</option>
+                    <option value="6">6 hours</option>
+                    <option value="8">8 hours</option>
+                    <option value="12">12 hours</option>
                 </select>
-                <button id="saveLocalLlmBtn" class="btn btn-secondary" style="padding: 8px; font-size: 11px; margin-top: 4px;">Save</button>
             </div>
-            <div id="llmApiKeySection" style="margin-top: 8px;">
-                <label style="font-size: 11px; color: #71717a;">API key</label>
-                <div style="display: flex; gap: 4px;">
-                    <input type="password" id="llmApiKeyInput" placeholder="Paste key">
-                    <button id="saveApiKeyBtn" class="btn btn-secondary" style="padding: 8px 12px;">Save</button>
+
+            <div style="margin-bottom: 8px;">
+                <label style="font-size: 11px; color: #888;">Daily apply limit:</label>
+                <select id="dailyLimitSelect"
+                    style="width: 100%; padding: 6px; margin-top: 4px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: #fff; font-size: 12px;">
+                    <option value="10">10 applications</option>
+                    <option value="25" selected>25 applications</option>
+                    <option value="50">50 applications</option>
+                    <option value="75">75 applications</option>
+                    <option value="100">100 applications</option>
+                </select>
+            </div>
+
+            <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                <div style="flex: 1;">
+                    <label style="font-size: 11px; color: #888;">Active from:</label>
+                    <select id="activeHoursStart"
+                        style="width: 100%; padding: 6px; margin-top: 4px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: #fff; font-size: 12px;">
+                        <option value="6">6 AM</option>
+                        <option value="7">7 AM</option>
+                        <option value="8">8 AM</option>
+                        <option value="9" selected>9 AM</option>
+                        <option value="10">10 AM</option>
+                    </select>
+                </div>
+                <div style="flex: 1;">
+                    <label style="font-size: 11px; color: #888;">Until:</label>
+                    <select id="activeHoursEnd"
+                        style="width: 100%; padding: 6px; margin-top: 4px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: #fff; font-size: 12px;">
+                        <option value="17" selected>5 PM</option>
+                        <option value="18">6 PM</option>
+                        <option value="20">8 PM</option>
+                        <option value="22">10 PM</option>
+                        <option value="23">11 PM</option>
+                    </select>
                 </div>
             </div>
-            <div class="row" style="margin-top: 12px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.08);">
-                <a id="loadProfileLink" style="color: #6366f1; cursor: pointer; font-size: 11px;">Load from desktop app</a>
-            </div>
+        </div>
+
+        <div
+            style="display: flex; justify-content: space-between; font-size: 11px; color: #888; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
+            <span>Today: <strong id="dailyApplyCount" style="color: #6366f1;">0</strong> applied</span>
+            <span id="lastAutoScan" style="font-size: 10px;">Never scanned</span>
         </div>
     </div>
 
-    <!-- Hidden: profile editor, cache, etc. - loaded on demand -->
-    <div id="profileEditor" style="display: none;">
-        <input type="text" id="inputName" placeholder="Name">
-        <input type="email" id="inputEmail" placeholder="Email">
-        <input type="tel" id="inputPhone" placeholder="Phone">
-        <input type="text" id="inputLocation" placeholder="Location">
-        <input type="text" id="inputSkills" placeholder="Skills (comma-separated)">
-        <button id="saveProfileBtn" class="btn btn-primary" style="margin-top: 8px;">Save profile</button>
+    <button id="testProfileBtn" class="btn btn-primary"
+        style="background: linear-gradient(135deg, #22c55e, #16a34a); margin-bottom: 8px; width: 100%;">
+        👤 Load My Profile
+    </button>
+
+    <button id="settingsBtn" class="btn btn-secondary" style="margin-top: 8px;">
+        ⚙️ Open Unhireable Settings
+    </button>
+
+    <hr style="border: none; border-top: 1px solid #333; margin: 12px 0;">
+
+    <!-- LLM Settings Section -->
+    <div class="status-card" style="margin-bottom: 12px;">
+        <div class="status-header">
+            <span>🤖</span>
+            <span class="status-text">Smart Answers (LLM)</span>
+        </div>
+
+        <div style="margin-top: 8px;">
+            <label style="font-size: 11px; color: #888;">Gemini API Key:</label>
+            <div style="display: flex; gap: 4px; margin-top: 4px;">
+                <input type="password" id="geminiApiKey" placeholder="AIza..."
+                    style="flex: 1; padding: 6px 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: #fff; font-size: 11px;">
+                <button id="saveApiKeyBtn" class="btn btn-secondary"
+                    style="padding: 6px 10px; font-size: 11px;">💾</button>
+            </div>
+            <div style="font-size: 10px; color: #666; margin-top: 4px;">
+                Get free key: <a href="https://aistudio.google.com/apikey" target="_blank"
+                    style="color: #6366f1;">aistudio.google.com</a>
+            </div>
+        </div>
+
+        <div
+            style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
+            <span style="font-size: 11px; color: #888;">Cached answers: <span id="cacheCount">0</span></span>
+            <div style="display: flex; gap: 4px;">
+                <button id="viewCacheBtn" class="btn btn-secondary" style="padding: 4px 8px; font-size: 10px;">📋
+                    View</button>
+                <button id="exportCacheBtn" class="btn btn-secondary"
+                    style="padding: 4px 8px; font-size: 10px;">📤</button>
+                <button id="importCacheBtn" class="btn btn-secondary"
+                    style="padding: 4px 8px; font-size: 10px;">📥</button>
+                <button id="clearCacheBtn" class="btn btn-secondary"
+                    style="padding: 4px 8px; font-size: 10px; background: rgba(239,68,68,0.2);">🗑️</button>
+            </div>
+        </div>
+        <input type="file" id="importCacheFile" accept=".json" style="display: none;">
+    </div>
+
+    <!-- Cache Viewer Modal -->
+    <div id="cacheViewer"
+        style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 1000; padding: 10px; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <span style="font-size: 14px; font-weight: 600;">📋 Cached Answers</span>
+            <button id="closeCacheBtn"
+                style="background: none; border: none; color: #fff; font-size: 18px; cursor: pointer;">✕</button>
+        </div>
+        <div id="cacheList" style="font-size: 11px;"></div>
+    </div>
+
+    <div class="footer">
+        Synced with Unhireable App
     </div>
 
     <script src="popup.js"></script>
 </body>
+
 </html>

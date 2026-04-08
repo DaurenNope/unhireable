@@ -5,7 +5,7 @@
     'use strict';
 
     const LOG_LEVELS = { debug: 0, info: 1, warn: 2, error: 3 };
-    let currentLevel = LOG_LEVELS.warn; // Quiet by default — only warn/error
+    let currentLevel = LOG_LEVELS.info;
 
     const STORAGE_KEY = 'uhApplyAudit';
     const MAX_SESSIONS = 20;
@@ -159,12 +159,12 @@
             const store = await chrome.storage.local.get([STORAGE_KEY]);
             const history = store[STORAGE_KEY] || [];
             if (history.length === 0) return;
-            const bgFetch = window.UnhireableAnswers?.bgFetch || fetch;
-            const resp = await bgFetch(`${backendUrl}/api/apply-logs`, {
+            const resp = await fetch(`${backendUrl}/api/apply-logs`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sessions: history.slice(0, 5) })
-            }, 5000);
+                body: JSON.stringify({ sessions: history.slice(0, 5) }),
+                signal: AbortSignal.timeout(5000),
+            });
             if (resp.ok) emit('info', 'audit:synced');
         } catch (e) {
             emit('debug', 'audit:sync_failed', { error: e.message });
@@ -196,8 +196,5 @@
         setLevel(level) { currentLevel = LOG_LEVELS[level] ?? LOG_LEVELS.info; },
     };
 
-    // Load verbose preference (default: quiet)
-    chrome.storage?.local?.get(['uhVerbose']).then(({ uhVerbose }) => {
-        if (uhVerbose) currentLevel = LOG_LEVELS.info;
-    }).catch(() => { });
+    emit('info', 'logger:loaded', { sessionId: session.id });
 })();

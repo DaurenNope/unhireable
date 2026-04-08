@@ -28,37 +28,6 @@
         return COVER_LETTER_PATTERNS.some(p => l.includes(p));
     }
 
-
-    function extractVisibleText(el) {
-        if (!el) return '';
-        if (!el.children.length) return el.textContent.trim();
-
-        const parts = [];
-        const walk = (node) => {
-            if (node.nodeType === 3) { // Text node
-                const t = node.textContent.trim();
-                if (t) parts.push(t);
-            } else if (node.nodeType === 1) { // Element node
-                const style = window.getComputedStyle(node);
-                if (style.display === 'none' || style.visibility === 'hidden') return;
-                if (node.classList.contains('visually-hidden') ||
-                    node.classList.contains('sr-only') ||
-                    node.getAttribute('aria-hidden') === 'true') return;
-
-                for (let child of node.childNodes) walk(child);
-            }
-        };
-        walk(el);
-
-        const uniqueParts = [];
-        for (let i = 0; i < parts.length; i++) {
-            if (i === 0 || parts[i] !== parts[i - 1]) {
-                uniqueParts.push(parts[i]);
-            }
-        }
-        return uniqueParts.join(' ').trim();
-    }
-
     // ========== LABEL EXTRACTION ==========
     function getFieldLabel(el, container) {
         const root = container || document;
@@ -66,23 +35,20 @@
         const id = el.id || el.getAttribute('for');
         if (id) {
             const label = root.querySelector(`label[for="${id}"]`);
-            if (label) return extractVisibleText(label);
+            if (label) return label.textContent.trim();
         }
         // 2. Wrapping <label>
         const parentLabel = el.closest('label');
-        if (parentLabel) return extractVisibleText(parentLabel);
-        // 3. Walk up to find label/legend — LinkedIn uses .fb-dash-form-element__label, .t-14, etc.
+        if (parentLabel) return parentLabel.textContent.trim();
+        // 3. Walk up to find label/legend
         let parent = el.parentElement;
-        for (let i = 0; i < 6 && parent; i++) {
-            const label = parent.querySelector(
-                'label, legend, [class*="label"], [class*="title"], ' +
-                '.fb-dash-form-element__label, .artdeco-form-label, .t-14, .t-16, [role="group"] span:first-child'
-            );
-            if (label && label.textContent.trim().length > 0) return extractVisibleText(label);
+        for (let i = 0; i < 5 && parent; i++) {
+            const label = parent.querySelector('label, legend, [class*="label"], [class*="title"]');
+            if (label && label.textContent.trim().length > 1) return label.textContent.trim();
             parent = parent.parentElement;
         }
-        // 4. Fallbacks (placeholder, aria-label, name, id)
-        return (el.placeholder || el.getAttribute('aria-label') || el.name || el.id || '').trim();
+        // 4. Fallbacks
+        return el.placeholder || el.name || el.getAttribute('aria-label') || '';
     }
 
     // ========== CORRUPTION DETECTION ==========
@@ -127,13 +93,11 @@
         const fields = [];
 
         // Text inputs & textareas
-        const textInputs = root.querySelectorAll(
+        root.querySelectorAll(
             'input:not([type="hidden"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="radio"]):not([type="checkbox"]), textarea'
-        );
-        textInputs.forEach((el, i) => {
-            let label = getFieldLabel(el, root);
-            if (!label) label = el.getAttribute('aria-placeholder') || el.getAttribute('data-label') || '';
-            if (!label || label.length < 1) return;
+        ).forEach((el, i) => {
+            const label = getFieldLabel(el, root);
+            if (!label || label.length < 2) return;
 
             const hasValue = el.value?.trim();
             const corrupted = profile ? isCorrupted(el, label, profile) : false;
@@ -149,26 +113,6 @@
                 required: el.required || el.getAttribute('aria-required') === 'true',
                 element: el,
                 needsCorrection: corrupted,
-            });
-        });
-
-        // Combobox (LinkedIn Email, etc.) — role="combobox", options appear after open
-        root.querySelectorAll('[role="combobox"]').forEach((el, i) => {
-            if (fields.some(f => f.element === el)) return;
-            let label = getFieldLabel(el, root);
-            if (!label) label = el.getAttribute('aria-label') || '';
-            if (!label || label.length < 1) return;
-            const inp = el.querySelector('input') || el;
-            const currentVal = (inp.value || inp.textContent || '').trim();
-            if (currentVal && currentVal.includes('@')) return; // already has email
-            fields.push({
-                id: `combobox_${i}`,
-                type: 'combobox',
-                label: label.substring(0, 200),
-                options: [],
-                currentValue: currentVal,
-                required: el.getAttribute('aria-required') === 'true',
-                element: el,
             });
         });
 
@@ -199,18 +143,19 @@
             });
         });
 
-        // Radio groups — two passes:
-        // Pass 1: recognized containers (fieldset / radiogroup / LinkedIn class)
-        const seenRadioNames = new Set();
+        // Radio groups
         root.querySelectorAll('fieldset, [role="radiogroup"], .jobs-easy-apply-form-section__grouping').forEach((fs, i) => {
             const radios = fs.querySelectorAll('input[type="radio"]');
             if (!radios.length) return;
 
+            // Skip if already selected
             if (Array.from(radios).some(r => r.checked)) return;
 
             const legend = fs.querySelector('legend, label, [class*="label"], .t-14');
             const question = legend?.textContent?.trim();
             if (!question || question.length < 3) return;
+
+            // Skip resume radio groups (handled by hook)
             if (question.toLowerCase().includes('resume') || question.toLowerCase().includes('cv')) return;
 
             const options = [];
@@ -222,7 +167,6 @@
                     || radio.value;
                 options.push(optLabel);
                 elements.push(radio);
-                if (radio.name) seenRadioNames.add(radio.name);
             }
 
             fields.push({
@@ -233,79 +177,6 @@
                 currentValue: '',
                 required: radios[0]?.required || radios[0]?.getAttribute('aria-required') === 'true',
                 elements,
-            });
-        });
-
-        // Pass 2: catch any radio groups NOT inside a recognized container
-        // (LinkedIn uses plain <div> wrappers for custom questions like "How did you hear about us")
-        const allRadios = Array.from(root.querySelectorAll('input[type="radio"]'));
-        const ungrouped = {};
-        for (const radio of allRadios) {
-            if (seenRadioNames.has(radio.name)) continue;
-            if (!radio.name) continue;
-            if (!ungrouped[radio.name]) ungrouped[radio.name] = [];
-            ungrouped[radio.name].push(radio);
-        }
-        let radioFallbackIdx = 0;
-        for (const [name, radios] of Object.entries(ungrouped)) {
-            if (Array.from(radios).some(r => r.checked)) continue;
-
-            // Find the question label — walk up to find a heading/label near these radios
-            const firstRadio = radios[0];
-            let question = '';
-            let node = firstRadio.parentElement;
-            for (let depth = 0; depth < 6 && node && node !== root; depth++) {
-                const lbl = node.querySelector('legend, [role="group"] > span, h3, h4, label:not([for]), .fb-dash-form-element__label, span[class*="label"]');
-                if (lbl) { question = lbl.textContent.trim(); break; }
-                // also check for an aria-label on the group container
-                if (node.getAttribute('aria-label')) { question = node.getAttribute('aria-label'); break; }
-                node = node.parentElement;
-            }
-            if (!question || question.length < 3) {
-                // Last resort: use the label of the first option
-                question = root.querySelector(`label[for="${firstRadio.id}"]`)?.textContent?.trim()
-                    || firstRadio.getAttribute('aria-label') || name;
-            }
-            if (question.toLowerCase().includes('resume') || question.toLowerCase().includes('cv')) continue;
-
-            const options = radios.map(r =>
-                r.closest('label')?.textContent?.trim()
-                || root.querySelector(`label[for="${r.id}"]`)?.textContent?.trim()
-                || r.value
-            );
-
-            fields.push({
-                id: `radio_fallback_${radioFallbackIdx++}`,
-                type: 'radio',
-                label: question.substring(0, 200),
-                options,
-                currentValue: '',
-                required: radios[0]?.required || radios[0]?.getAttribute('aria-required') === 'true',
-                elements: radios,
-            });
-        }
-
-        // Contenteditable (LinkedIn "Why do you want to work here?" etc.)
-        root.querySelectorAll('[contenteditable="true"]').forEach((el, i) => {
-            if (fields.some(f => f.element === el)) return;
-            const tag = (el.tagName || '').toLowerCase();
-            if (tag !== 'div' && tag !== 'p') return;
-            let label = getFieldLabel(el, root) || el.getAttribute('aria-label') || el.getAttribute('data-placeholder') || '';
-            const parent = el.closest('.fb-dash-form-element, [class*="form-element"], [class*="form-section"]');
-            if (!label && parent) {
-                const lbl = parent.querySelector('.fb-dash-form-element__label, [class*="label"], .t-14, .t-16');
-                if (lbl) label = lbl.textContent.trim();
-            }
-            if (!label || label.length < 2) return;
-            const hasValue = (el.textContent || '').trim();
-            if (hasValue) return;
-            fields.push({
-                id: `contenteditable_${i}`,
-                type: 'textarea',
-                label: label.substring(0, 200),
-                currentValue: '',
-                required: el.getAttribute('aria-required') === 'true',
-                element: el,
             });
         });
 
@@ -326,18 +197,7 @@
             });
         });
 
-        // Debug when 0 fields — log raw counts to help diagnose LinkedIn DOM changes
-        if (fields.length === 0 && root.querySelector) {
-            const rawInputs = root.querySelectorAll('input:not([type="hidden"]), select, textarea').length;
-            log.info('serialize', {
-                count: 0,
-                container: container?.className?.substring(0, 40) || 'document',
-                rawInputs,
-                hint: rawInputs > 0 ? 'inputs exist but skipped (pre-filled or no label)' : 'no inputs in container'
-            });
-        } else {
-            log.info('serialize', { count: fields.length, container: container?.className?.substring(0, 40) || 'document' });
-        }
+        log.info('serialize', { count: fields.length, container: container?.className?.substring(0, 40) || 'document' });
         return fields;
     }
 
@@ -428,10 +288,6 @@
 
                     case 'radio': {
                         const ansLower = String(answer).toLowerCase();
-                        const labelLower = (field.label || '').toLowerCase();
-                        const isEEO = /race|ethnicity|veteran|disability|gender|sexual orientation/i.test(labelLower);
-                        const declinePatterns = ['decline', 'prefer not', "don't wish", 'do not wish', 'choose not', 'i don\'t wish', 'not say', 'self-identify'];
-                        const wantsDecline = declinePatterns.some(p => ansLower.includes(p));
                         let matched = false;
 
                         for (let idx = 0; idx < (field.elements?.length || 0); idx++) {
@@ -447,66 +303,20 @@
                             }
                         }
 
-                        // For EEO + decline: try to find a decline-like option
-                        if (!matched && isEEO && wantsDecline) {
-                            const declineIdx = field.options?.findIndex((o, i) => {
-                                const oLower = String(o).toLowerCase();
-                                return declinePatterns.some(p => oLower.includes(p));
-                            });
-                            if (declineIdx >= 0 && field.elements?.[declineIdx]) {
-                                field.elements[declineIdx].click();
-                                field.elements[declineIdx].dispatchEvent(new Event('change', { bubbles: true }));
-                                filled++;
-                                matched = true;
-                                log.field('filled', { label: field.label, type: 'radio', answer: field.options[declineIdx], source: 'eeo_decline' });
-                            }
-                        }
-
-                        // Fallback: first non-disabled — but NEVER for EEO when we wanted decline (would wrongfully select demographic)
+                        // Fallback: first non-disabled
                         if (!matched && field.elements?.length > 0) {
-                            if (isEEO && wantsDecline) {
-                                log.field('skipped', { label: field.label, type: 'radio', reason: 'eeo_no_decline_option' });
+                            const first = field.elements.find(r => !r.disabled);
+                            if (first) {
+                                first.click();
+                                first.dispatchEvent(new Event('change', { bubbles: true }));
+                                filled++;
+                                const fallbackLabel = field.options[field.elements.indexOf(first)] || 'first option';
+                                log.warn('radio_fallback', { label: field.label, selected: fallbackLabel, attempted: answer });
+                                log.field('filled', { label: field.label, type: 'radio', answer: fallbackLabel, source: 'fallback' });
                             } else {
-                                const first = field.elements.find(r => !r.disabled);
-                                if (first) {
-                                    first.click();
-                                    first.dispatchEvent(new Event('change', { bubbles: true }));
-                                    filled++;
-                                    const fallbackLabel = field.options[field.elements.indexOf(first)] || 'first option';
-                                    log.warn('radio_fallback', { label: field.label, selected: fallbackLabel, attempted: answer });
-                                    log.field('filled', { label: field.label, type: 'radio', answer: fallbackLabel, source: 'fallback' });
-                                } else {
-                                    failed++;
-                                    log.field('failed', { label: field.label, type: 'radio', error: 'all_disabled' });
-                                }
+                                failed++;
+                                log.field('failed', { label: field.label, type: 'radio', error: 'all_disabled' });
                             }
-                        }
-                        break;
-                    }
-
-                    case 'combobox': {
-                        const el = field.element;
-                        el.click();
-                        el.focus();
-                        await sleep(500);
-                        const container = el.closest('.artdeco-modal, .jobs-easy-apply-modal') || document;
-                        const opts = container.querySelectorAll('[role="option"]');
-                        const ans = String(answer).toLowerCase();
-                        let option = Array.from(opts).find(o => {
-                            const t = (o.textContent || '').trim().toLowerCase();
-                            return t === ans || t.includes(ans) || ans.includes(t) || (ans.includes('@') && t.includes('@'));
-                        });
-                        if (!option && opts.length > 0) {
-                            option = Array.from(opts).find(o => !(o.textContent || '').toLowerCase().includes('select'));
-                            if (option) log.warn('combobox_fallback', { label: field.label, selected: option.textContent?.trim() });
-                        }
-                        if (option) {
-                            option.click();
-                            filled++;
-                            log.field('filled', { label: field.label, type: 'combobox', answer: option.textContent?.trim(), source });
-                        } else {
-                            failed++;
-                            log.field('failed', { label: field.label, type: 'combobox', error: 'no_option', attempted: answer });
                         }
                         break;
                     }
@@ -519,7 +329,6 @@
                             l.includes('terms') || l.includes('confirm') || l.includes('certify') ||
                             l.includes('i have read');
                         if (shouldCheck && !el.checked) {
-                            await sleep(randomDelay(400, 1000));
                             el.click();
                             el.dispatchEvent(new Event('change', { bubbles: true }));
                             filled++;
@@ -540,40 +349,14 @@
     }
 
     // ========== DEFAULT HUMAN TYPE ==========
-    // Uses the native prototype value setter so React-controlled inputs
-    // (Greenhouse, Lever, Ashby all use React) see the change correctly.
-    function setNativeValue(el, val) {
-        const tag = el.tagName.toLowerCase();
-        const proto = tag === 'textarea'
-            ? window.HTMLTextAreaElement.prototype
-            : window.HTMLInputElement.prototype;
-        const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
-        if (setter) setter.call(el, val);
-        else el.value = val;
-    }
-
     async function defaultHumanType(input, value) {
-        const isContentEditable = input.isContentEditable || input.getAttribute('contenteditable') === 'true';
         input.focus();
+        input.value = '';
         input.dispatchEvent(new Event('focus', { bubbles: true }));
-
-        if (isContentEditable) {
-            input.textContent = '';
+        for (const char of value) {
+            input.value += char;
             input.dispatchEvent(new Event('input', { bubbles: true }));
-            for (const char of value) {
-                input.textContent = (input.textContent || '') + char;
-                input.dispatchEvent(new InputEvent('input', { bubbles: true, data: char }));
-                await sleep(rand(10, 30));
-            }
-        } else {
-            setNativeValue(input, '');
-            input.dispatchEvent(new Event('input', { bubbles: true }));
-            for (const char of value) {
-                const cur = input.value + char;
-                setNativeValue(input, cur);
-                input.dispatchEvent(new InputEvent('input', { bubbles: true, data: char }));
-                await sleep(rand(10, 30));
-            }
+            await sleep(rand(10, 30));
         }
         input.dispatchEvent(new Event('change', { bubbles: true }));
         input.dispatchEvent(new Event('blur', { bubbles: true }));
@@ -581,7 +364,7 @@
 
     // ========== COVER LETTER GENERATOR ==========
     // Shared between LinkedIn and ATS. Backend API → template fallback.
-    const API_BASE = 'http://localhost:3030';
+    const API_BASE = 'http://localhost:3003';
     const coverLetterCache = {};
 
     async function generateCoverLetter(job, profile) {
@@ -600,30 +383,27 @@
         const company = job?.company || 'your company';
         const title = job?.title || 'this position';
 
-        // Try backend API first (skip if backend down — use template immediately)
-        const backendOk = SA?.checkBackendAvailable ? await SA.checkBackendAvailable() : true;
-        if (backendOk) {
-            try {
-                const bgFetch = window.UnhireableAnswers?.bgFetch || fetch;
-                const resp = await bgFetch(`${API_BASE}/api/generate-cover-letter`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        job: { title, company },
-                        profile: { name, skills: topSkills, summary: profile?.summary },
-                    })
-                }, 2000);
-                if (resp.ok) {
-                    const data = await resp.json();
-                    if (data?.coverLetter) {
-                        log.info('cover_letter:api', { company, length: data.coverLetter.length });
-                        coverLetterCache[cacheKey] = data.coverLetter;
-                        return data.coverLetter;
-                    }
+        // Try backend API first
+        try {
+            const resp = await fetch(`${API_BASE}/api/generate-cover-letter`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    job: { title, company },
+                    profile: { name, skills: topSkills, summary: profile?.summary },
+                }),
+                signal: AbortSignal.timeout(5000),
+            });
+            if (resp.ok) {
+                const data = await resp.json();
+                if (data.coverLetter) {
+                    log.info('cover_letter:api', { company, length: data.coverLetter.length });
+                    coverLetterCache[cacheKey] = data.coverLetter;
+                    return data.coverLetter;
                 }
-            } catch (e) {
-                log.debug('cover_letter:api_failed', { error: e.message });
             }
+        } catch (e) {
+            log.debug('cover_letter:api_failed', { error: e.message });
         }
 
         // Fallback: template
@@ -718,148 +498,6 @@ ${name}`;
         return true;
     }
 
-    // Play a short alert sound when user input is needed
-    function playAlertSound() {
-        try {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.frequency.value = 880;
-            osc.type = 'sine';
-            gain.gain.setValueAtTime(0.3, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-            osc.start(ctx.currentTime);
-            osc.stop(ctx.currentTime + 0.3);
-        } catch (_) { }
-    }
-
-    // ========== ASK USER FOR ANSWER (unknown field modal) ==========
-    // Shows an in-page modal when we have no answer. User can provide one (saved for future) or skip.
-    function askUserForAnswer(field) {
-        return new Promise((resolve) => {
-            // Browser notification + sound — works when tab is in background
-            try {
-                chrome.runtime.sendMessage({
-                    action: 'showUnknownFieldNotification',
-                    field: { label: field.label, type: field.type },
-                }).catch(() => { });
-            } catch (_) { }
-            playAlertSound();
-
-            const overlay = document.createElement('div');
-            overlay.id = 'unhireable-ask-modal-overlay';
-            overlay.style.cssText = `
-                position: fixed; inset: 0; z-index: 2147483646;
-                background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            `;
-
-            const modal = document.createElement('div');
-            modal.style.cssText = `
-                background: #fff; border-radius: 12px; padding: 24px; max-width: 480px; width: 90%;
-                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            `;
-
-            const label = field.label || 'Unknown question';
-            const isTextarea = field.type === 'textarea';
-
-            const h3 = document.createElement('h3');
-            h3.style.cssText = 'margin: 0 0 12px 0; font-size: 16px; color: #333;';
-            h3.textContent = 'We need your answer';
-
-            const p = document.createElement('p');
-            p.style.cssText = 'margin: 0 0 16px 0; font-size: 14px; color: #666;';
-            p.textContent = label;
-
-            const inputElement = document.createElement(isTextarea ? 'textarea' : 'input');
-            inputElement.id = 'unhireable-ask-input';
-            inputElement.style.cssText = `width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; box-sizing: border-box; min-height: ${isTextarea ? '100px' : 'auto'};`;
-            inputElement.placeholder = 'Type your answer (saved for future applications)...';
-            if (!isTextarea) inputElement.type = 'text';
-
-            const btnContainer = document.createElement('div');
-            btnContainer.style.cssText = 'display: flex; gap: 12px; margin-top: 16px; justify-content: flex-end;';
-
-            const skipBtn = document.createElement('button');
-            skipBtn.id = 'unhireable-ask-skip';
-            skipBtn.style.cssText = 'padding: 10px 20px; border: 1px solid #ccc; background: #f5f5f5; border-radius: 8px; cursor: pointer; font-size: 14px;';
-            skipBtn.textContent = 'Skip';
-
-            const saveBtn = document.createElement('button');
-            saveBtn.id = 'unhireable-ask-save';
-            saveBtn.style.cssText = 'padding: 10px 20px; border: none; background: #0a66c2; color: #fff; border-radius: 8px; cursor: pointer; font-size: 14px;';
-            saveBtn.textContent = 'Save & Continue';
-
-            btnContainer.appendChild(skipBtn);
-            btnContainer.appendChild(saveBtn);
-
-            modal.appendChild(h3);
-            modal.appendChild(p);
-
-            // If field has options (radio/select), show them as buttons for easier selection
-            if (field.options && field.options.length > 0) {
-                const optWrap = document.createElement('div');
-                optWrap.style.cssText = 'display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px 0; max-height: 180px; overflow-y: auto; padding: 4px;';
-                field.options.forEach(opt => {
-                    const b = document.createElement('button');
-                    b.style.cssText = 'padding: 6px 12px; border: 1px solid #0a66c2; background: #fff; color: #0a66c2; border-radius: 16px; cursor: pointer; font-size: 13px; transition: all 0.2s;';
-                    b.textContent = opt;
-                    b.onmouseover = () => { b.style.background = '#f0f7fe'; };
-                    b.onmouseout = () => { b.style.background = '#fff'; };
-                    b.onclick = () => {
-                        inputElement.value = opt;
-                        saveBtn.click();
-                    };
-                    optWrap.appendChild(b);
-                });
-                modal.appendChild(optWrap);
-            }
-
-            modal.appendChild(inputElement);
-            modal.appendChild(btnContainer);
-
-            overlay.appendChild(modal);
-            document.body.appendChild(overlay);
-
-            const input = inputElement; // reuse already created element
-
-            const cleanup = () => {
-                overlay.remove();
-            };
-
-            const done = (result) => {
-                cleanup();
-                resolve(result);
-            };
-
-            saveBtn.addEventListener('click', () => {
-                const val = input.value?.trim();
-                if (val) {
-                    log.info('askUser:saved', { label: field.label, length: val.length });
-                    done({ answer: val });
-                } else {
-                    done({ skip: true });
-                }
-            });
-
-            skipBtn.addEventListener('click', () => {
-                log.info('askUser:skipped', { label: field.label });
-                done({ skip: true });
-            });
-
-            input.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' && !isTextarea) {
-                    e.preventDefault();
-                    saveBtn.click();
-                }
-            });
-
-            input.focus();
-        });
-    }
-
     // ========== BATCH FILL — THE PIPELINE ==========
     async function batchFill(container, profile, job, hooks) {
         const root = container || document;
@@ -886,32 +524,28 @@ ${name}`;
         const saFields = batchFields.map(({ element, elements, needsCorrection, ...rest }) => rest);
         const answers = SA ? await SA.batchGetAnswers(saFields, profile, job) : {};
 
-        // 5. Unknown-field handling: ask user only. No fallbacks.
-        // When pattern/cache/LLM all fail: prompt user. If user skips, field stays empty.
+        // 5. Fallback layer — required fields with no answer
         for (const field of batchFields) {
             if (answers[field.id]) continue;
+            if (!field.required) continue;
 
-            if (hooks?.onUnknownField) {
-                try {
-                    const result = await hooks.onUnknownField(field, profile);
-                    if (result?.answer) {
-                        answers[field.id] = { answer: result.answer, source: 'user' };
-                        if (SA?.saveAnswerToCache) {
-                            await SA.saveAnswerToCache(field.label, result.answer, {
-                                fieldType: field.type,
-                                source: 'user',
-                                confidence: 'high',
-                            });
-                            SA.syncToBackend?.().catch(() => { });
-                        }
-                    } else {
-                        log.field('skipped', { label: field.label, type: field.type, reason: 'user_skipped' });
-                    }
-                } catch (err) {
-                    log.warn('onUnknownField_error', { label: field.label, error: err.message });
-                }
-            } else {
-                log.field('skipped', { label: field.label, type: field.type, reason: 'no_answer_no_hook' });
+            let fallback = null;
+            if (field.type === 'select' && field.options?.length > 0) {
+                fallback = field.options[0]; // first valid option
+            } else if (field.type === 'radio' && field.options?.length > 0) {
+                fallback = field.options[0];
+            } else if (field.type === 'text') {
+                const l = field.label.toLowerCase();
+                const info = profile?.personal_info || {};
+                if (l.includes('experience') || l.includes('years')) fallback = String(info.years_experience || '3');
+                else if (l.includes('name')) fallback = info.name || '';
+                else if (l.includes('email')) fallback = info.email || '';
+                else if (l.includes('phone')) fallback = info.phone || '';
+            }
+
+            if (fallback) {
+                answers[field.id] = { answer: fallback, source: 'fallback' };
+                log.warn('fallback_used', { label: field.label, type: field.type, value: fallback });
             }
         }
 
@@ -1037,10 +671,7 @@ ${name}`;
             z-index: 99999; box-shadow: 0 4px 20px rgba(99,102,241,0.5);
             cursor: pointer; display: flex; align-items: center; gap: 8px;
         `;
-        indicator.textContent = '🚀 ';
-        const span = document.createElement('span');
-        span.textContent = 'Unhireable Ready';
-        indicator.appendChild(span);
+        indicator.innerHTML = '🚀 <span>Unhireable Ready</span>';
         indicator.onclick = () => indicator.remove();
         document.body.appendChild(indicator);
         setTimeout(() => {
@@ -1061,7 +692,6 @@ ${name}`;
         generateCoverLetter,
         isCoverLetterField,
         getFieldLabel,
-        askUserForAnswer,
     };
 
     log.info('filler:loaded', { version: 'universal-v1' });

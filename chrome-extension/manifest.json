@@ -8,23 +8,14 @@
         "storage",
         "scripting",
         "tabs",
-        "alarms",
-        "notifications"
+        "alarms"
     ],
     "host_permissions": [
-        "http://localhost:11434/*",
-        "http://127.0.0.1:11434/*",
-        "http://*:11434/*",
-        "http://localhost:3030/*",
         "https://jobs.ashbyhq.com/*",
         "https://*.ashbyhq.com/*",
         "https://boards.greenhouse.io/*",
         "https://jobs.lever.co/*",
-        "https://www.linkedin.com/jobs/*",
-        "https://generativelanguage.googleapis.com/*",
-        "https://api.mistral.ai/*",
-        "https://api.groq.com/*",
-        "https://*.workers.dev/*"
+        "https://www.linkedin.com/jobs/*"
     ],
     "action": {
         "default_popup": "popup.html",
@@ -63,17 +54,24 @@
             ],
             "run_at": "document_idle",
             "all_frames": true
+        },
+        {
+            "matches": [
+                "https://www.linkedin.com/jobs/*"
+            ],
+            "js": [
+                "content-scripts/logger.js",
+                "content-scripts/smart-answers.js",
+                "content-scripts/universal-filler.js",
+                "content-scripts/linkedin.js"
+            ],
+            "run_at": "document_idle",
+            "all_frames": true
         }
     ],
     "icons": {
         "16": "icons/icon16.png",
         "48": "icons/icon48.png",
         "128": "icons/icon128.png"
-    },
-    "web_accessible_resources": [
-        {
-            "resources": ["config/answer-patterns.json"],
-            "matches": ["<all_urls>"]
-        }
-    ]
+    }
 }
