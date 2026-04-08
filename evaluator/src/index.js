@@ -13,6 +13,10 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import YAML from 'js-yaml';
+import dotenv from 'dotenv';
+
+// Load .env file
+dotenv.config({ path: join(dirname(fileURLToPath(import.meta.url)), '..', '..', '.env') });
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = join(__dirname, '..', '..', 'data');
@@ -75,7 +79,20 @@ function loadConfig() {
     process.exit(1);
   }
   
-  return YAML.load(readFileSync(options.config, 'utf8'));
+  const config = YAML.load(readFileSync(options.config, 'utf8'));
+  
+  // Load API keys from environment variables (override config file)
+  if (process.env.GEMINI_API_KEY) {
+    config.ai.api_key = process.env.GEMINI_API_KEY;
+  }
+  if (process.env.OPENAI_API_KEY) {
+    config.ai.api_key = process.env.OPENAI_API_KEY;
+  }
+  if (process.env.ANTHROPIC_API_KEY) {
+    config.ai.api_key = process.env.ANTHROPIC_API_KEY;
+  }
+  
+  return config;
 }
 
 async function evaluateJob(job, config) {

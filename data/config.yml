@@ -1,7 +1,7 @@
 ai:
   # Options: openai, anthropic, gemini, ollama
   provider: gemini
-  api_key: AIzaSyCceizQ1a5z2OvuIGYzjaCcQfl1N8z_dCk
+  api_key: null  # Loaded from .env file (GEMINI_API_KEY)
   model: gemini-2.5-flash  # You have 1/5 RPM, 2.35K/250K TPM limits
 
 cv:
@@ -41,3 +41,6 @@ evaluation:
     - "B"
     - "C"
     - "D"
+
+# API Keys (put these in .env file):
+# GEMINI_API_KEY=your_key_here
