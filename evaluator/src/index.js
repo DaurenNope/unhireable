@@ -222,7 +222,7 @@ async function callAnthropic(prompt, config) {
 
 async function callGemini(prompt, config) {
   const apiKey = config.api_key;
-  const model = config.model || 'gemini-1.5-flash';
+  const model = config.model || 'gemini-2.5-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
   
   const response = await fetch(url, {
@@ -312,6 +312,12 @@ async function main() {
     
     const color = result.score >= 4 ? 'green' : result.score >= 3 ? 'yellow' : 'red';
     console.log(chalk[color](`Score: ${result.score} - ${result.recommendation}`));
+    
+    // Rate limit: 5 min delay between Gemini requests (1/5 RPM limit)
+    if (config.ai.provider === 'gemini' && i < limit - 1) {
+      console.log(chalk.gray('  ⏳ Waiting 5 min for rate limit...'));
+      await new Promise(r => setTimeout(r, 5 * 60 * 1000));
+    }
   }
   
   // Filter to good matches only
