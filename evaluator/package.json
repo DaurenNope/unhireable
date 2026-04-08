@@ -1,0 +1,18 @@
+{
+  "name": "unhireable-evaluator",
+  "version": "1.0.0",
+  "description": "Job evaluator for Unhireable - A-F scoring with any AI provider",
+  "type": "module",
+  "scripts": {
+    "evaluate": "node src/index.js",
+    "test": "node src/test.js"
+  },
+  "dependencies": {
+    "commander": "^11.0.0",
+    "chalk": "^5.3.0",
+    "js-yaml": "^4.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
