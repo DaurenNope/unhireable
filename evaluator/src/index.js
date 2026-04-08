@@ -166,6 +166,8 @@ async function callAI(prompt, aiConfig) {
       return await callOpenAI(prompt, aiConfig);
     case 'anthropic':
       return await callAnthropic(prompt, aiConfig);
+    case 'gemini':
+      return await callGemini(prompt, aiConfig);
     case 'ollama':
       return await callOllama(prompt, aiConfig);
     default:
@@ -216,6 +218,28 @@ async function callAnthropic(prompt, config) {
   
   const data = await response.json();
   return data.content[0].text;
+}
+
+async function callGemini(prompt, config) {
+  const apiKey = config.api_key;
+  const model = config.model || 'gemini-1.5-flash';
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.3, maxOutputTokens: 2000 }
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error(`Gemini error: ${response.status}`);
+  }
+  
+  const data = await response.json();
+  return data.candidates[0].content.parts[0].text;
 }
 
 async function callOllama(prompt, config) {

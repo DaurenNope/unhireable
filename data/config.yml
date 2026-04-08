@@ -1,0 +1,43 @@
+ai:
+  # Options: openai, anthropic, gemini, ollama
+  provider: gemini
+  api_key: YOUR_GEMINI_API_KEY_HERE  # Get free key at makersuite.google.com
+  model: gemini-1.5-flash  # or gemini-1.5-pro for better quality
+
+cv:
+  name: "Demo User"
+  title: "Senior Software Engineer"
+  summary: "Experienced full-stack developer with 5+ years building scalable web applications. Expert in React, Node.js, and cloud infrastructure."
+  skills:
+    - React
+    - TypeScript
+    - Node.js
+    - Python
+    - AWS
+    - PostgreSQL
+  experience_years: 5
+  location: "Remote"
+  salary_target:
+    min: 150000
+    max: 220000
+    currency: "USD"
+
+preferences:
+  remote_only: true
+  avoid_keywords:
+    - "Java"
+    - "PHP"
+    - "WordPress"
+  target_roles:
+    - "Senior Engineer"
+    - "Staff Engineer"
+    - "Tech Lead"
+    - "Principal Engineer"
+
+evaluation:
+  min_score: 3.0
+  blocks:
+    - "A"
+    - "B"
+    - "C"
+    - "D"
