@@ -270,6 +270,16 @@
             style="width: 100%; background: linear-gradient(135deg, #22c55e, #16a34a);">💾 Save Profile</button>
     </div>
 
+    <!-- Resume Upload -->
+    <div id="resumeUploadSection" style="margin-bottom: 12px;">
+        <input type="file" id="resumeFileInput" accept=".pdf,.doc,.docx" style="display: none;">
+        <button id="uploadResumeBtn" class="btn btn-secondary" style="font-size: 12px;">
+            <span>📄</span>
+            <span>Upload Resume (PDF/DOCX)</span>
+        </button>
+        <div id="resumeUploadStatus" style="font-size: 11px; color: #a1a1aa; margin-top: 4px; display: none;"></div>
+    </div>
+
     <button id="fillBtn" class="btn btn-primary" disabled>
         <span>⚡</span>
         <span>Auto-Fill Application</span>
@@ -470,10 +480,50 @@
         <div id="cacheList" style="font-size: 11px;"></div>
     </div>
 
+    <!-- Application Stats Dashboard -->
+    <div id="statsDashboard" class="status-card" style="margin-top: 12px; display: none;">
+        <div class="status-header">
+            <span>📊</span>
+            <span class="status-text">Application Stats</span>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
+            <div style="text-align: center; background: rgba(99, 102, 241, 0.1); border-radius: 8px; padding: 12px;">
+                <div id="statTotalApplied" style="font-size: 24px; font-weight: 700; color: #6366f1;">0</div>
+                <div style="font-size: 11px; color: #a1a1aa;">Total Applied</div>
+            </div>
+            <div style="text-align: center; background: rgba(34, 197, 94, 0.1); border-radius: 8px; padding: 12px;">
+                <div id="statSuccessRate" style="font-size: 24px; font-weight: 700; color: #22c55e;">0%</div>
+                <div style="font-size: 11px; color: #a1a1aa;">Success Rate</div>
+            </div>
+        </div>
+
+        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1);">
+            <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px;">
+                <span style="color: #a1a1aa;">This Week:</span>
+                <span id="statThisWeek" style="font-weight: 500;">0</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px;">
+                <span style="color: #a1a1aa;">Today:</span>
+                <span id="statToday" style="font-weight: 500;">0</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 12px;">
+                <span style="color: #a1a1aa;">Last Applied:</span>
+                <span id="statLastApplied" style="font-weight: 500;">Never</span>
+            </div>
+        </div>
+
+        <button id="viewHistoryBtn" class="btn btn-secondary" style="margin-top: 12px; font-size: 12px; padding: 8px;">
+            <span>📋</span>
+            <span>View Application History</span>
+        </button>
+    </div>
+
     <div class="footer">
         Synced with Unhireable App
     </div>
 
+    <script src="content-scripts/resume-parser.js"></script>
     <script src="popup.js"></script>
 </body>
 

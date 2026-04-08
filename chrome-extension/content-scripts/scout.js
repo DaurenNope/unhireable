@@ -72,7 +72,16 @@
     // Listen for manual triggers from background
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         if (request.action === 'startScout') {
-            runScout().then(() => sendResponse({ success: true }));
+            console.log('[Unhireable Scout] Received startScout command');
+            runScout()
+                .then(() => {
+                    console.log('[Unhireable Scout] Scout completed successfully');
+                    sendResponse({ success: true });
+                })
+                .catch((err) => {
+                    console.error('[Unhireable Scout] Scout failed:', err);
+                    sendResponse({ success: false, error: err.message });
+                });
             return true;
         }
     });

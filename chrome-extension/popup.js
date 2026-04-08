@@ -34,6 +34,7 @@ async function init() {
     await loadProfile();
     await checkCurrentPage();
     await loadSettings();
+    await loadApplicationStats();
     setupEventListeners();
 }
 
@@ -782,6 +783,72 @@ function setupEventListeners() {
                 alert('Failed to import: ' + err.message);
             }
             importCacheFile.value = ''; // Reset
+        });
+    }
+
+    // Resume upload handler
+    const uploadResumeBtn = document.getElementById('uploadResumeBtn');
+    const resumeFileInput = document.getElementById('resumeFileInput');
+    const resumeUploadStatus = document.getElementById('resumeUploadStatus');
+
+    if (uploadResumeBtn && resumeFileInput) {
+        uploadResumeBtn.addEventListener('click', () => resumeFileInput.click());
+        
+        resumeFileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            resumeUploadStatus.style.display = 'block';
+            resumeUploadStatus.textContent = '📄 Parsing resume...';
+            uploadResumeBtn.disabled = true;
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                let text;
+
+                if (file.name.toLowerCase().endsWith('.pdf')) {
+                    text = await window.UnhireableResumeParser.extractFromPDF(arrayBuffer);
+                } else if (file.name.toLowerCase().match(/\.(docx?)$/)) {
+                    text = await window.UnhireableResumeParser.extractFromDOCX(arrayBuffer);
+                } else {
+                    throw new Error('Unsupported file type. Please upload PDF or DOCX.');
+                }
+
+                const profile = window.UnhireableResumeParser.parseResume(text);
+                
+                // Save to storage
+                await chrome.storage.local.set({ userProfile: profile });
+                userProfile = profile;
+                
+                // Update UI
+                displayProfile();
+                fillBtn.disabled = false;
+                
+                // Populate editor fields
+                if (profile.personal_info) {
+                    document.getElementById('inputName').value = profile.personal_info.name || '';
+                    document.getElementById('inputEmail').value = profile.personal_info.email || '';
+                    document.getElementById('inputPhone').value = profile.personal_info.phone || '';
+                    document.getElementById('inputLocation').value = profile.personal_info.location || '';
+                    document.getElementById('inputSkills').value = Array.isArray(profile.skills) ? profile.skills.join(', ') : '';
+                    document.getElementById('inputSummary').value = profile.summary || '';
+                }
+
+                resumeUploadStatus.textContent = `✅ Parsed: ${profile.personal_info?.name || 'Profile'} - ${profile.skills?.length || 0} skills found`;
+                resumeUploadStatus.style.color = '#22c55e';
+                
+                successMessage.textContent = `✅ Resume uploaded: ${profile.personal_info?.name || 'Profile'}`;
+                successMessage.classList.add('show');
+                setTimeout(() => successMessage.classList.remove('show'), 3000);
+
+            } catch (err) {
+                console.error('Resume parse error:', err);
+                resumeUploadStatus.textContent = `❌ ${err.message}`;
+                resumeUploadStatus.style.color = '#ef4444';
+            } finally {
+                uploadResumeBtn.disabled = false;
+                resumeFileInput.value = ''; // Reset
+            }
         });
     }
 }

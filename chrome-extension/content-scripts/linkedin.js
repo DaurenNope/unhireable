@@ -1742,6 +1742,49 @@
                 }
             })();
             return true;
+        } else if (msg.action === 'applyFromQueue') {
+            // Apply to a specific job from the dashboard queue
+            (async () => {
+                try {
+                    const job = msg.job;
+                    if (!job || !job.url) {
+                        sendResponse({ success: false, error: 'Invalid job data' });
+                        return;
+                    }
+
+                    console.log('[Unhireable] 📋 Applying from queue:', job.title, '@', job.company);
+                    showNotification(`Applying: ${job.company}...`);
+
+                    // Check if we're on the right page
+                    const currentUrl = window.location.href;
+                    if (!currentUrl.includes('linkedin.com/jobs')) {
+                        console.log('[Unhireable] Not on LinkedIn jobs page');
+                        sendResponse({ success: false, error: 'Not on LinkedIn jobs page' });
+                        return;
+                    }
+
+                    // Use existing applyToJob function
+                    const result = await applyToJob({
+                        title: job.title,
+                        company: job.company,
+                        location: job.location,
+                        url: job.url,
+                        hasEasyApply: true // Assume Easy Apply for now
+                    });
+
+                    if (result.success) {
+                        showNotification(`✅ Applied to ${job.company}!`);
+                        sendResponse({ success: true });
+                    } else {
+                        showNotification(`⚠️ ${result.error || 'Needs manual input'}`);
+                        sendResponse({ success: false, error: result.error || 'Manual needed' });
+                    }
+                } catch (err) {
+                    console.error('[Unhireable] Queue apply error:', err);
+                    sendResponse({ success: false, error: err.message });
+                }
+            })();
+            return true;
         } else if (msg.action === 'getUnknownFields') {
             // Get the backlog of unknown fields
             (async () => {
