@@ -1,12 +1,12 @@
 /**
- * Unhireable Dashboard - Job Review and Queue Management
+ * Unhireable Dashboard - Minimalist Job Review
  */
 
 let allJobs = [];
 let queue = new Set();
-let currentFilter = { minScore: 4, recommendation: 'APPLY', showQueued: false };
+let expandedJobs = new Set();
 
-// Load jobs from JSON file
+// Load jobs
 function loadJobs() {
     document.getElementById('fileInput').click();
 }
@@ -21,104 +21,106 @@ document.getElementById('fileInput').addEventListener('change', (e) => {
             const data = JSON.parse(event.target.result);
             allJobs = data.jobs || [];
             updateStats();
-            filterJobs();
-            showNotification(`Loaded ${allJobs.length} jobs`);
+            renderJobs();
+            toast(`Imported ${allJobs.length} jobs`);
         } catch (err) {
-            alert('Failed to parse JSON: ' + err.message);
+            alert('Failed to parse JSON');
         }
     };
     reader.readAsText(file);
 });
 
-// Update statistics
+// Stats
 function updateStats() {
-    const goodMatches = allJobs.filter(j => j.score >= 4);
-    const avgScore = allJobs.length > 0 
-        ? (allJobs.reduce((sum, j) => sum + j.score, 0) / allJobs.length).toFixed(1)
-        : 0;
-
-    document.getElementById('statTotal').textContent = allJobs.length;
-    document.getElementById('statGood').textContent = goodMatches.length;
-    document.getElementById('statQueued').textContent = queue.size;
-    document.getElementById('statAvg').textContent = avgScore;
-}
-
-// Filter and display jobs
-function filterJobs() {
-    currentFilter = {
-        minScore: parseFloat(document.getElementById('minScore').value),
-        recommendation: document.getElementById('recFilter').value,
-        showQueued: document.getElementById('showQueued').checked
-    };
-
-    let filtered = allJobs.filter(job => {
-        if (job.score < currentFilter.minScore) return false;
-        if (currentFilter.recommendation !== 'all' && job.recommendation !== currentFilter.recommendation) return false;
-        if (currentFilter.showQueued && !queue.has(job.url)) return false;
-        return true;
-    });
-
-    // Sort by score descending
-    filtered.sort((a, b) => b.score - a.score);
-
-    displayJobs(filtered);
-}
-
-// Display job cards
-function displayJobs(jobs) {
-    const container = document.getElementById('jobsContainer');
+    const good = allJobs.filter(j => j.score >= 4).length;
+    const avg = allJobs.length ? (allJobs.reduce((s, j) => s + j.score, 0) / allJobs.length).toFixed(1) : '0.0';
     
-    if (jobs.length === 0) {
+    document.getElementById('statTotal').textContent = allJobs.length;
+    document.getElementById('statGood').textContent = good;
+    document.getElementById('statQueued').textContent = queue.size;
+    document.getElementById('statAvg').textContent = avg;
+    document.getElementById('queueCount').textContent = queue.size;
+    document.getElementById('queuePanel').style.display = queue.size ? 'block' : 'none';
+}
+
+// Filter
+function filterJobs() {
+    renderJobs();
+}
+
+function getFilteredJobs() {
+    const minScore = parseFloat(document.getElementById('minScore').value);
+    const rec = document.getElementById('recFilter').value;
+    const queuedOnly = document.getElementById('showQueued').checked;
+    
+    return allJobs.filter(job => {
+        if (job.score < minScore) return false;
+        if (rec !== 'all' && job.recommendation !== rec) return false;
+        if (queuedOnly && !queue.has(job.url)) return false;
+        return true;
+    }).sort((a, b) => b.score - a.score);
+}
+
+// Render
+function renderJobs() {
+    const container = document.getElementById('jobsContainer');
+    const jobs = getFilteredJobs();
+    
+    if (!jobs.length) {
         container.innerHTML = `
-            <div class="empty-state">
-                <h3>No jobs match filters</h3>
-                <p>Try adjusting your filters or load more jobs.</p>
+            <div class="empty">
+                <div class="empty-icon">📋</div>
+                <h3>No jobs found</h3>
+                <p>Try adjusting your filters or import new jobs.</p>
             </div>
         `;
         return;
     }
-
+    
     container.innerHTML = jobs.map(job => {
-        const scoreClass = job.score >= 4 ? 'score-high' : job.score >= 3 ? 'score-medium' : 'score-low';
         const isQueued = queue.has(job.url);
+        const isExpanded = expandedJobs.has(job.url);
+        const scoreClass = job.score >= 4 ? 'score-high' : job.score >= 3 ? 'score-medium' : 'score-low';
+        const recLabel = job.recommendation === 'APPLY' ? 'Apply' : job.recommendation === 'CONSIDER' ? 'Consider' : 'Skip';
         
         return `
-            <div class="job-card ${isQueued ? 'queued' : ''}" data-url="${job.url}">
+            <div class="job ${isQueued ? 'queued' : ''} ${isExpanded ? 'expanded' : ''}" data-url="${escapeHtml(job.url)}">
                 <div class="job-main">
                     <div class="job-header">
-                        <div>
-                            <div class="job-title">${escapeHtml(job.title)}</div>
-                            <div class="job-company">${escapeHtml(job.company)}</div>
-                            <div class="job-location">${escapeHtml(job.location)}</div>
+                        <h3 class="job-title">${escapeHtml(job.title)}</h3>
+                    </div>
+                    <div class="job-meta">
+                        <span>${escapeHtml(job.company)}</span>
+                        <span>${escapeHtml(job.location)}</span>
+                    </div>
+                    <p class="job-summary">${escapeHtml(job.summary || '')}</p>
+                    <div class="job-tags">
+                        ${(job.cv_highlights || []).slice(0, 4).map(h => `<span class="tag">${escapeHtml(h)}</span>`).join('')}
+                        ${isQueued ? '<span class="tag tag-green">In Queue</span>' : ''}
+                    </div>
+                    
+                    ${isExpanded ? `
+                        <div class="details">
+                            <div class="blocks">
+                                ${renderBlocks(job.blocks)}
+                            </div>
+                            <ul class="prep-list">
+                                ${(job.interview_prep || []).map(p => `<li>${escapeHtml(p)}</li>`).join('')}
+                            </ul>
                         </div>
-                    </div>
-                    <div class="job-summary" style="margin-top: 8px; font-size: 13px; color: #a1a1aa;">
-                        ${escapeHtml(job.summary || 'No summary available')}
-                    </div>
-                    <div class="job-details">
-                        <div class="blocks-grid">
-                            ${renderBlocks(job.blocks)}
-                        </div>
-                        <p><strong>CV Highlights:</strong> ${(job.cv_highlights || []).join(', ')}</p>
-                        <p><strong>Interview Prep:</strong></p>
-                        <ul style="margin-left: 20px; margin-top: 4px;">
-                            ${(job.interview_prep || []).map(p => `<li>${escapeHtml(p)}</li>`).join('')}
-                        </ul>
-                        <p style="margin-top: 12px;">
-                            <a href="${job.url}" target="_blank" style="color: #6366f1;">View Job Posting →</a>
-                        </p>
-                    </div>
+                    ` : ''}
                 </div>
+                
                 <div class="job-actions">
-                    <div class="job-score">
-                        <div class="score-badge ${scoreClass}">${job.score.toFixed(1)}</div>
+                    <div class="score">
+                        <div class="score-value ${scoreClass}">${job.score.toFixed(1)}</div>
+                        <div class="score-label">${recLabel}</div>
                     </div>
-                    <button class="btn ${isQueued ? 'btn-secondary' : 'btn-primary'} btn-small" 
-                            onclick="toggleQueue('${job.url}')">
-                        ${isQueued ? '✓ Queued' : '+ Add to Queue'}
+                    <button class="btn ${isQueued ? 'btn-ghost' : 'btn-primary'} btn-small" onclick="toggleQueue('${escapeHtml(job.url)}')">
+                        ${isQueued ? 'Remove' : 'Add to Queue'}
                     </button>
-                    <button class="btn btn-secondary btn-small" onclick="toggleDetails(this)">
-                        Details
+                    <button class="btn btn-ghost btn-small" onclick="toggleExpand('${escapeHtml(job.url)}')">
+                        ${isExpanded ? 'Less' : 'More'}
                     </button>
                 </div>
             </div>
@@ -128,150 +130,77 @@ function displayJobs(jobs) {
 
 function renderBlocks(blocks) {
     if (!blocks) return '';
-    
-    const blockNames = {
-        'A': 'Role Fit',
-        'B': 'Skills',
-        'C': 'Logistics',
-        'D': 'Company'
-    };
-    
-    return Object.entries(blocks).map(([key, data]) => `
-        <div class="block-item">
-            <div class="block-label">${blockNames[key] || key}</div>
-            <div class="block-score" style="color: ${data.score >= 4 ? '#22c55e' : data.score >= 3 ? '#eab308' : '#ef4444'}">
-                ${data.score}/5
-            </div>
+    const names = { A: 'Role', B: 'Skills', C: 'Logistics', D: 'Company' };
+    return Object.entries(blocks).map(([k, v]) => `
+        <div class="block">
+            <div class="block-name">${names[k]}</div>
+            <div class="block-score" style="color: ${v.score >= 4 ? 'var(--success)' : v.score >= 3 ? 'var(--warning)' : 'var(--danger)'}">${v.score}</div>
         </div>
     `).join('');
 }
 
-// Toggle job details
-function toggleDetails(btn) {
-    const card = btn.closest('.job-card');
-    card.classList.toggle('expanded');
-    btn.textContent = card.classList.contains('expanded') ? 'Hide' : 'Details';
-}
-
-// Toggle queue
 function toggleQueue(url) {
-    if (queue.has(url)) {
-        queue.delete(url);
-    } else {
-        queue.add(url);
-    }
-    
+    if (queue.has(url)) queue.delete(url);
+    else queue.add(url);
     updateStats();
-    filterJobs(); // Re-render to show updated state
-    updateExportPanel();
-    
-    showNotification(queue.has(url) ? 'Added to queue' : 'Removed from queue');
+    renderJobs();
+    toast(queue.has(url) ? 'Added to queue' : 'Removed from queue');
 }
 
-// Update export panel
-function updateExportPanel() {
-    const panel = document.getElementById('exportPanel');
-    const count = document.getElementById('queueCount');
-    
-    if (queue.size > 0) {
-        panel.style.display = 'block';
-        count.textContent = queue.size;
-    } else {
-        panel.style.display = 'none';
-    }
+function toggleExpand(url) {
+    if (expandedJobs.has(url)) expandedJobs.delete(url);
+    else expandedJobs.add(url);
+    renderJobs();
 }
 
-// Export queue as JSON for extension
 function exportQueue() {
-    if (queue.size === 0) {
-        alert('Queue is empty. Add some jobs first!');
+    if (!queue.size) {
+        alert('Queue is empty');
         return;
     }
-
-    const queueJobs = allJobs.filter(job => queue.has(job.url));
-    const exportData = {
-        exported_at: new Date().toISOString(),
-        total_jobs: queueJobs.length,
-        jobs: queueJobs.map(job => ({
-            title: job.title,
-            company: job.company,
-            location: job.location,
-            url: job.url,
-            score: job.score,
-            summary: job.summary,
-            cv_highlights: job.cv_highlights,
-            interview_prep: job.interview_prep,
-            tailored_summary: job.tailored_summary
-        }))
-    };
-
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `unhireable-queue-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-
-    showNotification(`Exported ${queueJobs.length} jobs for extension`);
-}
-
-// Notification
-function showNotification(message) {
-    const notification = document.createElement('div');
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: rgba(34, 197, 94, 0.9);
-        color: white;
-        padding: 12px 20px;
-        border-radius: 8px;
-        font-size: 14px;
-        font-weight: 500;
-        z-index: 1000;
-        animation: slideIn 0.3s ease;
-    `;
-    notification.textContent = message;
-    document.body.appendChild(notification);
     
-    setTimeout(() => {
-        notification.style.opacity = '0';
-        notification.style.transform = 'translateY(-10px)';
-        notification.style.transition = 'all 0.3s ease';
-        setTimeout(() => notification.remove(), 300);
-    }, 2000);
+    const jobs = allJobs.filter(j => queue.has(j.url));
+    const data = {
+        exported_at: new Date().toISOString(),
+        total_jobs: jobs.length,
+        jobs: jobs.map(j => ({ title: j.title, company: j.company, location: j.location, url: j.url, score: j.score, summary: j.summary, cv_highlights: j.cv_highlights, interview_prep: j.interview_prep }))
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `queue-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    toast(`Exported ${jobs.length} jobs`);
 }
 
-// Escape HTML
+function toast(msg) {
+    const t = document.createElement('div');
+    t.style.cssText = 'position:fixed;top:20px;right:20px;background:var(--success);color:white;padding:12px 20px;border-radius:8px;font-size:14px;font-weight:500;z-index:1000;animation:slideIn 0.2s;';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => { t.style.opacity = '0'; t.style.transition = '0.3s'; setTimeout(() => t.remove(), 300); }, 2000);
+}
+
 function escapeHtml(text) {
     if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    const d = document.createElement('div');
+    d.textContent = text;
+    return d.innerHTML;
 }
 
-// Auto-load from data directory on startup (for local file:// usage)
+// Init
 window.addEventListener('DOMContentLoaded', () => {
-    // Try to load from localStorage if previously loaded
     const saved = localStorage.getItem('unhireable_jobs');
     if (saved) {
         try {
-            const data = JSON.parse(saved);
-            allJobs = data.jobs || [];
+            allJobs = JSON.parse(saved).jobs || [];
             updateStats();
-            filterJobs();
-        } catch (e) {
-            console.error('Failed to restore jobs', e);
-        }
+            renderJobs();
+        } catch (e) {}
     }
 });
 
-// Save to localStorage when jobs change
 window.addEventListener('beforeunload', () => {
-    if (allJobs.length > 0) {
-        localStorage.setItem('unhireable_jobs', JSON.stringify({ jobs: allJobs }));
-    }
+    if (allJobs.length) localStorage.setItem('unhireable_jobs', JSON.stringify({ jobs: allJobs }));
 });

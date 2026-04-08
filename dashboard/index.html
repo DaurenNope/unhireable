@@ -3,8 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Unhireable - Job Dashboard</title>
+    <title>Unhireable</title>
     <style>
+        :root {
+            --bg: #fafafa;
+            --surface: #ffffff;
+            --text: #18181b;
+            --text-secondary: #71717a;
+            --text-muted: #a1a1aa;
+            --border: #e4e4e7;
+            --accent: #6366f1;
+            --accent-light: #e0e7ff;
+            --success: #22c55e;
+            --success-light: #dcfce7;
+            --warning: #f59e0b;
+            --warning-light: #fef3c7;
+            --danger: #ef4444;
+            --danger-light: #fee2e2;
+            --shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.05), 0 4px 6px -2px rgba(0,0,0,0.025);
+            --radius: 12px;
+            --radius-sm: 8px;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -12,157 +33,238 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #0f0f23;
-            color: #e4e4e7;
-            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
         }
 
-        .header {
-            background: linear-gradient(135deg, #1e1e2e 0%, #2d2d44 100%);
-            padding: 24px 32px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+        /* Header */
+        header {
+            padding: 32px 40px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 1200px;
+            margin: 0 auto;
         }
 
-        .header h1 {
-            font-size: 28px;
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 8px;
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
 
-        .header p {
-            color: #a1a1aa;
-            font-size: 14px;
+        .brand-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent), #8b5cf6);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: white;
+            box-shadow: var(--shadow);
         }
 
+        .brand h1 {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .brand p {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        /* Main Layout */
+        main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 40px 40px;
+        }
+
+        /* Stats Row */
         .stats {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 16px;
-            padding: 24px 32px;
-            background: rgba(255,255,255,0.02);
+            margin-bottom: 32px;
         }
 
-        .stat-card {
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 12px;
-            padding: 20px;
-            text-align: center;
+        .stat {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            box-shadow: var(--shadow);
         }
 
         .stat-value {
             font-size: 32px;
             font-weight: 700;
-            color: #6366f1;
+            color: var(--accent);
+            line-height: 1;
         }
 
         .stat-label {
-            font-size: 12px;
-            color: #a1a1aa;
+            font-size: 13px;
+            color: var(--text-secondary);
             margin-top: 4px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
 
+        /* Controls Bar */
         .controls {
             display: flex;
+            align-items: center;
             gap: 12px;
-            padding: 0 32px 24px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 24px;
+            padding: 16px 20px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
         }
 
         .btn {
-            padding: 12px 24px;
+            padding: 10px 18px;
             border: none;
-            border-radius: 8px;
+            border-radius: var(--radius-sm);
             font-size: 14px;
-            font-weight: 600;
+            font-weight: 500;
             cursor: pointer;
-            display: flex;
+            display: inline-flex;
             align-items: center;
             gap: 8px;
-            transition: all 0.2s;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            background: var(--accent);
             color: white;
         }
 
         .btn-primary:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+            background: #5558e3;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
         }
 
         .btn-secondary {
-            background: rgba(255,255,255,0.1);
-            color: white;
+            background: var(--bg);
+            color: var(--text);
+            border: 1px solid var(--border);
         }
 
         .btn-secondary:hover {
-            background: rgba(255,255,255,0.15);
+            background: var(--border);
         }
 
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #16a34a;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-secondary);
+        }
+
+        .btn-ghost:hover {
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        /* Filters */
         .filters {
             display: flex;
-            gap: 16px;
-            padding: 20px 32px;
             align-items: center;
+            gap: 16px;
+            margin-left: auto;
         }
 
-        .filter-group {
+        .filter {
             display: flex;
             align-items: center;
             gap: 8px;
-        }
-
-        .filter-group label {
-            font-size: 13px;
-            color: #a1a1aa;
-        }
-
-        .filter-group select,
-        .filter-group input {
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 6px;
-            padding: 8px 12px;
-            color: #e4e4e7;
             font-size: 13px;
         }
 
-        .jobs-container {
-            padding: 0 32px 32px;
+        .filter label {
+            color: var(--text-secondary);
         }
 
-        .job-card {
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 12px;
+        .filter select, .filter input[type="checkbox"] {
+            padding: 6px 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            background: white;
+            color: var(--text);
+        }
+
+        .filter select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        /* Job Cards */
+        .jobs {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .job {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
             display: grid;
             grid-template-columns: 1fr auto;
             gap: 20px;
-            transition: all 0.2s;
+            align-items: start;
+            transition: all 0.15s ease;
+            box-shadow: var(--shadow);
         }
 
-        .job-card:hover {
-            background: rgba(255,255,255,0.05);
-            border-color: rgba(99, 102, 241, 0.3);
+        .job:hover {
+            box-shadow: var(--shadow-lg);
+            border-color: #d4d4d8;
         }
 
-        .job-card.queued {
-            border-color: #22c55e;
-            background: rgba(34, 197, 94, 0.05);
+        .job.queued {
+            border-color: var(--success);
+            background: var(--success-light);
+        }
+
+        .job-main {
+            min-width: 0;
         }
 
         .job-header {
             display: flex;
-            align-items: start;
+            align-items: flex-start;
             gap: 12px;
             margin-bottom: 8px;
         }
@@ -170,211 +272,312 @@
         .job-title {
             font-size: 18px;
             font-weight: 600;
-            color: #fff;
+            color: var(--text);
+            letter-spacing: -0.01em;
         }
 
-        .job-company {
-            font-size: 14px;
-            color: #a1a1aa;
-        }
-
-        .job-location {
-            font-size: 13px;
-            color: #71717a;
-        }
-
-        .job-score {
+        .job-meta {
             display: flex;
             align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .job-meta span:not(:last-child)::after {
+            content: "•";
+            margin-left: 12px;
+            color: var(--text-muted);
+        }
+
+        .job-summary {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+
+        .job-tags {
+            display: flex;
+            flex-wrap: wrap;
             gap: 8px;
         }
 
-        .score-badge {
-            width: 56px;
-            height: 56px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            font-weight: 700;
+        .tag {
+            padding: 4px 10px;
+            background: var(--accent-light);
+            color: var(--accent);
+            font-size: 12px;
+            font-weight: 500;
+            border-radius: 20px;
         }
 
-        .score-high {
-            background: rgba(34, 197, 94, 0.2);
-            color: #22c55e;
-        }
-
-        .score-medium {
-            background: rgba(234, 179, 8, 0.2);
-            color: #eab308;
-        }
-
-        .score-low {
-            background: rgba(239, 68, 68, 0.2);
-            color: #ef4444;
+        .tag-green {
+            background: var(--success-light);
+            color: var(--success);
         }
 
         .job-actions {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            align-items: flex-end;
+            gap: 12px;
         }
 
-        .btn-small {
-            padding: 8px 16px;
-            font-size: 12px;
+        .score {
+            text-align: center;
         }
 
-        .job-details {
-            margin-top: 12px;
-            padding-top: 12px;
-            border-top: 1px solid rgba(255,255,255,0.05);
-            font-size: 13px;
-            color: #a1a1aa;
+        .score-value {
+            width: 56px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            font-weight: 700;
+            border-radius: var(--radius);
+            margin-bottom: 4px;
+        }
+
+        .score-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .score-high { background: var(--success-light); color: var(--success); }
+        .score-medium { background: var(--warning-light); color: var(--warning); }
+        .score-low { background: var(--danger-light); color: var(--danger); }
+
+        /* Details Panel */
+        .details {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
             display: none;
         }
 
-        .job-card.expanded .job-details {
+        .job.expanded .details {
             display: block;
         }
 
-        .blocks-grid {
+        .blocks {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 12px;
-            margin: 12px 0;
+            margin-bottom: 16px;
         }
 
-        .block-item {
-            background: rgba(255,255,255,0.03);
-            padding: 12px;
-            border-radius: 8px;
+        .block {
+            padding: 12px 16px;
+            background: var(--bg);
+            border-radius: var(--radius-sm);
         }
 
-        .block-label {
+        .block-name {
             font-size: 11px;
-            color: #71717a;
+            font-weight: 600;
             text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 4px;
         }
 
         .block-score {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .prep-list {
+            list-style: none;
+        }
+
+        .prep-list li {
+            padding: 8px 0;
+            padding-left: 24px;
+            position: relative;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .prep-list li::before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+        }
+
+        /* Empty State */
+        .empty {
+            text-align: center;
+            padding: 80px 40px;
+            color: var(--text-secondary);
+        }
+
+        .empty-icon {
+            width: 64px;
+            height: 64px;
+            background: var(--bg);
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin: 0 auto 20px;
+        }
+
+        .empty h3 {
             font-size: 18px;
             font-weight: 600;
-            margin-top: 4px;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #71717a;
-        }
-
-        .empty-state h3 {
-            color: #a1a1aa;
+            color: var(--text);
             margin-bottom: 8px;
         }
 
-        #fileInput {
-            display: none;
+        .empty p {
+            font-size: 14px;
+            max-width: 400px;
+            margin: 0 auto;
         }
 
-        .export-panel {
+        /* Queue Panel */
+        .queue-panel {
             position: fixed;
             bottom: 24px;
             right: 24px;
-            background: rgba(30, 30, 46, 0.95);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 12px;
-            padding: 20px;
-            min-width: 280px;
-            backdrop-filter: blur(10px);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            box-shadow: var(--shadow-lg);
+            min-width: 200px;
         }
 
-        .export-panel h4 {
+        .queue-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
             margin-bottom: 12px;
-            font-size: 14px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
 
         .queue-count {
-            font-size: 24px;
+            font-size: 36px;
             font-weight: 700;
-            color: #6366f1;
+            color: var(--text);
+            line-height: 1;
+        }
+
+        .queue-count span {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        #fileInput { display: none; }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .blocks {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>🔍 Unhireable Dashboard</h1>
-        <p>Review AI-evaluated jobs and queue for auto-application</p>
-    </div>
+    <header>
+        <div class="brand">
+            <div class="brand-icon">⚡</div>
+            <div>
+                <h1>Unhireable</h1>
+                <p>AI-Powered Job Applications</p>
+            </div>
+        </div>
+    </header>
 
-    <div class="stats">
-        <div class="stat-card">
-            <div class="stat-value" id="statTotal">0</div>
-            <div class="stat-label">Total Jobs</div>
+    <main>
+        <!-- Stats -->
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-value" id="statTotal">0</div>
+                <div class="stat-label">Jobs Found</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="statGood">0</div>
+                <div class="stat-label">Good Matches</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="statQueued">0</div>
+                <div class="stat-label">In Queue</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="statAvg">0.0</div>
+                <div class="stat-label">Avg Score</div>
+            </div>
         </div>
-        <div class="stat-card">
-            <div class="stat-value" id="statGood">0</div>
-            <div class="stat-label">Good Matches</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value" id="statQueued">0</div>
-            <div class="stat-label">In Queue</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value" id="statAvg">0</div>
-            <div class="stat-label">Avg Score</div>
-        </div>
-    </div>
 
-    <div class="controls">
-        <input type="file" id="fileInput" accept=".json">
-        <button class="btn btn-primary" onclick="loadJobs()">
-            📁 Load Evaluated Jobs
-        </button>
-        <button class="btn btn-secondary" onclick="exportQueue()">
-            📤 Export Queue for Extension
-        </button>
-    </div>
+        <!-- Controls -->
+        <div class="controls">
+            <input type="file" id="fileInput" accept=".json">
+            <button class="btn btn-primary" onclick="loadJobs()">
+                <span>↑</span> Import Jobs
+            </button>
+            <button class="btn btn-secondary" onclick="exportQueue()">
+                <span>↓</span> Export Queue
+            </button>
 
-    <div class="filters">
-        <div class="filter-group">
-            <label>Min Score:</label>
-            <select id="minScore" onchange="filterJobs()">
-                <option value="0">All</option>
-                <option value="3">3.0+</option>
-                <option value="4" selected>4.0+</option>
-                <option value="4.5">4.5+</option>
-            </select>
+            <div class="filters">
+                <div class="filter">
+                    <label>Score</label>
+                    <select id="minScore" onchange="filterJobs()">
+                        <option value="0">All</option>
+                        <option value="3">3.0+</option>
+                        <option value="4" selected>4.0+</option>
+                        <option value="4.5">4.5+</option>
+                    </select>
+                </div>
+                <div class="filter">
+                    <label>Status</label>
+                    <select id="recFilter" onchange="filterJobs()">
+                        <option value="all">All</option>
+                        <option value="APPLY" selected>Apply</option>
+                        <option value="CONSIDER">Consider</option>
+                    </select>
+                </div>
+                <div class="filter">
+                    <input type="checkbox" id="showQueued" onchange="filterJobs()">
+                    <label for="showQueued">Queued only</label>
+                </div>
+            </div>
         </div>
-        <div class="filter-group">
-            <label>Recommendation:</label>
-            <select id="recFilter" onchange="filterJobs()">
-                <option value="all">All</option>
-                <option value="APPLY" selected>Apply Only</option>
-                <option value="CONSIDER">Consider</option>
-            </select>
-        </div>
-        <div class="filter-group">
-            <input type="checkbox" id="showQueued" onchange="filterJobs()">
-            <label for="showQueued">Show Queued Only</label>
-        </div>
-    </div>
 
-    <div class="jobs-container" id="jobsContainer">
-        <div class="empty-state">
-            <h3>No jobs loaded</h3>
-            <p>Click "Load Evaluated Jobs" to import your scanned and evaluated jobs.</p>
+        <!-- Jobs List -->
+        <div class="jobs" id="jobsContainer">
+            <div class="empty">
+                <div class="empty-icon">📋</div>
+                <h3>No jobs yet</h3>
+                <p>Import your evaluated jobs to see them here. Use the Import button above.</p>
+            </div>
         </div>
-    </div>
+    </main>
 
-    <div class="export-panel" id="exportPanel" style="display: none;">
-        <h4>Extension Queue</h4>
-        <div class="queue-count" id="queueCount">0</div>
-        <p style="font-size: 12px; color: #71717a; margin-top: 4px;">
-            jobs ready to apply
-        </p>
+    <!-- Queue Panel -->
+    <div class="queue-panel" id="queuePanel" style="display: none;">
+        <div class="queue-header">
+            <span>●</span> Ready to Apply
+        </div>
+        <div class="queue-count">
+            <span id="queueCount">0</span>
+            <span>jobs</span>
+        </div>
     </div>
 
     <script src="app.js"></script>
