@@ -11,8 +11,8 @@ let expandedJobs = new Set();
 async function loadDataFiles() {
     try {
         const [rawRes, evalRes] = await Promise.allSettled([
-            fetch('../data/jobs_raw.json'),
-            fetch('../data/jobs_evaluated.json')
+            fetch('/data/jobs_raw.json'),
+            fetch('/data/jobs_evaluated.json')
         ]);
         
         let rawJobs = [];
