@@ -106,9 +106,16 @@ function getFilteredJobs() {
     const rec = document.getElementById('recFilter').value;
     const queuedOnly = document.getElementById('showQueued')?.checked || false;
     const showPending = document.getElementById('showPending')?.checked !== false; // default true
+    const searchQuery = document.getElementById('searchInput')?.value?.toLowerCase()?.trim() || '';
     
     return allJobs.filter(job => {
         const isPending = !job._evaluated && !job.score;
+        
+        // Search filter (applies to all jobs)
+        if (searchQuery) {
+            const searchable = `${job.title || ''} ${job.company || ''} ${job.location || ''} ${job.summary || ''} ${job.description || ''}`.toLowerCase();
+            if (!searchable.includes(searchQuery)) return false;
+        }
         
         // Handle pending jobs
         if (isPending) {
