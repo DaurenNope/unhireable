@@ -1,12 +1,59 @@
 /**
  * Unhireable Dashboard - Minimalist Job Review
+ * Updated: Auto-loads from data files, handles raw & evaluated jobs
  */
 
 let allJobs = [];
 let queue = new Set();
 let expandedJobs = new Set();
 
-// Load jobs
+// Auto-load data files on startup
+async function loadDataFiles() {
+    try {
+        const [rawRes, evalRes] = await Promise.allSettled([
+            fetch('../data/jobs_raw.json'),
+            fetch('../data/jobs_evaluated.json')
+        ]);
+        
+        let rawJobs = [];
+        let evaluatedJobs = [];
+        
+        if (rawRes.status === 'fulfilled' && rawRes.value.ok) {
+            const rawData = await rawRes.value.json();
+            rawJobs = (rawData.jobs || []).map(j => ({ ...j, _evaluated: false, _source: 'scanned' }));
+        }
+        
+        if (evalRes.status === 'fulfilled' && evalRes.value.ok) {
+            const evalData = await evalRes.value.json();
+            evaluatedJobs = (evalData.jobs || []).map(j => ({ ...j, _evaluated: true, _source: 'evaluated' }));
+        }
+        
+        // Merge: evaluated jobs take precedence (by URL)
+        const jobMap = new Map();
+        
+        // Add raw jobs first
+        rawJobs.forEach(job => {
+            if (job.url) jobMap.set(job.url, job);
+        });
+        
+        // Override with evaluated jobs
+        evaluatedJobs.forEach(job => {
+            if (job.url) jobMap.set(job.url, job);
+        });
+        
+        allJobs = Array.from(jobMap.values());
+        
+        if (allJobs.length > 0) {
+            updateStats();
+            renderJobs();
+            toast(`Loaded ${allJobs.length} jobs (${evaluatedJobs.length} evaluated, ${rawJobs.length - evaluatedJobs.length} pending)`);
+        }
+    } catch (e) {
+        console.log('No data files found, waiting for import');
+    }
+}
+
+// Load jobs from file (manual import)
 function loadJobs() {
     document.getElementById('fileInput').click();
 }
@@ -19,7 +66,7 @@ document.getElementById('fileInput').addEventListener('change', (e) => {
     reader.onload = (event) => {
         try {
             const data = JSON.parse(event.target.result);
-            allJobs = data.jobs || [];
+            allJobs = (data.jobs || []).map(j => ({ ...j, _evaluated: !!j.score }));
             updateStats();
             renderJobs();
             toast(`Imported ${allJobs.length} jobs`);
@@ -32,8 +79,10 @@ document.getElementById('fileInput').addEventListener('change', (e) => {
 
 // Stats
 function updateStats() {
-    const good = allJobs.filter(j => j.score >= 4).length;
-    const avg = allJobs.length ? (allJobs.reduce((s, j) => s + j.score, 0) / allJobs.length).toFixed(1) : '0.0';
+    const evaluated = allJobs.filter(j => j._evaluated || j.score > 0);
+    const good = evaluated.filter(j => j.score >= 4).length;
+    const pending = allJobs.filter(j => !j._evaluated && !j.score).length;
+    const avg = evaluated.length ? (evaluated.reduce((s, j) => s + (j.score || 0), 0) / evaluated.length).toFixed(1) : '0.0';
     
     document.getElementById('statTotal').textContent = allJobs.length;
     document.getElementById('statGood').textContent = good;
@@ -41,6 +90,10 @@ function updateStats() {
     document.getElementById('statAvg').textContent = avg;
     document.getElementById('queueCount').textContent = queue.size;
     document.getElementById('queuePanel').style.display = queue.size ? 'block' : 'none';
+    
+    // Update filter label if pending exists
+    const pendingFilter = document.getElementById('pendingCount');
+    if (pendingFilter) pendingFilter.textContent = pending;
 }
 
 // Filter
@@ -51,14 +104,31 @@ function filterJobs() {
 function getFilteredJobs() {
     const minScore = parseFloat(document.getElementById('minScore').value);
     const rec = document.getElementById('recFilter').value;
-    const queuedOnly = document.getElementById('showQueued').checked;
+    const queuedOnly = document.getElementById('showQueued')?.checked || false;
+    const showPending = document.getElementById('showPending')?.checked !== false; // default true
     
     return allJobs.filter(job => {
-        if (job.score < minScore) return false;
+        const isPending = !job._evaluated && !job.score;
+        
+        // Handle pending jobs
+        if (isPending) {
+            if (!showPending) return false;
+            return true; // pending jobs bypass score filter
+        }
+        
+        // Handle evaluated jobs
+        if ((job.score || 0) < minScore) return false;
         if (rec !== 'all' && job.recommendation !== rec) return false;
         if (queuedOnly && !queue.has(job.url)) return false;
         return true;
-    }).sort((a, b) => b.score - a.score);
+    }).sort((a, b) => {
+        // Sort: evaluated first (by score), then pending
+        const aEval = a._evaluated || a.score > 0;
+        const bEval = b._evaluated || b.score > 0;
+        if (aEval && !bEval) return -1;
+        if (!aEval && bEval) return 1;
+        return (b.score || 0) - (a.score || 0);
+    });
 }
 
 // Render
@@ -80,11 +150,35 @@ function renderJobs() {
     container.innerHTML = jobs.map(job => {
         const isQueued = queue.has(job.url);
         const isExpanded = expandedJobs.has(job.url);
-        const scoreClass = job.score >= 4 ? 'score-high' : job.score >= 3 ? 'score-medium' : 'score-low';
-        const recLabel = job.recommendation === 'APPLY' ? 'Apply' : job.recommendation === 'CONSIDER' ? 'Consider' : 'Skip';
+        const isPending = !job._evaluated && !job.score;
+        
+        // Score display
+        let scoreHtml;
+        if (isPending) {
+            scoreHtml = `
+                <div class="score">
+                    <div class="score-value score-pending">-</div>
+                    <div class="score-label">Pending</div>
+                </div>
+            `;
+        } else {
+            const score = job.score || 0;
+            const scoreClass = score >= 4 ? 'score-high' : score >= 3 ? 'score-medium' : 'score-low';
+            const recLabel = job.recommendation === 'APPLY' ? 'Apply' : job.recommendation === 'CONSIDER' ? 'Consider' : 'Skip';
+            scoreHtml = `
+                <div class="score">
+                    <div class="score-value ${scoreClass}">${score.toFixed(1)}</div>
+                    <div class="score-label">${recLabel}</div>
+                </div>
+            `;
+        }
+        
+        // Source badge
+        const sourceBadge = job._source === 'scanned' ? '<span class="tag tag-blue">Scanned</span>' : 
+                           job._source === 'evaluated' ? '<span class="tag tag-purple">Evaluated</span>' : '';
         
         return `
-            <div class="job ${isQueued ? 'queued' : ''} ${isExpanded ? 'expanded' : ''}" data-url="${escapeHtml(job.url)}">
+            <div class="job ${isQueued ? 'queued' : ''} ${isExpanded ? 'expanded' : ''} ${isPending ? 'pending' : ''}" data-url="${escapeHtml(job.url)}">
                 <div class="job-main">
                     <div class="job-header">
                         <h3 class="job-title">${escapeHtml(job.title)}</h3>
@@ -93,29 +187,33 @@ function renderJobs() {
                         <span>${escapeHtml(job.company)}</span>
                         <span>${escapeHtml(job.location)}</span>
                     </div>
-                    <p class="job-summary">${escapeHtml(job.summary || '')}</p>
+                    <p class="job-summary">${escapeHtml(job.summary || job.description || '')}</p>
                     <div class="job-tags">
                         ${(job.cv_highlights || []).slice(0, 4).map(h => `<span class="tag">${escapeHtml(h)}</span>`).join('')}
+                        ${sourceBadge}
                         ${isQueued ? '<span class="tag tag-green">In Queue</span>' : ''}
                     </div>
                     
                     ${isExpanded ? `
                         <div class="details">
-                            <div class="blocks">
-                                ${renderBlocks(job.blocks)}
-                            </div>
-                            <ul class="prep-list">
-                                ${(job.interview_prep || []).map(p => `<li>${escapeHtml(p)}</li>`).join('')}
-                            </ul>
+                            ${job._evaluated ? `
+                                <div class="blocks">
+                                    ${renderBlocks(job.blocks)}
+                                </div>
+                                <ul class="prep-list">
+                                    ${(job.interview_prep || []).map(p => `<li>${escapeHtml(p)}</li>`).join('')}
+                                </ul>
+                            ` : `
+                                <div class="pending-notice">
+                                    <p>This job hasn't been evaluated yet. Run the evaluator to see match score and recommendations.</p>
+                                </div>
+                            `}
                         </div>
                     ` : ''}
                 </div>
                 
                 <div class="job-actions">
-                    <div class="score">
-                        <div class="score-value ${scoreClass}">${job.score.toFixed(1)}</div>
-                        <div class="score-label">${recLabel}</div>
-                    </div>
+                    ${scoreHtml}
                     <button class="btn ${isQueued ? 'btn-ghost' : 'btn-primary'} btn-small" onclick="toggleQueue('${escapeHtml(job.url)}')">
                         ${isQueued ? 'Remove' : 'Add to Queue'}
                     </button>
@@ -191,10 +289,15 @@ function escapeHtml(text) {
 
 // Init
 window.addEventListener('DOMContentLoaded', () => {
+    // Try to load from data files first
+    loadDataFiles();
+    
+    // Fallback to localStorage if no files
     const saved = localStorage.getItem('unhireable_jobs');
-    if (saved) {
+    if (saved && allJobs.length === 0) {
         try {
-            allJobs = JSON.parse(saved).jobs || [];
+            const data = JSON.parse(saved);
+            allJobs = (data.jobs || []).map(j => ({ ...j, _evaluated: !!j.score }));
             updateStats();
             renderJobs();
         } catch (e) {}

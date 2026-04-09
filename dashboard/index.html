@@ -111,6 +111,14 @@
             color: var(--accent);
         }
 
+        .stat-value.score-low {
+            color: var(--danger);
+        }
+
+        .stat-value.score-pending {
+            color: var(--text-muted);
+        }
+
         .stat-label {
             font-size: 11px;
             color: var(--text-muted);
@@ -227,6 +235,20 @@
             border-color: var(--accent);
         }
 
+        .filter-checkbox label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .filter-checkbox input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
         /* Job Cards */
         .jobs {
             display: flex;
@@ -251,7 +273,12 @@
         }
 
         .job.queued {
-            border-left: 3px solid var(--accent);
+            border-left: 2px solid var(--accent);
+        }
+
+        .job.pending {
+            border-left: 2px solid var(--text-muted);
+            opacity: 0.9;
         }
 
         .job-main {
@@ -303,10 +330,19 @@
             letter-spacing: 0.05em;
         }
 
-        .tag-green {
-            border-color: var(--accent);
-            color: var(--accent);
+        .tag.tag-green {
             background: var(--accent-dim);
+            color: var(--accent);
+        }
+
+        .tag.tag-blue {
+            background: rgba(59, 130, 246, 0.1);
+            color: #60a5fa;
+        }
+
+        .tag.tag-purple {
+            background: rgba(139, 92, 246, 0.1);
+            color: #a78bfa;
         }
 
         .job-actions {
@@ -539,6 +575,12 @@
                             <option value="CONSIDER">Consider</option>
                         </select>
                     </div>
+                    <div class="filter filter-checkbox">
+                        <label>
+                            <input type="checkbox" id="showPending" checked onchange="filterJobs()">
+                            Show Pending (<span id="pendingCount">0</span>)
+                        </label>
+                    </div>
                 </div>
             </div>
         </div>
@@ -547,7 +589,7 @@
         <div class="jobs" id="jobsContainer">
             <div class="empty">
                 <h3>// NO DATA</h3>
-                <p>Import evaluated jobs to begin matching. Use the Import button above.</p>
+                <p>Run scanner to find jobs, or import evaluated jobs. Data auto-loads from ../data/ folder.</p>
             </div>
         </div>
     </main>
