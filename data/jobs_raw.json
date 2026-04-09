@@ -1,0 +1,3010 @@
+{
+  "scanned_at": "2026-04-09T10:01:52.261Z",
+  "llm_provider": "lmstudio",
+  "llm_model": "qwen/qwen3.5-4b",
+  "source": "llm-agnostic-scanner",
+  "total_companies": 5,
+  "total_jobs": 300,
+  "jobs": [
+    {
+      "title": "Anthropic AI Safety Fellow",
+      "company": "Anthropic",
+      "location": "London, UK; Ontario, CAN; Remote-Friendly, United States; San Francisco, CA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5023394008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Anthropic AI Security Fellow",
+      "company": "Anthropic",
+      "location": "London, UK; Ontario, CAN; Remote-Friendly, United States; San Francisco, CA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5030244008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Application Security Engineer",
+      "company": "Anthropic",
+      "location": "Remote-Friendly (Travel-Required) | San Francisco, CA | Seattle, WA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4502508008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Applied AI Engineer",
+      "company": "Anthropic",
+      "location": "Seoul, South Korea",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5014500008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Applied AI Engineer",
+      "company": "Anthropic",
+      "location": "Tokyo, Japan",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5055488008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Applied AI Engineer ",
+      "company": "Anthropic",
+      "location": "London, UK",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5116274008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Applied AI Engineer, Beneficial Deployments",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5068226008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Applied AI Engineer (Digital Natives Business) ",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5057647008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Applied AI Engineer, Life Sciences (Beneficial Deployments)",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5111942008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Applied AI Engineer (Startups)",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5073277008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Claude Evangelist, Applied AI (Startups)",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5116927008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Data Center Engineer, Resource Efficiency – Compute Supply ",
+      "company": "Anthropic",
+      "location": "Remote-Friendly, United States",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5159642008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Data Center Mechanical Engineer",
+      "company": "Anthropic",
+      "location": "Remote-Friendly, United States",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5140329008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Data Engineer, Safeguards",
+      "company": "Anthropic",
+      "location": "London, UK",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5156057008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Data Science Engineer, Capacity & Efficiency",
+      "company": "Anthropic",
+      "location": "New York City, NY; San Francisco, CA | New York City, NY; Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5125881008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Design Engineer, AI Capability Development (Education Labs)",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5097186008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Design Engineer, Web",
+      "company": "Anthropic",
+      "location": "San Francisco, CA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5116525008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Developer Community Lead - EMEA",
+      "company": "Anthropic",
+      "location": "London, UK",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5113368008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Developer Education Lead",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5126762008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Engineering Editorial Lead",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5138099008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Engineering Manager, Agent Prompts & Evals",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5159608008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Engineering Manager, Auth & Identity",
+      "company": "Anthropic",
+      "location": "New York City, NY; San Francisco, CA; Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4889396008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Engineering Manager, Claude for Financial Services",
+      "company": "Anthropic",
+      "location": "New York City, NY; San Francisco, CA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5140492008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Engineering Manager, Cloud Inference AWS",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5141377008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Engineering Manager, Detection and Response",
+      "company": "Anthropic",
+      "location": "Zürich, CH",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5068296008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Engineering Manager, GPU (ML Accelerator)",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4741104008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Engineering Manager, Inference",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4741102008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Engineering Manager, Inference Routing and Performance",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5155391008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Engineering Manager, People Products",
+      "company": "Anthropic",
+      "location": "Remote-Friendly (Travel Required) | San Francisco, CA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5119478008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Engineering Manager, Product Monetization (Billing Platform)",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5146363008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Engineering Manager, Safeguards Data Infrastructure",
+      "company": "Anthropic",
+      "location": "London, UK; New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5103078008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Enterprise Account Executive, Federal Civilian Sales (Veterans Affairs)",
+      "company": "Anthropic",
+      "location": "Washington, DC",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5109257008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Enterprise Account Executive, Retail",
+      "company": "Anthropic",
+      "location": "London, UK",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5163917008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Enterprise Account Executive, Retail",
+      "company": "Anthropic",
+      "location": "Tokyo, Japan",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5104754008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "[Expression of Interest] Research Scientist / Engineer, Honesty",
+      "company": "Anthropic",
+      "location": "New York City, NY; San Francisco, CA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4532887008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "External Affairs, Australia",
+      "company": "Anthropic",
+      "location": "Canberra, Australia",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5149112008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "External Affairs, Brussels",
+      "company": "Anthropic",
+      "location": "Brussels, Belgium",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5115678008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Finance Systems Integration Engineer",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5155195008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Forward Deployed Engineer, Applied AI",
+      "company": "Anthropic",
+      "location": "Atlanta, GA; Austin, TX; Boston, MA; Chicago, IL; New York City, NY | Seattle, WA; San Francisco, CA | New York City, NY; Washington, DC",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4985877008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Forward Deployed Engineer, Applied AI",
+      "company": "Anthropic",
+      "location": "Paris, France",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5121563008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Forward Deployed Engineer, Applied AI",
+      "company": "Anthropic",
+      "location": "Munich, Germany",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5121561008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Forward Deployed Engineer, Applied AI",
+      "company": "Anthropic",
+      "location": "London, UK",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5012991008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Forward Deployed Engineer, Applied AI (Federal Civilian) ",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Washington, DC",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5079562008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "GRC Automation Engineering Lead ",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4980335008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Head of Solutions Architects, Applied AI (Korea)",
+      "company": "Anthropic",
+      "location": "Seoul, South Korea",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5064817008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Incentive Compensation System Engineer",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5042002008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Incentive Compensation System Engineer",
+      "company": "Anthropic",
+      "location": "Ontario, CAN",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5141849008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Infrastructure Engineer, Pre-training",
+      "company": "Anthropic",
+      "location": "San Francisco, CA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4973067008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Infrastructure Engineer, Sandboxing",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5030680008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Integrations Developer",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5101923008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "IT Support Engineer",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4802076008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "IT Systems Engineer, Corporate Systems & Infrastructure",
+      "company": "Anthropic",
+      "location": "Remote-Friendly (Travel-Required) | San Francisco, CA | Seattle, WA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4887952008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "IT Systems Engineer, Enterprise SaaS",
+      "company": "Anthropic",
+      "location": "Remote-Friendly (Travel-Required) | San Francisco, CA | Seattle, WA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5161882008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Machine Learning Systems Engineer, Research Tools",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4952079008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Machine Learning Systems Engineer, RL Engineering",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4952051008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Manager, Applied AI Solutions Architecture - Partnerships",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5173031008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Manager, Applied AI (Startups)",
+      "company": "Anthropic",
+      "location": "London, UK",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5142110008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Manager, Forward Deployed Engineering",
+      "company": "Anthropic",
+      "location": "Boston, MA; San Francisco, CA | New York City, NY; Seattle, WA; Washington, DC",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5099753008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Manager of Solutions Architecture, Applied AI (Industries)",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4964610008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Manager of Solutions Architecture, Applied AI (Industries)",
+      "company": "Anthropic",
+      "location": "Munich, Germany",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5117652008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Manager of Solutions Architecture, Applied AI (Industries)",
+      "company": "Anthropic",
+      "location": "London, UK",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5115884008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Manager of Solutions Architecture, Applied AI (Partnerships)",
+      "company": "Anthropic",
+      "location": "London, UK",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5146999008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "ML Infrastructure Engineer, Safeguards",
+      "company": "Anthropic",
+      "location": "San Francisco, CA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4778843008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "ML/Research Engineer, Safeguards",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4949336008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Model Quality Software Engineer, Claude Code",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5098025008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Network Engineer, Capacity and Efficiency",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5177143008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Offensive Security Research Engineer, Safeguards",
+      "company": "Anthropic",
+      "location": "San Francisco, CA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5123011008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Partner Manager DACH/CEE (AI Boutiques)",
+      "company": "Anthropic",
+      "location": "Munich, Germany",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5164616008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Partner Manager UK & North Europe, (AI Boutiques)",
+      "company": "Anthropic",
+      "location": "London, UK",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5164620008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Partner Solutions Architect, Applied AI",
+      "company": "Anthropic",
+      "location": "Munich, Germany",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5112493008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Partner Solutions Architect, Applied AI",
+      "company": "Anthropic",
+      "location": "Paris, France",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5112486008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Partner Solutions Architect, Applied AI",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4950664008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Performance Engineer",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4020350008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Performance Engineer, GPU",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4926227008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Privacy Research Engineer, Safeguards",
+      "company": "Anthropic",
+      "location": "San Francisco, CA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4949108008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Prompt Engineer, Agent Prompts & Evals",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5107121008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Prompt Engineer, Claude Code",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5159669008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Research Engineer, Agents",
+      "company": "Anthropic",
+      "location": "Remote-Friendly (Travel-Required) | San Francisco, CA | Seattle, WA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4017544008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Research Engineer, AI Observability",
+      "company": "Anthropic",
+      "location": "San Francisco, CA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5125083008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Research Engineer, Cybersecurity Reinforcement Learning",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5025624008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Research Engineer, Discovery",
+      "company": "Anthropic",
+      "location": "San Francisco, CA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4669581008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Research Engineer, Economic Research",
+      "company": "Anthropic",
+      "location": "San Francisco, CA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5071132008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Research Engineer, Environment Scaling",
+      "company": "Anthropic",
+      "location": "Remote-Friendly (Travel Required) | San Francisco, CA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4951064008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Research Engineer,  Frontier Red Team (Autonomy)",
+      "company": "Anthropic",
+      "location": "San Francisco, CA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5067100008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Research Engineer, Interpretability",
+      "company": "Anthropic",
+      "location": "San Francisco, CA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4980430008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Research Engineer, Machine Learning (Reinforcement Learning)",
+      "company": "Anthropic",
+      "location": "London, UK",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5115935008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Research Engineer, Machine Learning (Reinforcement Learning) ",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4613568008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Research Engineer, Performance RL",
+      "company": "Anthropic",
+      "location": "San Francisco, CA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5160330008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Research Engineer, Pretraining",
+      "company": "Anthropic",
+      "location": "London, UK",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5119713008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Research Engineer, Pretraining Scaling",
+      "company": "Anthropic",
+      "location": "San Francisco, CA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4938432008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Research Engineer, Pretraining Scaling - London",
+      "company": "Anthropic",
+      "location": "London, UK",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4938436008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Research Engineer, Production Model Post-Training",
+      "company": "Anthropic",
+      "location": "Zürich, CH",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5112018008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Research Engineer, Production Model Post-Training",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4613592008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Research Engineer/Research Scientist, Audio",
+      "company": "Anthropic",
+      "location": "San Francisco, CA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5074815008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Research Engineer / Research Scientist, Pre-training",
+      "company": "Anthropic",
+      "location": "Zürich, CH",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5135168008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Research Engineer/Research Scientist, Pre-training",
+      "company": "Anthropic",
+      "location": "Remote-Friendly (Travel-Required) | San Francisco, CA | Seattle, WA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4616971008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": " Research Engineer / Research Scientist, Tokens",
+      "company": "Anthropic",
+      "location": "New York City, NY; New York City, NY | Seattle, WA; San Francisco, CA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4951814008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Research Engineer / Research Scientist, Vision",
+      "company": "Anthropic",
+      "location": "New York City, NY; San Francisco, CA; Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5074217008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Research Engineer, Reward Models Platform",
+      "company": "Anthropic",
+      "location": "Remote-Friendly (Travel-Required) | San Francisco, CA | Seattle, WA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5024831008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Research Engineer, Science of Scaling",
+      "company": "Anthropic",
+      "location": "London, UK",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5126127008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Research Engineer / Scientist, Alignment Science",
+      "company": "Anthropic",
+      "location": "San Francisco, CA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4631822008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Research Engineer / Scientist, Alignment Science - London",
+      "company": "Anthropic",
+      "location": "London, UK",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4610158008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Research Engineer / Scientist, Frontier Red Team (Cyber)",
+      "company": "Anthropic",
+      "location": "San Francisco, CA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5076477008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Research Engineer / Scientist, Societal Impacts",
+      "company": "Anthropic",
+      "location": "San Francisco, CA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5076606008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Research Engineer, Universes",
+      "company": "Anthropic",
+      "location": "Remote-Friendly (Travel-Required) | San Francisco, CA | Seattle, WA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5061517008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Research Engineer, Virtual Collaborator (Cowork)",
+      "company": "Anthropic",
+      "location": "New York City, NY; San Francisco, CA; Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4946308008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Research Lead, Training Insights",
+      "company": "Anthropic",
+      "location": "Remote-Friendly (Travel Required) | San Francisco, CA; San Francisco, CA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5139654008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Security Architect, Applied AI ",
+      "company": "Anthropic",
+      "location": "New York City, NY; New York City, NY | Seattle, WA; San Francisco, CA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5101433008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Security Engineer, Detection & Response",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA; Washington, DC",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4982193008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Security Engineer Lead, Corporate Security",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5135098008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Security Engineer, Offensive Security",
+      "company": "Anthropic",
+      "location": "Remote-Friendly (Travel-Required) | San Francisco, CA | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5105509008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Security Labs Engineer",
+      "company": "Anthropic",
+      "location": "San Francisco, CA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5153564008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Security Software Engineer, Detection & Response Platform",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA; Washington, DC",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4595463008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Engineer, Datacenter Server Lifecycle",
+      "company": "Anthropic",
+      "location": "London, UK",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5131038008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Full Stack Engineer, Education",
+      "company": "Anthropic",
+      "location": "San Francisco, CA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5098565008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Security Engineer, Detection & Response",
+      "company": "Anthropic",
+      "location": "Zürich, CH",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5068288008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Security Software Engineer, eBPF & Security Sensors",
+      "company": "Anthropic",
+      "location": "Zürich, CH",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5108521008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Software Engineer, Databases",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5151066008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Software Engineer, Inference",
+      "company": "Anthropic",
+      "location": "Dublin, IE",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4641822008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior+ Software Engineer, Research Tools",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4981828008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Software Engineer, Systems",
+      "company": "Anthropic",
+      "location": "London, UK",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4915842008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Software Security Engineer",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4887959008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Software Security Engineer",
+      "company": "Anthropic",
+      "location": "London, UK",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5022845008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Staff Software Engineer, API",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5134895008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior / Staff+ Software Engineer, Voice Platform",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5172245008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Software Engineer, Account Abuse",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5123039008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Software Engineer, Backend",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5174757008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Software Engineer, Billing Platform",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5146261008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Software Engineer, Business Technology ",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4982198008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Software Engineer, Cloud Inference Safeguards",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5168829008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Software Engineer, Compute Efficiency",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5108982008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Software Engineer, Cybersecurity Products",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA; Washington, DC",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5063007008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Software Engineer, Desktop",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4980420008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Software Engineer, Full-stack",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5174743008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Software Engineer, Human Data Interface",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5109273008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Software Engineer, Inference Deployment",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5111745008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Software Engineer, ML Networking",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4926242008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Software Engineer, Platform",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5157844008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Software Engineer, Safeguards",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4951844008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Software Engineer, Safeguards Infrastructure ",
+      "company": "Anthropic",
+      "location": "London, UK",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5074908008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Software Engineer, Sandboxing",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5083039008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Software Engineer, Sandboxing (Systems)",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5025591008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Software Engineer, UI Platform",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4673416008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Solutions Architect, Applied AI",
+      "company": "Anthropic",
+      "location": "Sydney, Australia",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5117589008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Solutions Architect, Applied AI",
+      "company": "Anthropic",
+      "location": "Tokyo, Japan",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5076109008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Solutions Architect, Applied AI",
+      "company": "Anthropic",
+      "location": "Bangalore, India",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5117581008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Solutions Architect, Applied AI (Beneficial Deployments)",
+      "company": "Anthropic",
+      "location": "Bangalore, India",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5146028008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Solutions Architect, Applied AI (Beneficial Deployments)",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5062712008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Solutions Architect, Applied AI (Creatives)",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5124533008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Solutions Architect, Applied AI (Digital Native Business)",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5065835008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Solutions Architect, Applied AI (Federal Civilian)",
+      "company": "Anthropic",
+      "location": "New York City, NY; Washington, DC",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5079540008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Solutions Architect, Applied AI (Government Technology)",
+      "company": "Anthropic",
+      "location": "New York City, NY; Washington, DC",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5140405008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": " Solutions Architect, Applied AI (Industries)",
+      "company": "Anthropic",
+      "location": "Munich, Germany",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4977624008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": " Solutions Architect, Applied AI (Industries)",
+      "company": "Anthropic",
+      "location": "Paris, France",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4977626008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Solutions Architect, Applied AI (Industries)",
+      "company": "Anthropic",
+      "location": "New York City, NY; San Francisco, CA | New York City, NY | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4461444008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Solutions Architect, Applied AI (Industries)",
+      "company": "Anthropic",
+      "location": "London, UK",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5031670008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Solutions Architect, Applied AI (National Security)",
+      "company": "Anthropic",
+      "location": "Washington, DC",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5079511008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Solutions Architect, Applied AI (Startups)",
+      "company": "Anthropic",
+      "location": "London, UK",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4968059008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Solutions Architect, Applied AI (Startups)",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5057258008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Solutions Architect, Applied AI (State and Local Government, West)",
+      "company": "Anthropic",
+      "location": "San Francisco, CA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5140403008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Sr. Software Engineer, Inference",
+      "company": "Anthropic",
+      "location": "London, UK",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5152348008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Staff Research Engineer, Discovery Team",
+      "company": "Anthropic",
+      "location": "San Francisco, CA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4593216008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Staff / Senior Software Engineer, AI Reliability",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5113224008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Staff / Senior Software Engineer, Cloud Inference",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5107466008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Staff / Senior Software Engineer, Compute Capacity",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5126702008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Staff / Senior Software Engineer, Inference",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4951696008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Staff Software Engineer, AI Reliability Engineering",
+      "company": "Anthropic",
+      "location": "Dublin, IE",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5101169008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Staff Software Engineer, AI Reliability Engineering",
+      "company": "Anthropic",
+      "location": "London, UK",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5101173008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Staff+ Software Engineer, Backend",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5174755008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Staff Software Engineer, Billing Platform",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5146298008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Staff+ Software Engineer, Claude App Infrastructure",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5065894008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Staff+ Software Engineer, Databases",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5151069008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Staff+ Software Engineer, Data Infrastructure",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5114768008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Staff+ Software Engineer, Developer Productivity",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5110511008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Staff+ Software Engineer, Full-stack",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5174747008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Staff Software Engineer, Inference",
+      "company": "Anthropic",
+      "location": "London, UK",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5097742008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Staff Software Engineer, Inference",
+      "company": "Anthropic",
+      "location": "Dublin, IE",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5150472008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Staff+ Software Engineer, Observability",
+      "company": "Anthropic",
+      "location": "London, UK",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5102440008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Staff+ Software Engineer, Platform",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5157847008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Staff+ Software Security Engineer",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5120512008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Strategic Account Executive, Retail & Commercial Banking",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5041299008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Support Operations Specialist, AI Agent Management",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5122119008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Technical Deployment, Applied AI",
+      "company": "Anthropic",
+      "location": "Atlanta, GA; Austin, TX; Boston, MA; Chicago, IL; San Francisco, CA | New York City, NY; Washington, DC",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5017903008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Technical Deployment Lead, Applied AI",
+      "company": "Anthropic",
+      "location": "Paris, France",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5153761008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Technical Deployment Lead, Applied AI",
+      "company": "Anthropic",
+      "location": "Munich, Germany",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5153754008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Technical Program Manager, Consumer Engineering",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5062968008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Technical Program Manager, Reliability Engineering",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5108644008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Threat Collections Engineer",
+      "company": "Anthropic",
+      "location": "Remote-Friendly (Travel-Required) | San Francisco, CA | Washington, DC",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5074937008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "TPU Kernel Engineer",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4720576008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Transformative AI Research Economist, Economic Research ",
+      "company": "Anthropic",
+      "location": "San Francisco, CA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5149802008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "UI Software Engineer, Claude.ai Consumer Product ",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5026097008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "AI Software Engineer (Must be based in Serbia)",
+      "company": "Polyai",
+      "location": "Belgrade, Serbia",
+      "url": "https://job-boards.eu.greenhouse.io/polyai/jobs/4710429101",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Engineering Manager - Runtime Team ",
+      "company": "Polyai",
+      "location": "London ",
+      "url": "https://job-boards.eu.greenhouse.io/polyai/jobs/4723162101",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Forward Deployed AI Engineer (Must be PST timezone)",
+      "company": "Polyai",
+      "location": "US West Coast",
+      "url": "https://job-boards.eu.greenhouse.io/polyai/jobs/4796935101",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Gulf Arabic/Bahraini Language Specialist - Part time contract (Must be based in UK)",
+      "company": "Polyai",
+      "location": "United kingdom",
+      "url": "https://job-boards.eu.greenhouse.io/polyai/jobs/4828162101",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Full Stack Engineer (Hybrid - Manhattan based 1-2x week)",
+      "company": "Polyai",
+      "location": "New York",
+      "url": "https://job-boards.eu.greenhouse.io/polyai/jobs/4669020101",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Full Stack Engineer  (Must be based in UK)",
+      "company": "Polyai",
+      "location": "London",
+      "url": "https://job-boards.eu.greenhouse.io/polyai/jobs/4658649101",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Partner Solutions Engineer",
+      "company": "Polyai",
+      "location": "United States",
+      "url": "https://job-boards.eu.greenhouse.io/polyai/jobs/4822441101",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Software Engineer ",
+      "company": "Polyai",
+      "location": "United Kingdom",
+      "url": "https://job-boards.eu.greenhouse.io/polyai/jobs/4798772101",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Corporate Security Engineer",
+      "company": "Parloa",
+      "location": "Berlin Office",
+      "url": "https://job-boards.eu.greenhouse.io/parloa/jobs/4809451101",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Director Of Security Engineering ",
+      "company": "Parloa",
+      "location": "Berlin Office; Remotely in Germany",
+      "url": "https://job-boards.eu.greenhouse.io/parloa/jobs/4809098101",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Engineering Manager - Product Engineering",
+      "company": "Parloa",
+      "location": "Berlin Office; Munich Office; Remotely in Germany",
+      "url": "https://job-boards.eu.greenhouse.io/parloa/jobs/4688952101",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Forward Deployed Engineer, DevOps",
+      "company": "Parloa",
+      "location": "New York Office",
+      "url": "https://job-boards.eu.greenhouse.io/parloa/jobs/4694390101",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Forward Deployed Engineer, DevOps",
+      "company": "Parloa",
+      "location": "Berlin Office; Munich Office; Remotely in Germany",
+      "url": "https://job-boards.eu.greenhouse.io/parloa/jobs/4694431101",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Forward Deployed Engineer, VoIP",
+      "company": "Parloa",
+      "location": "New York Office",
+      "url": "https://job-boards.eu.greenhouse.io/parloa/jobs/4799672101",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Forward Deployed Engineer, VoIP",
+      "company": "Parloa",
+      "location": "Berlin Office; Munich Office; Remotely in Germany",
+      "url": "https://job-boards.eu.greenhouse.io/parloa/jobs/4825141101",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "GSI Partnerships Manager -  (Conversational AI & Agentic AI)",
+      "company": "Parloa",
+      "location": "New York Office",
+      "url": "https://job-boards.eu.greenhouse.io/parloa/jobs/4784741101",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Head of Forward Deployment Engineering (FDE)",
+      "company": "Parloa",
+      "location": "New York Office",
+      "url": "https://job-boards.eu.greenhouse.io/parloa/jobs/4797778101",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Lead AI Agent Architect",
+      "company": "Parloa",
+      "location": "New York Office",
+      "url": "https://job-boards.eu.greenhouse.io/parloa/jobs/4566280101",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Partner Solution Engineer ",
+      "company": "Parloa",
+      "location": "Remotely in the USA",
+      "url": "https://job-boards.eu.greenhouse.io/parloa/jobs/4780830101",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior AI Agent Architect",
+      "company": "Parloa",
+      "location": "Dublin; London; Remotely in the UK",
+      "url": "https://job-boards.eu.greenhouse.io/parloa/jobs/4782800101",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior AI Agent Architect ",
+      "company": "Parloa",
+      "location": "Berlin Office; Munich Office; Remotely in Germany",
+      "url": "https://job-boards.eu.greenhouse.io/parloa/jobs/4766701101",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Forward Deployed Engineer",
+      "company": "Parloa",
+      "location": "Berlin Office; Munich Office; Remotely in Germany",
+      "url": "https://job-boards.eu.greenhouse.io/parloa/jobs/4751509101",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Forward Deployed Engineer - UK",
+      "company": "Parloa",
+      "location": "London",
+      "url": "https://job-boards.eu.greenhouse.io/parloa/jobs/4747267101",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior/Lead Forward Deployed Engineer - US",
+      "company": "Parloa",
+      "location": "New York Office; Remotely in the USA",
+      "url": "https://job-boards.eu.greenhouse.io/parloa/jobs/4604587101",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Partnerships Manager - Spain/Italy ",
+      "company": "Parloa",
+      "location": "Madrid; Milan; Remotely in Spain",
+      "url": "https://job-boards.eu.greenhouse.io/parloa/jobs/4786707101",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "(Senior) Partner Solution Engineer - DACH",
+      "company": "Parloa",
+      "location": "Berlin Office; Munich Office; Remotely in Germany",
+      "url": "https://job-boards.eu.greenhouse.io/parloa/jobs/4753042101",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Staff/Principal Software Engineer",
+      "company": "Parloa",
+      "location": "Berlin Office; Munich Office; Remotely in Europe ",
+      "url": "https://job-boards.eu.greenhouse.io/parloa/jobs/4824273101",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Account Executive, Emerging AI Products",
+      "company": "Intercom",
+      "location": "Chicago, Illinois",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7603334",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Account Executive, Emerging AI Products",
+      "company": "Intercom",
+      "location": "San Francisco, California",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7583124",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Account Executive, Emerging AI Products",
+      "company": "Intercom",
+      "location": "London, England",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7609852",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Engineering Manager, AI Models Infrastructure",
+      "company": "Intercom",
+      "location": "London, England",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7776426",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Engineering Manager, Forward Deployed Engineering",
+      "company": "Intercom",
+      "location": "Dublin, Ireland",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7749413",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Engineering Manager, Forward Deployed Engineering",
+      "company": "Intercom",
+      "location": "London, England",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7765466",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Forward Deployed Software Engineer",
+      "company": "Intercom",
+      "location": "London, England",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7556413",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "GTM Data Analyst - Integrated Campaigns",
+      "company": "Intercom",
+      "location": "San Francisco, California",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7524848",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Manager, Solutions Engineering (Mid-Market & Enterprise) ",
+      "company": "Intercom",
+      "location": "Chicago, Illinois",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7644940",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Manager, Solutions Engineering (Mid-Market & Enterprise) ",
+      "company": "Intercom",
+      "location": "San Francisco, California",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7644731",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Principal Engineer ",
+      "company": "Intercom",
+      "location": "London, England",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/6386427",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Principal Engineer ",
+      "company": "Intercom",
+      "location": "Berlin, Germany",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7372003",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Principal Engineer ",
+      "company": "Intercom",
+      "location": "Dublin, Ireland",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/6386426",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Principal Engineer, Fin AI Agent",
+      "company": "Intercom",
+      "location": "Berlin, Germany",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7725837",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Principal Engineer, Web Platform – Team Web",
+      "company": "Intercom",
+      "location": "London, England",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7515665",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Principal Engineer, Web Platform – Team Web",
+      "company": "Intercom",
+      "location": "Dublin, Ireland",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7515664",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Product Engineer",
+      "company": "Intercom",
+      "location": "Dublin, Ireland",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/6810055",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Product Engineer",
+      "company": "Intercom",
+      "location": "London, England",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/6428373",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Sales Operations Manager, Emerging AI Products",
+      "company": "Intercom",
+      "location": "Dublin, Ireland",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7681157",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior AI Deployment Architect",
+      "company": "Intercom",
+      "location": "Chicago, Illinois",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7776018",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior AI Deployment Architect",
+      "company": "Intercom",
+      "location": "San Francisco, California",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7774407",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior AI Deployment Consultant",
+      "company": "Intercom",
+      "location": "Dublin, Ireland",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7544457",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior AI Deployment Consultant",
+      "company": "Intercom",
+      "location": "London, England",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7735288",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior AI Product Manager",
+      "company": "Intercom",
+      "location": "London, England",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7464291",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior AI Product Manager",
+      "company": "Intercom",
+      "location": "Berlin, Germany",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7464294",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior AI Product Manager",
+      "company": "Intercom",
+      "location": "Dublin, Ireland",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7377200",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Data Engineering Manager ",
+      "company": "Intercom",
+      "location": "London, England",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7574783",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Data Engineering Manager ",
+      "company": "Intercom",
+      "location": "Dublin, Ireland",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7574762",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Data Scientist - AI Tooling",
+      "company": "Intercom",
+      "location": "Dublin, Ireland; London, England",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7314809",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Data Scientist AI Tooling",
+      "company": "Intercom",
+      "location": "London, England",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7606649",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Data Scientist AI Tooling",
+      "company": "Intercom",
+      "location": "Dublin, Ireland",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7606638",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Director, Engineering",
+      "company": "Intercom",
+      "location": "Berlin, Germany",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7773191",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Engineer, AI Developer",
+      "company": "Intercom",
+      "location": "Dublin, Ireland",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/6949785",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Engineer, Infrastructure Platform",
+      "company": "Intercom",
+      "location": "Dublin, Ireland",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7731665",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Engineering Manager - Developer Experience Platform",
+      "company": "Intercom",
+      "location": "Dublin, Ireland",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7699745",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Engineering Manager - Team Billing",
+      "company": "Intercom",
+      "location": "London, England",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7610485",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Engineering Manager - Team Billing",
+      "company": "Intercom",
+      "location": "Dublin, Ireland",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7610471",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Forward Deployed Engineer",
+      "company": "Intercom",
+      "location": "London, England",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7462098",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Forward Deployed Engineer",
+      "company": "Intercom",
+      "location": "Dublin, Ireland",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7218259",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Full Stack Engineer - Team Web",
+      "company": "Intercom",
+      "location": "Dublin, Ireland",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7274831",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Full Stack Engineer - Team Web",
+      "company": "Intercom",
+      "location": "London, England",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7276257",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Machine Learning Scientist",
+      "company": "Intercom",
+      "location": "Berlin, Germany",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7372016",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Machine Learning Scientist ",
+      "company": "Intercom",
+      "location": "Dublin, Ireland",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/6531495",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Machine Learning Scientist ",
+      "company": "Intercom",
+      "location": "London, England",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7271603",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Manager, Forward Deployed Engineering",
+      "company": "Intercom",
+      "location": "San Francisco, California",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7763257",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior ML Science Manager",
+      "company": "Intercom",
+      "location": "Dublin, Ireland",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7411373",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Product Engineer",
+      "company": "Intercom",
+      "location": "Berlin, Germany",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7371932",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Product Engineer",
+      "company": "Intercom",
+      "location": "Dublin, Ireland",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/6386428",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Product Engineer",
+      "company": "Intercom",
+      "location": "London, England",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/6428372",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Product Engineer",
+      "company": "Intercom",
+      "location": "London, England",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/5107681",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Product Engineer, AI",
+      "company": "Intercom",
+      "location": "Dublin, Ireland; London, England",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/6276021",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Product Engineer, AI",
+      "company": "Intercom",
+      "location": "Berlin, Germany",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7371924",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Product Engineer - AI Platform",
+      "company": "Intercom",
+      "location": "Dublin, Ireland",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/6466001",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Product Engineer, AI Platform",
+      "company": "Intercom",
+      "location": "Berlin, Germany",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7382846",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Product Engineer - API & Integrations",
+      "company": "Intercom",
+      "location": "Dublin, Ireland",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7254082",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Salesforce Engineer",
+      "company": "Intercom",
+      "location": "San Francisco, California",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7539041",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Salesforce Engineer",
+      "company": "Intercom",
+      "location": "Dublin, Ireland",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7540289",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Salesforce Engineer",
+      "company": "Intercom",
+      "location": "Chicago, Illinois",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7540283",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Salesforce Engineer",
+      "company": "Intercom",
+      "location": "London, England",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7540286",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Security Engineering Manager",
+      "company": "Intercom",
+      "location": "Dublin, Ireland",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7601731",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Security Engineering Manager",
+      "company": "Intercom",
+      "location": "London, England",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7601740",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Software Engineer",
+      "company": "Intercom",
+      "location": "Dublin, Ireland",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/5082494",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Senior Solutions Engineer",
+      "company": "Intercom",
+      "location": "Dublin, Ireland",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7594453",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Software Engineer",
+      "company": "Intercom",
+      "location": "Berlin, Germany",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7371989",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Solutions Engineer",
+      "company": "Intercom",
+      "location": "San Francisco, California",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/6849119",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Solutions Engineer",
+      "company": "Intercom",
+      "location": "Chicago, Illinois",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7573187",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Solutions Engineer - LATAM (Portuguese Speaking)",
+      "company": "Intercom",
+      "location": "Chicago, Illinois",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7593406",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Solutions Engineer - LATAM (Portuguese Speaking)",
+      "company": "Intercom",
+      "location": "San Francisco, California",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7624926",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Staff Forward Deployed Engineer",
+      "company": "Intercom",
+      "location": "London, England",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7462110",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Staff Forward Deployed Engineer",
+      "company": "Intercom",
+      "location": "Dublin, Ireland",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7310770",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Staff Machine Learning Scientist",
+      "company": "Intercom",
+      "location": "London, England",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7271914",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Staff Machine Learning Scientist ",
+      "company": "Intercom",
+      "location": "Dublin, Ireland",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/6654793",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Staff Product Engineer",
+      "company": "Intercom",
+      "location": "Berlin, Germany",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7371916",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Staff Product Engineer ",
+      "company": "Intercom",
+      "location": "London, England",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/6386430",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Staff Product Engineer ",
+      "company": "Intercom",
+      "location": "Dublin, Ireland",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/6386429",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Staff Product Engineer, AI",
+      "company": "Intercom",
+      "location": "Dublin, Ireland",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7393950",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Staff Product Engineer, AI",
+      "company": "Intercom",
+      "location": "Berlin, Germany",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7383963",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Staff Product Engineer, AI",
+      "company": "Intercom",
+      "location": "Berlin, Germany",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7393922",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Staff Product Engineer, AI",
+      "company": "Intercom",
+      "location": "London, England",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7393955",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Staff Product Engineer, AI",
+      "company": "Intercom",
+      "location": "Dublin, Ireland; London, England",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7383950",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Staff Product Engineer - Growth",
+      "company": "Intercom",
+      "location": "Dublin, Ireland; London, England",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/7735830",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    },
+    {
+      "title": "Technical Support Engineer ",
+      "company": "Intercom",
+      "location": "Dublin, Ireland",
+      "url": "https://job-boards.greenhouse.io/intercom/jobs/6436276",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50
+    }
+  ]
+}
