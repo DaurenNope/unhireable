@@ -312,6 +312,9 @@ async function saveScheduleConfig() {
 
 // Setup event listeners
 function setupEventListeners() {
+    // Dashboard buttons
+    setupDashboardButtons();
+    
     // Auto-fill button
     if (fillBtn) {
         fillBtn.addEventListener('click', handleFillClick);
@@ -913,6 +916,121 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ success: true });
     }
 });
+
+// Load Job Queue from storage
+async function loadJobQueue() {
+    try {
+        const result = await chrome.storage.local.get(['matchedJobs', 'appliedJobs']);
+        const matchedJobs = result.matchedJobs || [];
+        const appliedJobs = result.appliedJobs || [];
+        
+        // Filter out already applied
+        const queueJobs = matchedJobs.filter(job => 
+            !appliedJobs.some(applied => applied.url === job.url)
+        );
+        
+        // Update queue count
+        const queueCountEl = document.getElementById('queueCount');
+        if (queueCountEl) {
+            queueCountEl.textContent = queueJobs.length;
+        }
+        
+        // Show/hide queue panel
+        const queuePanel = document.getElementById('jobQueuePanel');
+        if (queuePanel) {
+            queuePanel.style.display = queueJobs.length > 0 ? 'block' : 'none';
+        }
+        
+        // Update queue list
+        const queueList = document.getElementById('queueList');
+        if (queueList && queueJobs.length > 0) {
+            queueList.innerHTML = queueJobs.slice(0, 5).map(job => `
+                <div style="display: flex; justify-content: space-between; align-items: center; 
+                            padding: 6px 8px; background: rgba(255,255,255,0.05); 
+                            border-radius: 4px; margin-bottom: 4px;">
+                    <div style="overflow: hidden; text-overflow: ellipsis;">
+                        <div style="font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            ${job.title || 'Unknown Position'}
+                        </div>
+                        <div style="color: #71717a; font-size: 10px;">
+                            ${job.company || 'Unknown Company'}
+                        </div>
+                    </div>
+                    ${job.score ? `<div style="font-size: 11px; color: ${job.score >= 4 ? '#22c55e' : '#f59e0b'}; 
+                                     font-weight: 600; margin-left: 8px;">
+                        ${job.score.toFixed(1)}
+                    </div>` : ''}
+                </div>
+            `).join('');
+            
+            if (queueJobs.length > 5) {
+                queueList.innerHTML += `<div style="text-align: center; color: #71717a; font-size: 10px; padding: 4px;">
+                    +${queueJobs.length - 5} more jobs...
+                </div>`;
+            }
+        }
+    } catch (err) {
+        console.error('Failed to load job queue:', err);
+    }
+}
+
+// Load Application Stats
+async function loadApplicationStats() {
+    try {
+        const result = await chrome.storage.local.get(['appliedJobs', 'scoutedJobs']);
+        const appliedJobs = result.appliedJobs || [];
+        
+        // Show stats dashboard if we have data
+        const statsDashboard = document.getElementById('statsDashboard');
+        if (statsDashboard && appliedJobs.length > 0) {
+            statsDashboard.style.display = 'block';
+            
+            // Calculate stats
+            const total = appliedJobs.length;
+            const thisWeek = appliedJobs.filter(job => {
+                const appliedDate = new Date(job.appliedAt || job.timestamp);
+                const weekAgo = new Date();
+                weekAgo.setDate(weekAgo.getDate() - 7);
+                return appliedDate >= weekAgo;
+            }).length;
+            
+            const today = appliedJobs.filter(job => {
+                const appliedDate = new Date(job.appliedAt || job.timestamp);
+                const todayStart = new Date();
+                todayStart.setHours(0, 0, 0, 0);
+                return appliedDate >= todayStart;
+            }).length;
+            
+            const lastApplied = appliedJobs.length > 0 
+                ? new Date(appliedJobs[appliedJobs.length - 1].appliedAt || appliedJobs[appliedJobs.length - 1].timestamp).toLocaleDateString()
+                : 'Never';
+            
+            // Update UI
+            document.getElementById('statTotalApplied').textContent = total;
+            document.getElementById('statThisWeek').textContent = thisWeek;
+            document.getElementById('statToday').textContent = today;
+            document.getElementById('statLastApplied').textContent = lastApplied;
+        }
+        
+        // Also load job queue
+        await loadJobQueue();
+    } catch (err) {
+        console.error('Failed to load application stats:', err);
+    }
+}
+
+// Open Dashboard buttons
+function setupDashboardButtons() {
+    const openDashboardBtn = document.getElementById('openDashboardBtn');
+    const quickDashboardBtn = document.getElementById('quickDashboardBtn');
+    
+    const openDashboard = () => {
+        chrome.tabs.create({ url: 'http://localhost:8080' });
+    };
+    
+    if (openDashboardBtn) openDashboardBtn.addEventListener('click', openDashboard);
+    if (quickDashboardBtn) quickDashboardBtn.addEventListener('click', openDashboard);
+}
 
 // Initialize
 init();

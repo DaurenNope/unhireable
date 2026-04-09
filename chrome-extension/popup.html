@@ -480,6 +480,34 @@
         <div id="cacheList" style="font-size: 11px;"></div>
     </div>
 
+    <!-- Job Queue Panel -->
+    <div id="jobQueuePanel" class="status-card" style="margin-top: 12px; display: none;">
+        <div class="status-header">
+            <span>📋</span>
+            <span class="status-text">Job Queue (<span id="queueCount">0</span>)</span>
+        </div>
+        <div id="queueList" style="max-height: 150px; overflow-y: auto; margin-top: 8px; font-size: 11px;">
+            <div style="color: #71717a; text-align: center; padding: 8px;">No jobs in queue</div>
+        </div>
+        <button id="openDashboardBtn" class="btn btn-secondary" style="margin-top: 8px; font-size: 12px;">
+            <span>🌐</span>
+            <span>Open Full Dashboard</span>
+        </button>
+    </div>
+
+    <!-- Dashboard Quick Link (always visible) -->
+    <div class="status-card" style="margin-top: 8px; background: rgba(99, 102, 241, 0.1); border-color: rgba(99, 102, 241, 0.3);">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div>
+                <div style="font-size: 13px; font-weight: 500;">🎯 Unhireable Dashboard</div>
+                <div style="font-size: 11px; color: #a1a1aa;">View all jobs & matches</div>
+            </div>
+            <button id="quickDashboardBtn" class="btn btn-primary" style="padding: 8px 12px; font-size: 11px;">
+                Open
+            </button>
+        </div>
+    </div>
+
     <!-- Application Stats Dashboard -->
     <div id="statsDashboard" class="status-card" style="margin-top: 12px; display: none;">
         <div class="status-header">
