@@ -22,26 +22,30 @@
 title_filter:
   positive:
     # [CUSTOMIZE] Add keywords matching YOUR target roles
-    # -- Blockchain/Web3 roles --
-    - "Blockchain"
-    - "Web3"
-    - "Solidity"
-    - "Smart Contract"
-    - "DeFi"
-    - "NFT"
-    - "Crypto"
-    - "Ethereum"
-    - "dApp"
-    - "Protocol"
-    - "DAO"
-    - "Token"
-    - "Chain"
-    - "Consensus"
-    - "Cryptography"
-    # -- Engineering roles that may involve blockchain --
+    # -- AI/ML roles --
+    - "AI"
+    - "ML"
+    - "Machine Learning"
+    - "Artificial Intelligence"
+    - "LLM"
+    - "Language Model"
+    - "Generative AI"
+    - "GenAI"
+    - "MLOps"
+    - "AI/ML"
+    - "Deep Learning"
+    - "Neural Network"
+    - "NLP"
+    - "Computer Vision"
+    - "Data Science"
+    - "AI Engineer"
+    - "ML Engineer"
+    - "Applied AI"
+    # -- Engineering roles that may involve AI --
     - "Full Stack"
     - "Frontend"
     - "Backend"
+    - "Python"
     - "Developer"
     - "Engineer"
   negative:

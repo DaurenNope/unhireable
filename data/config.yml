@@ -7,22 +7,22 @@ ai:
 
 cv:
   name: "Dauren Nox"
-  title: "Blockchain Specialist"
+  title: "AI/ML Engineer & Blockchain Specialist"
   email: "dauren.nox@gmail.com"
   linkedin: "linkedin.com/in/dauren-nox"
   github: "github.com/daurenNox"
-  summary: "Blockchain specialist with 3 years experience driving innovation. Founder of Zorox Research Lab, a blockchain consultancy specializing in investment research, airdrop farming, and grant acquisition. Successfully advised leading bank on $500K crypto portfolio. Launched NFT diploma project for major Central Asian university. Educated 100+ individuals on AI and blockchain technology."
+  summary: "AI/ML Engineer with practical AI education experience. Educated 100+ individuals on AI and blockchain technology through PTB Academy. Founded Zorox Research Lab, advised on $500K crypto portfolio. Strong technical background in Computer Science (CSUN), with expertise in JavaScript, Python, and emerging technologies. Passionate about applied AI and LLM technologies."
   skills:
-    - Solidity
+    - Python
     - JavaScript
-    - Smart Contract Development
-    - Web3
-    - dApps
-    - Blockchain Architecture
-    - Project Management
-    - Agile/Scrum
+    - Machine Learning
+    - AI/LLM Applications
+    - Data Analysis
+    - Smart Contracts
     - Fullstack Development
-    - NFT Development
+    - Project Management
+    - Technical Education
+    - Agile/Scrum
   experience_years: 3
   location: "Remote"
   salary_target:
@@ -39,11 +39,12 @@ preferences:
     - ".NET"
     - "Salesforce"
   target_roles:
-    - "Blockchain Developer"
-    - "Solidity Engineer"
-    - "Web3 Developer"
-    - "Smart Contract Developer"
-    - "Full Stack Blockchain Engineer"
+    - "AI Engineer"
+    - "Machine Learning Engineer"
+    - "ML Engineer"
+    - "LLM Engineer"
+    - "AI Product Engineer"
+    - "Applied AI Engineer"
 
 evaluation:
   min_score: 3.0
