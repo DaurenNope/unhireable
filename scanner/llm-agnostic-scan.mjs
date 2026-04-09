@@ -23,10 +23,10 @@ const DATA_DIR = join(__dirname, '..', 'data');
 
 // LLM Configuration - works with ANY provider
 const LLM_CONFIG = {
-  provider: process.env.LLM_PROVIDER || 'gemini', // openai, anthropic, gemini, ollama
-  api_key: process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY,
-  model: process.env.LLM_MODEL || 'gemini-2.5-flash',
-  base_url: process.env.OLLAMA_URL || 'http://localhost:11434'
+  provider: process.env.LLM_PROVIDER || 'lmstudio', // openai, anthropic, gemini, ollama, lmstudio
+  api_key: process.env.LLM_API_KEY || 'lm-studio',
+  model: process.env.LLM_MODEL || 'local',
+  base_url: process.env.LLM_BASE_URL || 'http://localhost:1234/v1'
 };
 
 // Call LLM API - universal interface
@@ -42,6 +42,8 @@ async function callLLM(prompt, systemPrompt = '') {
       return await callGemini(prompt, api_key, model);
     case 'ollama':
       return await callOllama(prompt, base_url, model);
+    case 'lmstudio':
+      return await callLMStudio(prompt, systemPrompt, base_url, model);
     default:
       throw new Error(`Unknown provider: ${provider}`);
   }
@@ -121,6 +123,29 @@ async function callOllama(prompt, baseUrl, model) {
   if (!response.ok) throw new Error(`Ollama error: ${response.status}`);
   const data = await response.json();
   return data.response;
+}
+
+async function callLMStudio(prompt, systemPrompt, baseUrl, model) {
+  const response = await fetch(`${baseUrl}/chat/completions`, {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer lm-studio'
+    },
+    body: JSON.stringify({
+      model: model || 'local',
+      messages: [
+        ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.3,
+      max_tokens: 4000
+    })
+  });
+  
+  if (!response.ok) throw new Error(`LM Studio error: ${response.status} - ${await response.text()}`);
+  const data = await response.json();
+  return data.choices[0].message.content;
 }
 
 // Greenhouse API - no LLM needed, direct REST API

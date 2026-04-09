@@ -184,9 +184,13 @@ async function callAI(prompt, aiConfig) {
     case 'anthropic':
       return await callAnthropic(prompt, aiConfig);
     case 'gemini':
+    case 'google':
       return await callGemini(prompt, aiConfig);
     case 'ollama':
       return await callOllama(prompt, aiConfig);
+    case 'lmstudio':
+    case 'lm-studio':
+      return await callLMStudio(prompt, aiConfig);
     default:
       throw new Error(`Unknown provider: ${aiConfig.provider}`);
   }
@@ -277,6 +281,32 @@ async function callOllama(prompt, config) {
   
   const data = await response.json();
   return data.response;
+}
+
+async function callLMStudio(prompt, config) {
+  const baseUrl = config.base_url || 'http://localhost:1234/v1';
+  
+  const response = await fetch(`${baseUrl}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${config.api_key || 'lm-studio'}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: config.model || 'local',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.3,
+      max_tokens: 4000
+    })
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`LM Studio error: ${response.status} - ${errorText}`);
+  }
+  
+  const data = await response.json();
+  return data.choices[0].message.content;
 }
 
 function parseAIResponse(text, job) {
