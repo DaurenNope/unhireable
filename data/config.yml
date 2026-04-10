@@ -2,7 +2,7 @@ ai:
   # Options: openai, anthropic, gemini, ollama, lmstudio
   provider: lmstudio
   base_url: "http://localhost:1234/v1"  # LM Studio local server
-  model: "local"  # LM Studio uses model loaded in UI
+  model: "google/gemma-4-e4b"  # Model identifier in LM Studio
   api_key: "lm-studio"  # Dummy key for LM Studio
 
 cv:

@@ -48,10 +48,10 @@ function loadConfig() {
   if (!existsSync(options.config)) {
     const defaultConfig = {
       ai: {
-        provider: 'openai', // openai, anthropic, google, ollama
-        api_key: 'YOUR_API_KEY_HERE',
-        model: 'gpt-4o-mini', // or claude-3-haiku, gemini-pro, etc.
-        base_url: null // for Ollama: http://localhost:11434
+        provider: 'lmstudio', // openai, anthropic, google, ollama, lmstudio
+        api_key: 'lm-studio',
+        model: 'google/gemma-4-e4b',
+        base_url: 'http://localhost:1234/v1'
       },
       cv: {
         name: 'Your Name',
@@ -289,14 +289,14 @@ async function callLMStudio(prompt, config) {
   const response = await fetch(`${baseUrl}/chat/completions`, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${config.api_key || 'lm-studio'}`,
+      'Authorization': 'Bearer lm-studio',
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      model: config.model || 'local',
+      model: config.model || 'google/gemma-4-e4b',
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.3,
-      max_tokens: 4000
+      max_tokens: 8000
     })
   });
   

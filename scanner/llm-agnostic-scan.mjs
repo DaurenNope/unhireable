@@ -25,7 +25,7 @@ const DATA_DIR = join(__dirname, '..', 'data');
 const LLM_CONFIG = {
   provider: process.env.LLM_PROVIDER || 'lmstudio', // openai, anthropic, gemini, ollama, lmstudio
   api_key: process.env.LLM_API_KEY || 'lm-studio',
-  model: process.env.LLM_MODEL || 'qwen/qwen3.5-4b',
+  model: process.env.LLM_MODEL || 'google/gemma-4-e4b',
   base_url: process.env.LLM_BASE_URL || 'http://localhost:1234/v1'
 };
 
@@ -133,13 +133,13 @@ async function callLMStudio(prompt, systemPrompt, baseUrl, model) {
       'Authorization': 'Bearer lm-studio'
     },
     body: JSON.stringify({
-      model: model || 'qwen/qwen3.5-4b',
+      model: model || 'google/gemma-4-e4b',
       messages: [
         ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
         { role: 'user', content: prompt }
       ],
       temperature: 0.3,
-      max_tokens: 4000
+      max_tokens: 8000
     })
   });
   

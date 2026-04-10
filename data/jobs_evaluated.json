@@ -1,0 +1,136 @@
+{
+  "evaluated_at": "2026-04-10T06:05:43.935Z",
+  "total_evaluated": 3,
+  "good_matches": 3,
+  "ai_provider": "lmstudio",
+  "jobs": [
+    {
+      "title": "Anthropic AI Safety Fellow",
+      "company": "Anthropic",
+      "location": "London, UK; Ontario, CAN; Remote-Friendly, United States; San Francisco, CA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5023394008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50,
+      "score": 4.5,
+      "recommendation": "CONSIDER",
+      "blocks": {
+        "A": {
+          "score": 3.5,
+          "reason": "The job requires deep domain expertise in AI Safety and Alignment (a specialized field). While the candidate's skills are highly relevant to LLM applications, the 'Fellow' title suggests a research depth that may exceed the current stated experience level. However, the core ML/LLM focus is appropriate."
+        },
+        "B": {
+          "score": 3.8,
+          "reason": "The candidate has strong foundational skills (Python, LLM Applications) and transferable experience in technical education, which demonstrates communication ability crucial for a 'Fellow' role. The primary gap is explicit knowledge of advanced AI safety methodologies (e.g., red teaming, interpretability frameworks, adversarial robustness testing)."
+        },
+        "C": {
+          "score": 5,
+          "reason": "Perfect match on location preference (Remote Only) and the target role area (AI/ML Engineer). The salary range is acceptable for a highly specialized role in this field."
+        },
+        "D": {
+          "score": 5,
+          "reason": "Anthropic is a top-tier company with exceptional reputation, especially regarding AI safety and constitutional AI. This represents high growth potential and prestige."
+        }
+      },
+      "summary": "Strong logistical fit for a highly prestigious role; requires targeted preparation to bridge the gap between general ML engineering and specialized AI Safety research.",
+      "cv_highlights": [
+        "AI/LLM Applications",
+        "Python & Machine Learning Expertise",
+        "Technical Education (Experience teaching complex topics like AI/Blockchain)"
+      ],
+      "interview_prep": [
+        "Discuss failure modes: Prepare a detailed example of how an LLM could fail in a real-world scenario and what safety guardrails you would implement to prevent it.",
+        "Ethical Dilemma Story: Use the STAR method to describe a time when technical implementation conflicted with ethical considerations, and how you navigated that conflict.",
+        "Alignment Deep Dive: Be ready to discuss specific AI alignment concepts (e.g., Constitutional AI, interpretability, red teaming) beyond just general ML principles."
+      ],
+      "tailored_summary": "Highly passionate AI/ML Engineer with a strong foundation in LLM applications and Python, eager to transition into the critical domain of AI Safety. My background in technical education demonstrates the ability to communicate complex concepts, which aligns perfectly with contributing to Anthropic's mission of safe and beneficial AI development.",
+      "evaluated_at": "2026-04-10T06:00:35.950Z"
+    },
+    {
+      "title": "Anthropic AI Security Fellow",
+      "company": "Anthropic",
+      "location": "London, UK; Ontario, CAN; Remote-Friendly, United States; San Francisco, CA",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5030244008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50,
+      "score": 4.5,
+      "recommendation": "APPLY",
+      "blocks": {
+        "A": {
+          "score": 3.5,
+          "reason": "The title 'AI Security Fellow' suggests a deep research focus on model alignment and safety (Red Teaming). While the candidate's ML/LLM background is highly relevant, their profile lacks explicit experience in formal AI security frameworks or advanced academic research typically associated with a 'Fellow' role. However, the core technical skills are appropriate."
+        },
+        "B": {
+          "score": 4,
+          "reason": "Excellent match on foundational tools (Python, ML, LLM Apps). The candidate has strong applied experience and deep subject matter expertise demonstrated through teaching AI/LLMs. The primary gap is the explicit focus on 'AI Security'—the candidate must frame their existing data analysis and application development skills through a vulnerability or safety lens during interviews."
+        },
+        "C": {
+          "score": 5,
+          "reason": "Perfect match across all logistical criteria. The job is remote-friendly, aligning with the candidate's preference. The target salary range is acceptable and competitive for this level of expertise in a major tech hub."
+        },
+        "D": {
+          "score": 5,
+          "reason": "Anthropic is a top-tier company highly respected in the AI safety community. This indicates high job quality, strong growth potential, and a clear focus area (AI Safety/Alignment), which aligns perfectly with the candidate's passion for applied LLM technologies."
+        }
+      },
+      "summary": "High alignment on logistics and career trajectory; apply immediately by framing existing ML experience through an AI security and safety lens.",
+      "cv_highlights": [
+        "AI/ML Engineer & LLM Applications",
+        "Technical Education (Mastery of subject matter)",
+        "Python, Data Analysis",
+        "Applied AI Development"
+      ],
+      "interview_prep": [
+        "Prepare a STAR story detailing how you identified or mitigated a potential vulnerability in an ML application (even if it was theoretical during teaching). Focus on the 'why' and 'how to fix' rather than just the implementation.",
+        "Be ready to discuss AI alignment principles, constitutional AI, and adversarial attacks. Show that your passion extends beyond building models to ensuring they are safe and ethical."
+      ],
+      "tailored_summary": "Highly motivated AI/ML Engineer with a strong foundation in Python and applied LLM development, eager to transition into the critical domain of AI safety. My experience teaching complex AI concepts demonstrates deep subject matter mastery, which I am ready to apply toward solving frontier challenges in model security and alignment at Anthropic.",
+      "evaluated_at": "2026-04-10T06:03:06.156Z"
+    },
+    {
+      "title": "Application Security Engineer",
+      "company": "Anthropic",
+      "location": "Remote-Friendly (Travel-Required) | San Francisco, CA | Seattle, WA | New York City, NY",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/4502508008",
+      "department": "",
+      "source": "greenhouse-api",
+      "description": "",
+      "relevance_score": 50,
+      "score": 4.2,
+      "recommendation": "APPLY",
+      "blocks": {
+        "A": {
+          "score": 3.5,
+          "reason": "The role (Application Security Engineer) is a significant domain shift from the candidate's core expertise (AI/ML). However, both roles require deep understanding of application architecture and secure coding practices, which the candidate possesses through their Fullstack/LLM experience."
+        },
+        "B": {
+          "score": 4,
+          "reason": "The candidate has strong transferable skills in Python and JavaScript (key languages for web security). While explicit 'security' keywords are missing, their background in full-stack development provides the necessary foundation to learn secure SDLC practices quickly."
+        },
+        "C": {
+          "score": 4.5,
+          "reason": "The salary range is acceptable and aligns with high-tech roles. The primary conflict is the 'Remote Only' preference versus the job's travel requirement, but this is manageable if the candidate is highly motivated by the company/role."
+        },
+        "D": {
+          "score": 5,
+          "reason": "Anthropic is a top-tier, cutting-edge company in the AI space. The role itself (Application Security) is critical and high-growth given the complexity of LLM applications, suggesting excellent learning opportunities."
+        }
+      },
+      "summary": "Strong technical foundation in modern languages and complex systems makes this an exciting pivot opportunity, provided the candidate proactively addresses their lack of dedicated security domain experience.",
+      "cv_highlights": [
+        "Python & JavaScript Proficiency",
+        "Fullstack Development Experience",
+        "AI/LLM Application Architecture Understanding"
+      ],
+      "interview_prep": [
+        "Be prepared to discuss secure coding practices (e.g., OWASP Top 10) using examples from your existing Python/JS projects, demonstrating how you would proactively prevent vulnerabilities.",
+        "Frame your AI experience not just as building models, but as understanding the entire application pipeline—from data ingestion and API calls to front-end deployment—to show architectural security awareness."
+      ],
+      "tailored_summary": "I am an experienced AI/ML Engineer with a strong foundation in fullstack development using Python and JavaScript. I am passionate about applying my deep technical understanding of complex, cutting-edge systems (like LLMs) to the critical domain of application security engineering at Anthropic.",
+      "evaluated_at": "2026-04-10T06:05:43.934Z"
+    }
+  ]
+}
