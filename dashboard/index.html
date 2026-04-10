@@ -536,6 +536,45 @@
         </div>
     </div>
 
+    <!-- Pipeline Progress Panel (hidden by default) -->
+    <div id="pipelinePanel" class="stats" style="display: none; background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1)); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 12px; padding: 20px; margin: 0 0 20px 0;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+            <div style="font-size: 14px; font-weight: 600; color: #a5b4fc;">
+                <span id="pipelineStatus">⏳ Running Full Pipeline...</span>
+            </div>
+            <button onclick="stopPipeline()" style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; padding: 6px 12px; border-radius: 6px; font-size: 11px; cursor: pointer;">
+                ⏹ Stop
+            </button>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
+            <div style="text-align: center;">
+                <div id="stepScan" style="font-size: 20px; margin-bottom: 4px;">🔍</div>
+                <div style="font-size: 11px; color: #888;">Scan</div>
+                <div id="stepScanStatus" style="font-size: 10px; color: #666; margin-top: 2px;">pending</div>
+            </div>
+            <div style="text-align: center;">
+                <div id="stepEvaluate" style="font-size: 20px; margin-bottom: 4px;">⚖️</div>
+                <div style="font-size: 11px; color: #888;">Evaluate</div>
+                <div id="stepEvaluateStatus" style="font-size: 10px; color: #666; margin-top: 2px;">waiting</div>
+            </div>
+            <div style="text-align: center;">
+                <div id="stepImport" style="font-size: 20px; margin-bottom: 4px;">📥</div>
+                <div style="font-size: 11px; color: #888;">Import</div>
+                <div id="stepImportStatus" style="font-size: 10px; color: #666; margin-top: 2px;">waiting</div>
+            </div>
+            <div style="text-align: center;">
+                <div id="stepLoad" style="font-size: 20px; margin-bottom: 4px;">📊</div>
+                <div style="font-size: 11px; color: #888;">Load</div>
+                <div id="stepLoadStatus" style="font-size: 10px; color: #666; margin-top: 2px;">waiting</div>
+            </div>
+        </div>
+        <div id="pipelineProgressBar" style="width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; margin-top: 16px; overflow: hidden;">
+            <div id="pipelineProgress" style="width: 0%; height: 100%; background: linear-gradient(90deg, #6366f1, #8b5cf6); border-radius: 2px; transition: width 0.5s ease;"></div>
+        </div>
+        <div id="pipelineLog" style="margin-top: 12px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #888; max-height: 100px; overflow-y: auto;">
+        </div>
+    </div>
+
     <header>
         <div class="brand">
             <div class="brand-tag">// AGENT CONSOLE</div>
@@ -555,6 +594,9 @@
                 </button>
                 <button class="btn" onclick="exportQueue()">
                     [↓] Export
+                </button>
+                <button class="btn" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white;" onclick="runFullPipeline()">
+                    ▶ Run Full Pipeline
                 </button>
 
                 <div class="filters">

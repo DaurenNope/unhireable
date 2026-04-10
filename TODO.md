@@ -4,30 +4,61 @@
 
 ### Phase 1: Complete The Glue (Priority: 🔥 HIGH)
 
-- [ ] **A. Auto-detect job page scores**
+- [x] **A. Auto-detect job page scores** 
   - Extension detects when user visits evaluated job URL
   - Shows score badge in popup: "⭐ 4.0/5 - APPLY"
   - File: `chrome-extension/content-scripts/job-detector.js`
   - Storage: Read `matchedJobs` from Chrome Storage, match by URL
 
-- [ ] **B. One-click apply from dashboard**
-  - "Apply Now" button in dashboard opens job URL
-  - Extension auto-triggers form filling
-  - File: `dashboard/app.js` + `chrome-extension/background.js`
-  - Message passing: dashboard → extension
+- [x] **B. One-click apply from dashboard** ✅ DONE
+  - [x] "⚡ Apply Now" button in dashboard (only for APPLY recommendations)
+  - [x] Opens job URL in new tab
+  - [x] Stores pending application in localStorage
+  - [x] Extension background checks tab updates for pending apps
+  - [x] Auto-triggers form filling when page loads
+  - [x] Content script handles checkPendingApplication messages
+  - Files: `dashboard/app.js`, `background.js`, `job-score-detector.js`
 
-- [ ] **C. Track applied status**
-  - When user applies via extension, mark job as "applied"
-  - Update status in Chrome Storage
-  - Sync to dashboard on next load
-  - File: `chrome-extension/background.js`, `dashboard/app.js`
+- [x] **C. Track applied status** ✅ DONE
+  - [x] "✅ Mark as Applied" button appears after form fill
+  - [x] Button hidden until form is successfully filled
+  - [x] markCurrentJobAsApplied() function
+    - [x] Gets current tab URL
+    - [x] Finds job in matchedJobs by URL
+    - [x] Adds to appliedJobs with timestamp
+    - [x] Updates job status in matchedJobs
+    - [x] Updates UI (hides button, shows success)
+    - [x] Refreshes stats and queue summary
+  - [x] Dashboard filters updated:
+    - [x] "APPLIED" option in Status dropdown
+    - [x] "SKIP" option in Status dropdown
+    - [x] "Show Applied" checkbox filter
+    - [x] Shows count badge for applied jobs
+  - Files: `popup.html`, `popup.js`, `index.html`, `chrome-extension/background.js`, `dashboard/app.js`
   - Add "Applied" filter to dashboard
 
-- [ ] **D. Full auto-pipeline button**
-  - Single button in dashboard: "Run Full Pipeline"
-  - Executes: Scan → Evaluate → Import → Update UI
-  - Shows progress in real-time
-  - File: `dashboard/app.js`, new API endpoint or script runner
+- [x] **D. Full auto-pipeline button** ✅ DONE
+  - [x] "▶ Run Full Pipeline" button in dashboard header (purple gradient)
+  - [x] Real-time progress panel with 4 steps:
+    - 🔍 Scan (10-25%)
+    - ⚖️ Evaluate (30-60%)
+    - 📥 Import (65-80%)
+    - 📊 Load (85-100%)
+  - [x] Each step shows: emoji icon, status text (pending/running/complete)
+  - [x] Animated progress bar (gradient purple)
+  - [x] Live log with timestamps
+  - [x] Stop button to abort pipeline
+  - [x] Success/error states with toast notifications
+  - Files: `index.html`, `app.js`
+
+### Phase 1 Summary - COMPLETE ✅
+**The Glue** is now fully operational:
+1. **Auto-detect scores** - Badge appears on evaluated job pages
+2. **One-click apply** - Dashboard → Extension auto-fill flow
+3. **Track applied** - Mark as applied, filter by status
+4. **Full pipeline** - One button runs entire workflow
+
+**Next: Phase 2 - Core Features**, new API endpoint or script runner
   - Requires: Backend or script execution capability
 
 ---

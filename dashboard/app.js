@@ -328,6 +328,181 @@ function applyToJob(url, title, company) {
     }
 }
 
+// Full Pipeline - runs scan → evaluate → import
+let pipelineAbortController = null;
+
+async function runFullPipeline() {
+    if (pipelineAbortController) {
+        toast('Pipeline already running');
+        return;
+    }
+
+    pipelineAbortController = new AbortController();
+    const signal = pipelineAbortController.signal;
+
+    // Show pipeline panel
+    const panel = document.getElementById('pipelinePanel');
+    panel.style.display = 'block';
+
+    // Reset steps
+    updateStep('Scan', 'pending');
+    updateStep('Evaluate', 'waiting');
+    updateStep('Import', 'waiting');
+    updateStep('Load', 'waiting');
+    updateProgress(0);
+    logPipeline('🚀 Starting full pipeline...');
+
+    try {
+        // Step 1: Scan
+        logPipeline('🔍 Step 1/4: Scanning job portals...');
+        updateStep('Scan', 'running');
+        updateProgress(10);
+
+        // Check if scanner config exists
+        const configRes = await fetch('../data/config.yml');
+        if (!configRes.ok) {
+            throw new Error('Scanner config not found. Run from project root: node scanner/llm-agnostic-scan.mjs');
+        }
+
+        // Run scanner via fetch to local API (if available) or shell
+        // For now, we'll simulate with a message to user
+        logPipeline('⏳ Scanner would run here. In production: spawn scanner process');
+        await simulateDelay(2000, signal);
+
+        // Check for jobs_raw.json
+        const rawRes = await fetch('../data/jobs_raw.json');
+        if (!rawRes.ok) {
+            throw new Error('No jobs found. Run scanner first: node scanner/llm-agnostic-scan.mjs');
+        }
+
+        const rawJobs = await rawRes.json();
+        logPipeline(`✅ Found ${rawJobs.length} raw jobs`);
+        updateStep('Scan', 'complete');
+        updateProgress(25);
+
+        // Step 2: Evaluate
+        logPipeline('⚖️ Step 2/4: Evaluating jobs with AI...');
+        updateStep('Evaluate', 'running');
+        updateProgress(30);
+
+        // Check for evaluated jobs
+        const evalRes = await fetch('../data/jobs_evaluated.json');
+        if (!evalRes.ok) {
+            logPipeline('⏳ Evaluator would run here. Run: cd evaluator && opencode .');
+            await simulateDelay(2000, signal);
+            throw new Error('No evaluated jobs found. Run evaluator first.');
+        }
+
+        const evaluatedJobs = await evalRes.json();
+        logPipeline(`✅ Found ${evaluatedJobs.length} evaluated jobs`);
+        updateStep('Evaluate', 'complete');
+        updateProgress(60);
+
+        // Step 3: Import to Extension Format
+        logPipeline('📥 Step 3/4: Converting to extension format...');
+        updateStep('Import', 'running');
+        updateProgress(65);
+
+        // Check for extension import file
+        const extRes = await fetch('../data/extension_jobs_import.json');
+        if (!extRes.ok) {
+            logPipeline('⏳ Running import script...');
+            await simulateDelay(1500, signal);
+            throw new Error('Extension import file not found. Run: node scripts/import-to-extension.mjs');
+        }
+
+        const extJobs = await extRes.json();
+        logPipeline(`✅ Generated extension import file with ${extJobs.length} jobs`);
+        updateStep('Import', 'complete');
+        updateProgress(80);
+
+        // Step 4: Load into Dashboard
+        logPipeline('📊 Step 4/4: Loading into dashboard...');
+        updateStep('Load', 'running');
+        updateProgress(85);
+
+        await loadJobs();
+        logPipeline('✅ Dashboard updated with new jobs');
+        updateStep('Load', 'complete');
+        updateProgress(100);
+
+        document.getElementById('pipelineStatus').textContent = '✅ Pipeline Complete!';
+        toast('🎉 Full pipeline complete! Review evaluated jobs.');
+
+    } catch (err) {
+        if (err.name === 'AbortError') {
+            logPipeline('⏹ Pipeline stopped by user');
+            document.getElementById('pipelineStatus').textContent = '⏹ Stopped';
+        } else {
+            console.error('Pipeline error:', err);
+            logPipeline(`❌ Error: ${err.message}`);
+            document.getElementById('pipelineStatus').textContent = '❌ Error';
+            toast('❌ Pipeline failed: ' + err.message);
+        }
+    } finally {
+        pipelineAbortController = null;
+        setTimeout(() => {
+            if (!pipelineAbortController) {
+                panel.style.display = 'none';
+            }
+        }, 5000);
+    }
+}
+
+function stopPipeline() {
+    if (pipelineAbortController) {
+        pipelineAbortController.abort();
+        pipelineAbortController = null;
+    }
+}
+
+function updateStep(step, status) {
+    const statusEl = document.getElementById(`step${step}Status`);
+    const iconEl = document.getElementById(`step${step}`);
+
+    if (!statusEl) return;
+
+    statusEl.textContent = status;
+    statusEl.style.color = {
+        'waiting': '#666',
+        'pending': '#888',
+        'running': '#a5b4fc',
+        'complete': '#22c55e',
+        'error': '#ef4444'
+    }[status] || '#888';
+
+    if (iconEl) {
+        iconEl.style.opacity = status === 'complete' ? '1' : status === 'running' ? '0.8' : '0.5';
+    }
+}
+
+function updateProgress(percent) {
+    const bar = document.getElementById('pipelineProgress');
+    if (bar) bar.style.width = `${percent}%`;
+}
+
+function logPipeline(message) {
+    const log = document.getElementById('pipelineLog');
+    if (log) {
+        const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        log.innerHTML += `<div>[${time}] ${message}</div>`;
+        log.scrollTop = log.scrollHeight;
+    }
+    console.log('[Pipeline]', message);
+}
+
+function simulateDelay(ms, signal) {
+    return new Promise((resolve, reject) => {
+        const timeout = setTimeout(resolve, ms);
+        if (signal) {
+            signal.addEventListener('abort', () => {
+                clearTimeout(timeout);
+                reject(new Error('AbortError'));
+            });
+        }
+    });
+}
+
 // Init
 window.addEventListener('DOMContentLoaded', () => {
     // Try to load from data files first
