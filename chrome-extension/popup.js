@@ -37,6 +37,7 @@ async function init() {
     await loadApplicationStats();
     setupEventListeners();
     setupJobsQueueButtons();
+    await displayDetectedJob();
 }
 
 // Load user profile from storage
@@ -916,6 +917,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
         sendResponse({ success: true });
     }
+    
+    if (message.type === 'EVALUATED_JOB_DETECTED') {
+        // Store detected job for popup display
+        chrome.storage.local.set({ currentDetectedJob: message.job });
+        sendResponse({ success: true });
+    }
 });
 
 // Load Job Queue from storage
@@ -1137,6 +1144,65 @@ function setupJobsQueueButtons() {
     
     // Load summary on init
     loadJobsQueueSummary();
+}
+
+// Display detected job score in popup
+async function displayDetectedJob() {
+    try {
+        // Get current tab URL
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (!tab || !tab.url) return;
+
+        // Get matched jobs from storage
+        const result = await chrome.storage.local.get(['matchedJobs']);
+        const matchedJobs = result.matchedJobs || [];
+
+        // Find matching job
+        const currentUrl = tab.url.toLowerCase();
+        const detectedJob = matchedJobs.find(job => {
+            const jobUrl = job.url?.toLowerCase() || '';
+            return jobUrl === currentUrl || 
+                   currentUrl.includes(jobUrl) || 
+                   jobUrl.includes(currentUrl.split('?')[0]);
+        });
+
+        const card = document.getElementById('detectedJobCard');
+        if (!card) return;
+
+        if (detectedJob && detectedJob.score) {
+            // Show the card
+            card.style.display = 'block';
+
+            // Populate data
+            document.getElementById('detectedJobCompany').textContent = detectedJob.company || 'Unknown Company';
+            document.getElementById('detectedJobTitle').textContent = detectedJob.title || 'Unknown Position';
+            document.getElementById('detectedJobScore').textContent = detectedJob.score.toFixed(1);
+
+            // Set color based on score
+            const scoreEl = document.getElementById('detectedJobScore');
+            const recEl = document.getElementById('detectedJobRec');
+
+            let color = '#ef4444';
+            let bgColor = 'rgba(239, 68, 68, 0.2)';
+            if (detectedJob.score >= 4.0) {
+                color = '#22c55e';
+                bgColor = 'rgba(34, 197, 94, 0.2)';
+            } else if (detectedJob.score >= 3.0) {
+                color = '#f59e0b';
+                bgColor = 'rgba(245, 158, 11, 0.2)';
+            }
+
+            scoreEl.style.color = color;
+            recEl.style.background = bgColor;
+            recEl.style.color = color;
+            recEl.textContent = detectedJob.recommendation || 'PENDING';
+
+        } else {
+            card.style.display = 'none';
+        }
+    } catch (err) {
+        console.error('Failed to display detected job:', err);
+    }
 }
 
 // Initialize

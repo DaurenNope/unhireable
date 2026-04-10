@@ -50,6 +50,7 @@
             "js": [
                 "content-scripts/logger.js",
                 "content-scripts/smart-answers.js",
+                "content-scripts/job-score-detector.js",
                 "content-scripts/universal-filler.js"
             ],
             "run_at": "document_idle",
@@ -63,7 +64,7 @@
             "js": [
                 "content-scripts/logger.js",
                 "content-scripts/smart-answers.js",
-                "content-scripts/universal-filler.js",
+                "content-scripts/job-score-detector.js",
                 "content-scripts/job-matcher.js",
                 "content-scripts/linkedin.js"
             ],
