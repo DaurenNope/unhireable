@@ -14,6 +14,7 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import YAML from 'js-yaml';
 import dotenv from 'dotenv';
+import chalk from 'chalk';
 
 // Load .env
 dotenv.config({ path: join(dirname(fileURLToPath(import.meta.url)), '..', '.env') });
@@ -185,7 +186,7 @@ async function scanWithPlaywright(company, config) {
     const page = await context.newPage();
     console.log(`  Navigating: ${company.careers_url}`);
     
-    await page.goto(company.careers_url, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.goto(company.careers_url, { waitUntil: 'domcontentloaded', timeout: 60000 });
     
     // Wait for content to load
     await page.waitForLoadState('domcontentloaded');
@@ -320,34 +321,61 @@ async function runLLMAgnosticScan(options = {}) {
   const config = YAML.load(readFileSync(portalsPath, 'utf8'));
   const companies = (config.tracked_companies || [])
     .filter(c => c.enabled !== false)
-    .slice(0, options.limit || 50);
+    .slice(0, options.limit || 100);
   
   console.log(`Scanning ${companies.length} companies...\n`);
   
   const allJobs = [];
   
-  for (const company of companies) {
-    console.log(`${company.name}:`);
-    let jobs = [];
-    
-    // Method 1: Greenhouse API (fastest, no browser)
-    if (company.api) {
+  // Separate companies by method for efficient scanning
+  const greenhouseCompanies = companies.filter(c => c.api);
+  const playwrightCompanies = companies.filter(c => !c.api && c.careers_url);
+  
+  console.log(`  ${greenhouseCompanies.length} companies via Greenhouse API (fast)`);
+  console.log(`  ${playwrightCompanies.length} companies via Playwright (slow)\n`);
+  
+  // Scan Greenhouse API companies in PARALLEL (fast)
+  console.log('🔍 Scanning Greenhouse API companies (parallel)...');
+  const greenhouseResults = await Promise.allSettled(
+    greenhouseCompanies.map(async (company) => {
       const slug = company.api.match(/boards\/([^/]+)/)?.[1];
-      if (slug) {
-        jobs = await scanGreenhouseAPI(slug);
-        console.log(`  Greenhouse API: ${jobs.length} jobs`);
+      if (!slug) return [];
+      try {
+        const jobs = await scanGreenhouseAPI(slug);
+        if (jobs.length > 0) {
+          console.log(`  ✅ ${company.name}: ${jobs.length} jobs`);
+        }
+        return jobs;
+      } catch (e) {
+        console.log(`  ❌ ${company.name}: ${e.message}`);
+        return [];
       }
+    })
+  );
+  
+  greenhouseResults.forEach(result => {
+    if (result.status === 'fulfilled') {
+      allJobs.push(...result.value);
     }
+  });
+  
+  console.log(`\n📊 Greenhouse API total: ${allJobs.length} jobs`);
+  
+  // Scan Playwright companies SEQUENTIALLY (slower, avoid overwhelming)
+  if (playwrightCompanies.length > 0 && options.skipPlaywright !== true) {
+    console.log(`\n🌐 Scanning ${playwrightCompanies.length} companies via Playwright...`);
+    console.log('   (This may take a few minutes...)\n');
     
-    // Method 2: Playwright + LLM extraction
-    if (jobs.length === 0 && company.careers_url) {
-      jobs = await scanWithPlaywright(company, config);
+    for (const company of playwrightCompanies.slice(0, 10)) { // Limit to 10 for speed
+      console.log(`${company.name}:`);
+      const jobs = await scanWithPlaywright(company, config);
+      if (jobs.length > 0) {
+        console.log(`  ✅ Found ${jobs.length} jobs`);
+        allJobs.push(...jobs);
+      }
+      // Shorter delay between companies
+      await sleep(1000);
     }
-    
-    allJobs.push(...jobs);
-    
-    // Rate limiting between companies
-    await sleep(3000);
   }
   
   console.log(`\n${'='.repeat(50)}`);
@@ -392,8 +420,13 @@ function sleep(ms) {
 // CLI
 const args = process.argv.slice(2);
 const options = {
-  limit: parseInt(args.find(a => a.startsWith('--limit='))?.split('=')[1]) || 50,
-  smart_filter: !args.includes('--no-smart-filter')
+  limit: parseInt(args.find(a => a.startsWith('--limit='))?.split('=')[1]) || 100,
+  smart_filter: !args.includes('--no-smart-filter'),
+  skipPlaywright: args.includes('--skip-playwright')
 };
+
+console.log(chalk.blue.bold('🔍 LLM-Agnostic Career Ops Scanner'));
+console.log(chalk.gray(`Options: limit=${options.limit}, smart_filter=${options.smart_filter}, skip_playwright=${options.skipPlaywright}`));
+console.log();
 
 runLLMAgnosticScan(options).catch(console.error);
