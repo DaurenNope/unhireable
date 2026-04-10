@@ -36,6 +36,7 @@ async function init() {
     await loadSettings();
     await loadApplicationStats();
     setupEventListeners();
+    setupJobsQueueButtons();
 }
 
 // Load user profile from storage
@@ -1030,6 +1031,112 @@ function setupDashboardButtons() {
     
     if (openDashboardBtn) openDashboardBtn.addEventListener('click', openDashboard);
     if (quickDashboardBtn) quickDashboardBtn.addEventListener('click', openDashboard);
+}
+
+// Jobs Queue Functions
+async function loadJobsQueueSummary() {
+    try {
+        const result = await chrome.storage.local.get(['matchedJobs']);
+        const matchedJobs = result.matchedJobs || [];
+        
+        // Update badge
+        const badge = document.getElementById('jobsCountBadge');
+        if (badge) {
+            badge.textContent = matchedJobs.length;
+        }
+        
+        // Update summary
+        const summary = document.getElementById('jobsSummary');
+        if (summary && matchedJobs.length > 0) {
+            summary.style.display = 'block';
+            
+            const highScoreCount = matchedJobs.filter(j => j.score >= 4.0).length;
+            const pendingCount = matchedJobs.filter(j => j.status === 'new' || !j.status).length;
+            
+            document.getElementById('highScoreCount').textContent = highScoreCount;
+            document.getElementById('pendingCount').textContent = pendingCount;
+        }
+    } catch (err) {
+        console.error('Failed to load jobs queue summary:', err);
+    }
+}
+
+async function importEvaluatedJobs() {
+    const fileInput = document.getElementById('jobsImportFile');
+    
+    fileInput.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        try {
+            const text = await file.text();
+            const data = JSON.parse(text);
+            
+            if (!data.jobs || !Array.isArray(data.jobs)) {
+                alert('Invalid file format. Expected extension_jobs_import.json');
+                return;
+            }
+            
+            // Get existing jobs
+            const result = await chrome.storage.local.get(['matchedJobs']);
+            const existingJobs = result.matchedJobs || [];
+            
+            // Merge: new jobs take precedence by URL
+            const jobMap = new Map(existingJobs.map(j => [j.url, j]));
+            
+            data.jobs.forEach(job => {
+                if (job.url) {
+                    job.addedToQueueAt = new Date().toISOString();
+                    job.status = 'new';
+                    jobMap.set(job.url, job);
+                }
+            });
+            
+            const mergedJobs = Array.from(jobMap.values());
+            
+            // Save
+            await chrome.storage.local.set({ matchedJobs: mergedJobs });
+            
+            // Update UI
+            await loadJobsQueueSummary();
+            await loadJobQueue();
+            
+            alert(`✅ Imported ${data.jobs.length} jobs\n` +
+                  `⭐ High scores (4.0+): ${data.byScore?.['4.0-5.0'] || 0}\n` +
+                  `📊 Total in queue: ${mergedJobs.length}`);
+            
+        } catch (err) {
+            console.error('Failed to import jobs:', err);
+            alert('❌ Failed to import: ' + err.message);
+        }
+        
+        // Reset file input
+        fileInput.value = '';
+    };
+    
+    fileInput.click();
+}
+
+function viewJobsQueue() {
+    // Open dashboard in new tab
+    chrome.tabs.create({ url: 'http://localhost:8080/dashboard/' });
+}
+
+// Setup Jobs Queue buttons
+function setupJobsQueueButtons() {
+    const importBtn = document.getElementById('importJobsBtn');
+    const viewBtn = document.getElementById('viewJobsBtn');
+    
+    if (importBtn) {
+        importBtn.addEventListener('click', importEvaluatedJobs);
+    }
+    
+    if (viewBtn) {
+        viewBtn.addEventListener('click', viewJobsQueue);
+    }
+    
+    // Load summary on init
+    loadJobsQueueSummary();
 }
 
 // Initialize

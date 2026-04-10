@@ -1,0 +1,120 @@
+{
+  "importedAt": "2026-04-10T09:20:57.364Z",
+  "source": "jobs_evaluated.json",
+  "totalJobs": 2,
+  "byRecommendation": {
+    "APPLY": 1,
+    "CONSIDER": 0,
+    "SKIP": 1,
+    "PENDING": 0
+  },
+  "byScore": {
+    "4.0-5.0": 1,
+    "3.0-3.9": 1,
+    "2.0-2.9": 0,
+    "0-1.9": 0,
+    "none": 0
+  },
+  "jobs": [
+    {
+      "id": "job-1775812857362-lwzxpx5z1",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5030244008",
+      "title": "Anthropic Fellows Program — AI Security",
+      "company": "Anthropic",
+      "location": "London, UK; Ontario, CAN; Remote-Friendly, United States; San Francisco, CA",
+      "department": "",
+      "description": "",
+      "score": 4,
+      "recommendation": "APPLY",
+      "blocks": {
+        "A": {
+          "score": 3,
+          "reason": "AI Security Fellow loosely aligns with target roles (AI/ML Engineer). 3 years experience is appropriate - fellowship accepts early-career candidates. Domain expertise partially matches: has ML/AI background but not specifically security/pentesting."
+        },
+        "B": {
+          "score": 4,
+          "reason": "Strong Python skills match requirement. Smart contract and blockchain expertise directly relevant - job mentions blockchain exploit detection project. Missing formal pentesting/CVE experience, but transferable security mindset from blockchain work."
+        },
+        "C": {
+          "score": 3,
+          "reason": "Remote-friendly in US/UK/Canada locations matches preference. Weekly stipend $3,850 equates to ~$154k annualized - within target range but for only 4 months. No red-flag keywords. Work authorization required."
+        },
+        "D": {
+          "score": 5,
+          "reason": "Anthropic is top-tier AI company (creator of Claude). Clear JD with defined expectations. 25-50% receive full-time offers. Mentorship from leading researchers. Strong growth potential."
+        }
+      },
+      "summary": "Strong fit - blockchain/smart contract expertise directly aligns with AI Security workstream focus on smart contract exploits.",
+      "cv_highlights": [
+        "Python",
+        "Machine Learning",
+        "Smart Contracts",
+        "Blockchain Security",
+        "AI/LLM Applications"
+      ],
+      "interview_prep": [
+        "STAR story: Describe a time you identified a security vulnerability or ambiguity and took ownership to resolve it",
+        "STAR story: Explain your experience with smart contracts and how you've applied technical skills to blockchain security"
+      ],
+      "tailored_summary": "AI/ML Engineer with 3 years experience in machine learning and blockchain technology. Founded Zorox Research Lab with hands-on experience in smart contract security. Python-proficient with practical AI education experience teaching 100+ students. Passionate about applied AI and LLM technologies - eager to contribute to AI security research at Anthropic.",
+      "scannedAt": "2026-04-10T09:20:57.362Z",
+      "evaluatedAt": "2026-04-10T07:59:12.529Z",
+      "source": "greenhouse-api",
+      "aiProvider": null,
+      "aiModel": null,
+      "status": "new",
+      "addedToQueueAt": null,
+      "appliedAt": null,
+      "notes": ""
+    },
+    {
+      "id": "job-1775812857364-craj0kwz7",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5183051008",
+      "title": "Anthropic Fellows Program — ML Systems & Performance",
+      "company": "Anthropic",
+      "location": "London, UK; Ontario, CAN; Remote-Friendly, United States; San Francisco, CA",
+      "department": "",
+      "description": "",
+      "score": 3.3,
+      "recommendation": "SKIP",
+      "blocks": {
+        "A": {
+          "score": 3,
+          "reason": "Fellowship is a research training program, not a traditional ML engineering role. Candidate's target roles include ML Engineer but this is a 4-month fellowship with non-traditional career path. Some alignment with ML systems focus."
+        },
+        "B": {
+          "score": 4,
+          "reason": "Strong Python skills match. ML/AI/LLM experience aligns. Blockchain smart contract work interestingly ties to JD's mention of 'AI agents find $4.6M in smart contract exploits'. Missing: large-scale distributed systems, HPC, direct LLM training/fine-tuning experience."
+        },
+        "C": {
+          "score": 2,
+          "reason": "Remote-friendly in US/UK/Canada aligns with candidate's remote preference. However, stipend is only ~$3,850/week (~$61-80k annualized) - far below candidate's $120-200k target. Must have work authorization - no visa sponsorship. 4-month commitment may be flexible."
+        },
+        "D": {
+          "score": 5,
+          "reason": "Anthropic is a top-tier AI company with excellent reputation. Clear JD with defined research areas. 25-50% conversion rate to full-time roles. Strong mentorship and research output focus."
+        }
+      },
+      "summary": "Strong company/role alignment but salary gap is prohibitive - fellowship pays ~$61-80k vs candidate's $120-200k target.",
+      "cv_highlights": [
+        "Python",
+        "ML/AI/LLM",
+        "Smart Contracts/Blockchain"
+      ],
+      "interview_prep": [
+        "STAR: Building ML/AI systems or pipelines",
+        "STAR: Blockchain/smart contract security work (relates to JD's smart contract exploit example)"
+      ],
+      "tailored_summary": "AI/ML Engineer with Python, ML, and blockchain experience. The JD's mention of smart contract exploit detection aligns with candidate's background. However, the fellowship stipend of ~$61-80k is far below the $120-200k target.",
+      "scannedAt": "2026-04-10T09:20:57.364Z",
+      "evaluatedAt": "2026-04-10T07:59:42.989Z",
+      "source": "greenhouse-api",
+      "aiProvider": null,
+      "aiModel": null,
+      "status": "new",
+      "addedToQueueAt": null,
+      "appliedAt": null,
+      "notes": ""
+    }
+  ]
+}

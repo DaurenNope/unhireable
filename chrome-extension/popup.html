@@ -318,6 +318,37 @@
 
     <hr style="border: none; border-top: 1px solid #333; margin: 12px 0;">
 
+    <!-- Jobs Queue Section -->
+    <div class="status-card" style="margin-bottom: 12px;">
+        <div class="status-header">
+            <span>📋</span>
+            <span class="status-text">Jobs Queue</span>
+            <span id="jobsCountBadge" style="background: #6366f1; color: #fff; padding: 2px 8px; border-radius: 12px; font-size: 11px; margin-left: auto;">0</span>
+        </div>
+        
+        <div style="margin-top: 8px; display: flex; gap: 8px;">
+            <button id="importJobsBtn" class="btn btn-secondary" style="flex: 1; font-size: 12px;">
+                <span>📥</span>
+                <span>Import Evaluated</span>
+            </button>
+            <button id="viewJobsBtn" class="btn btn-primary" style="flex: 1; font-size: 12px; background: linear-gradient(135deg, #6366f1, #8b5cf6);">
+                <span>👀</span>
+                <span>View Queue</span>
+            </button>
+        </div>
+        
+        <div id="jobsSummary" style="margin-top: 8px; font-size: 11px; color: #888; display: none;">
+            <div style="display: flex; justify-content: space-between;">
+                <span>⭐ High scores (4.0+): <strong id="highScoreCount" style="color: #22c55e;">0</strong></span>
+                <span>⏳ Pending: <strong id="pendingCount" style="color: #f59e0b;">0</strong></span>
+            </div>
+        </div>
+        
+        <input type="file" id="jobsImportFile" accept=".json" style="display: none;">
+    </div>
+
+    <hr style="border: none; border-top: 1px solid #333; margin: 12px 0;">
+
     <div style="font-size: 11px; color: #888; margin-bottom: 8px;">🧪 Test on current job (open a job first):</div>
 
     <button id="testApplyBtn" class="btn btn-secondary" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
