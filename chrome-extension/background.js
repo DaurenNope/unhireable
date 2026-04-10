@@ -831,7 +831,7 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
     }
 });
 
-// Listen for tab updates to show badge on supported pages
+// Listen for tab updates to show badge and trigger auto-apply
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     if (changeInfo.status !== 'complete' || !tab.url) return;
 
@@ -848,8 +848,44 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
         // Not connected to Tauri, show supported indicator
         chrome.action.setBadgeText({ tabId, text: '●' });
         chrome.action.setBadgeBackgroundColor({ tabId, color: '#6366f1' });
+        
+        // Check if this is a pending application from dashboard
+        checkAndTriggerAutoApply(tabId, tab.url);
     }
 });
+
+// Check if URL matches pending application and trigger auto-fill
+async function checkAndTriggerAutoApply(tabId, url) {
+    try {
+        // Get pending applications from dashboard (stored in localStorage via content script)
+        // We need to use messaging to content script since background can't access localStorage directly
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (!tab) return;
+        
+        // Send message to content script to check for pending applications
+        chrome.tabs.sendMessage(tabId, { 
+            action: 'checkPendingApplication',
+            url: url 
+        }).then(response => {
+            if (response && response.shouldApply) {
+                console.log('[Unhireable Background] Auto-triggering fill for dashboard application');
+                
+                // Small delay to ensure page is fully loaded
+                setTimeout(() => {
+                    chrome.tabs.sendMessage(tabId, {
+                        action: 'fillForm',
+                        profile: response.profile,
+                        autoSubmit: false
+                    });
+                }, 2000);
+            }
+        }).catch(() => {
+            // Content script may not be ready yet, ignore
+        });
+    } catch (err) {
+        console.error('[Unhireable Background] Failed to check pending application:', err);
+    }
+}
 
 // Initial connection attempt
 connectToTauriApp();

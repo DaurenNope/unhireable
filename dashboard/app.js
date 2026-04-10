@@ -224,6 +224,11 @@ function renderJobs() {
                     <button class="btn ${isQueued ? 'btn-ghost' : 'btn-primary'} btn-small" onclick="toggleQueue('${escapeHtml(job.url)}')">
                         ${isQueued ? 'Remove' : 'Add to Queue'}
                     </button>
+                    ${!isPending && job.recommendation === 'APPLY' ? `
+                        <button class="btn btn-small" style="background: linear-gradient(135deg, #22c55e, #16a34a); color: white;" onclick="applyToJob('${escapeHtml(job.url)}', '${escapeHtml(job.title)}', '${escapeHtml(job.company)}')">
+                            ⚡ Apply Now
+                        </button>
+                    ` : ''}
                     <button class="btn btn-ghost btn-small" onclick="toggleExpand('${escapeHtml(job.url)}')">
                         ${isExpanded ? 'Less' : 'More'}
                     </button>
@@ -292,6 +297,35 @@ function escapeHtml(text) {
     const d = document.createElement('div');
     d.textContent = text;
     return d.innerHTML;
+}
+
+// Apply to job - opens in new tab and triggers extension
+function applyToJob(url, title, company) {
+    // Add to queue with auto-apply flag
+    const job = allJobs.find(j => j.url === url);
+    if (job) {
+        queue.add(url);
+        
+        // Store in localStorage for extension to pick up
+        const pendingApplications = JSON.parse(localStorage.getItem('unhireable_pending_applications') || '[]');
+        pendingApplications.push({
+            url,
+            title,
+            company,
+            addedAt: new Date().toISOString(),
+            autoApply: true
+        });
+        localStorage.setItem('unhireable_pending_applications', JSON.stringify(pendingApplications));
+        
+        // Update queue display
+        renderJobs();
+        updateStats();
+        
+        // Open job in new tab
+        window.open(url, '_blank');
+        
+        toast(`Opening ${company} - ${title}. Extension will auto-fill when page loads.`);
+    }
 }
 
 // Init
