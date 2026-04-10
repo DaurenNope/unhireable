@@ -328,17 +328,18 @@ function applyToJob(url, title, company) {
     }
 }
 
-// Full Pipeline - runs scan → evaluate → import
-let pipelineAbortController = null;
+// API Server URL
+const API_URL = 'http://localhost:3001';
+
+// Full Pipeline - runs scan → evaluate → import via API
+let currentPipelineId = null;
+let pipelinePollInterval = null;
 
 async function runFullPipeline() {
-    if (pipelineAbortController) {
+    if (currentPipelineId) {
         toast('Pipeline already running');
         return;
     }
-
-    pipelineAbortController = new AbortController();
-    const signal = pipelineAbortController.signal;
 
     // Show pipeline panel
     const panel = document.getElementById('pipelinePanel');
@@ -353,106 +354,164 @@ async function runFullPipeline() {
     logPipeline('🚀 Starting full pipeline...');
 
     try {
-        // Step 1: Scan
-        logPipeline('🔍 Step 1/4: Scanning job portals...');
-        updateStep('Scan', 'running');
-        updateProgress(10);
+        // Check if API is available
+        const healthRes = await fetch(`${API_URL}/api/health`, { 
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        }).catch(() => null);
 
-        // Check if scanner config exists
-        const configRes = await fetch('../data/config.yml');
-        if (!configRes.ok) {
-            throw new Error('Scanner config not found. Run from project root: node scanner/llm-agnostic-scan.mjs');
+        if (!healthRes || !healthRes.ok) {
+            logPipeline('❌ API server not running');
+            logPipeline('💡 Start the server: cd backend && npm run pipeline');
+            throw new Error('Pipeline API server not available. Start it with: cd backend && npm run pipeline');
         }
 
-        // Run scanner via fetch to local API (if available) or shell
-        // For now, we'll simulate with a message to user
-        logPipeline('⏳ Scanner would run here. In production: spawn scanner process');
-        await simulateDelay(2000, signal);
+        logPipeline('✅ Connected to pipeline API');
 
-        // Check for jobs_raw.json
-        const rawRes = await fetch('../data/jobs_raw.json');
-        if (!rawRes.ok) {
-            throw new Error('No jobs found. Run scanner first: node scanner/llm-agnostic-scan.mjs');
+        // Start pipeline via API
+        const startRes = await fetch(`${API_URL}/api/pipeline/run`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                scan: true, 
+                evaluate: true, 
+                import: true,
+                minScore: 3.0 
+            })
+        });
+
+        if (!startRes.ok) {
+            throw new Error('Failed to start pipeline: ' + startRes.statusText);
         }
 
-        const rawJobs = await rawRes.json();
-        logPipeline(`✅ Found ${rawJobs.length} raw jobs`);
-        updateStep('Scan', 'complete');
-        updateProgress(25);
+        const { pipelineId } = await startRes.json();
+        currentPipelineId = pipelineId;
+        logPipeline(`🆔 Pipeline ID: ${pipelineId}`);
 
-        // Step 2: Evaluate
-        logPipeline('⚖️ Step 2/4: Evaluating jobs with AI...');
-        updateStep('Evaluate', 'running');
-        updateProgress(30);
-
-        // Check for evaluated jobs
-        const evalRes = await fetch('../data/jobs_evaluated.json');
-        if (!evalRes.ok) {
-            logPipeline('⏳ Evaluator would run here. Run: cd evaluator && opencode .');
-            await simulateDelay(2000, signal);
-            throw new Error('No evaluated jobs found. Run evaluator first.');
-        }
-
-        const evaluatedJobs = await evalRes.json();
-        logPipeline(`✅ Found ${evaluatedJobs.length} evaluated jobs`);
-        updateStep('Evaluate', 'complete');
-        updateProgress(60);
-
-        // Step 3: Import to Extension Format
-        logPipeline('📥 Step 3/4: Converting to extension format...');
-        updateStep('Import', 'running');
-        updateProgress(65);
-
-        // Check for extension import file
-        const extRes = await fetch('../data/extension_jobs_import.json');
-        if (!extRes.ok) {
-            logPipeline('⏳ Running import script...');
-            await simulateDelay(1500, signal);
-            throw new Error('Extension import file not found. Run: node scripts/import-to-extension.mjs');
-        }
-
-        const extJobs = await extRes.json();
-        logPipeline(`✅ Generated extension import file with ${extJobs.length} jobs`);
-        updateStep('Import', 'complete');
-        updateProgress(80);
-
-        // Step 4: Load into Dashboard
-        logPipeline('📊 Step 4/4: Loading into dashboard...');
-        updateStep('Load', 'running');
-        updateProgress(85);
-
-        await loadJobs();
-        logPipeline('✅ Dashboard updated with new jobs');
-        updateStep('Load', 'complete');
-        updateProgress(100);
-
-        document.getElementById('pipelineStatus').textContent = '✅ Pipeline Complete!';
-        toast('🎉 Full pipeline complete! Review evaluated jobs.');
+        // Poll for progress
+        pipelinePollInterval = setInterval(() => pollPipelineStatus(pipelineId), 1000);
 
     } catch (err) {
-        if (err.name === 'AbortError') {
-            logPipeline('⏹ Pipeline stopped by user');
-            document.getElementById('pipelineStatus').textContent = '⏹ Stopped';
-        } else {
-            console.error('Pipeline error:', err);
-            logPipeline(`❌ Error: ${err.message}`);
-            document.getElementById('pipelineStatus').textContent = '❌ Error';
-            toast('❌ Pipeline failed: ' + err.message);
-        }
-    } finally {
-        pipelineAbortController = null;
-        setTimeout(() => {
-            if (!pipelineAbortController) {
-                panel.style.display = 'none';
-            }
-        }, 5000);
+        console.error('Pipeline error:', err);
+        logPipeline(`❌ Error: ${err.message}`);
+        document.getElementById('pipelineStatus').textContent = '❌ Error';
+        toast('❌ Pipeline failed: ' + err.message);
+        
+        // Show helpful instructions
+        logPipeline('');
+        logPipeline('📋 Manual steps:');
+        logPipeline('1. cd backend && npm run pipeline');
+        logPipeline('2. Then click "Run Full Pipeline" again');
     }
 }
 
-function stopPipeline() {
-    if (pipelineAbortController) {
-        pipelineAbortController.abort();
-        pipelineAbortController = null;
+async function pollPipelineStatus(pipelineId) {
+    try {
+        const res = await fetch(`${API_URL}/api/pipeline/status/${pipelineId}`);
+        if (!res.ok) {
+            clearInterval(pipelinePollInterval);
+            return;
+        }
+
+        const status = await res.json();
+
+        // Update UI based on current step
+        if (status.currentStep) {
+            const stepMap = {
+                'scan': { step: 'Scan', progress: 10 },
+                'evaluate': { step: 'Evaluate', progress: 30 },
+                'import': { step: 'Import', progress: 65 }
+            };
+            const mapped = stepMap[status.currentStep];
+            if (mapped) {
+                updateStep(mapped.step, 'running');
+            }
+        }
+
+        // Update completed steps
+        if (status.results) {
+            if (status.results.scan) {
+                updateStep('Scan', 'complete');
+                if (status.currentStep !== 'evaluate') {
+                    updateProgress(25);
+                }
+            }
+            if (status.results.evaluate) {
+                updateStep('Evaluate', 'complete');
+                if (status.currentStep !== 'import') {
+                    updateProgress(60);
+                }
+            }
+            if (status.results.import) {
+                updateStep('Import', 'complete');
+                updateProgress(80);
+            }
+        }
+
+        // Update progress bar
+        if (status.progress) {
+            updateProgress(status.progress);
+        }
+
+        // Add logs
+        if (status.logs && status.logs.length > 0) {
+            const logEl = document.getElementById('pipelineLog');
+            const currentLogs = logEl.innerHTML.split('<div>').length - 1;
+            const newLogs = status.logs.slice(currentLogs);
+            newLogs.forEach(log => logPipeline(log));
+        }
+
+        // Handle completion or error
+        if (status.status === 'complete') {
+            clearInterval(pipelinePollInterval);
+            updateStep('Load', 'running');
+            
+            // Load jobs into dashboard
+            await loadJobs();
+            
+            updateStep('Load', 'complete');
+            updateProgress(100);
+            document.getElementById('pipelineStatus').textContent = '✅ Pipeline Complete!';
+            toast('🎉 Full pipeline complete! Review evaluated jobs.');
+            
+            // Reset after delay
+            setTimeout(() => {
+                currentPipelineId = null;
+                document.getElementById('pipelinePanel').style.display = 'none';
+            }, 5000);
+        }
+
+        if (status.status === 'error') {
+            clearInterval(pipelinePollInterval);
+            logPipeline(`❌ Error: ${status.error}`);
+            document.getElementById('pipelineStatus').textContent = '❌ Error';
+            toast('❌ Pipeline failed: ' + status.error);
+            currentPipelineId = null;
+        }
+
+        if (status.status === 'cancelled') {
+            clearInterval(pipelinePollInterval);
+            logPipeline('⏹ Pipeline cancelled');
+            document.getElementById('pipelineStatus').textContent = '⏹ Stopped';
+            currentPipelineId = null;
+        }
+
+    } catch (err) {
+        console.error('Poll error:', err);
+        // Don't stop polling on network errors
+    }
+}
+
+async function stopPipeline() {
+    if (!currentPipelineId) return;
+
+    try {
+        await fetch(`${API_URL}/api/pipeline/stop/${currentPipelineId}`, {
+            method: 'POST'
+        });
+        logPipeline('⏹ Stopping pipeline...');
+    } catch (err) {
+        console.error('Failed to stop pipeline:', err);
     }
 }
 
