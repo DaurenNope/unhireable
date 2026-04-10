@@ -368,32 +368,82 @@ function runScanner(options = {}, pipeline = null) {
 
 function runEvaluator(pipeline = null) {
     return new Promise((resolve, reject) => {
-        // Check if evaluator output already exists (OpenCode runs separately)
-        const evalPath = path.join(DATA_DIR, 'jobs_evaluated.json');
+        // Use direct evaluator instead of OpenCode CLI
+        const model = process.env.EVALUATOR_MODEL || 'groq';
         
-        if (fs.existsSync(evalPath)) {
-            // Check if file was modified recently (within last 5 minutes)
-            const stats = fs.statSync(evalPath);
-            const ageMinutes = (Date.now() - stats.mtime.getTime()) / (1000 * 60);
-            
-            if (ageMinutes < 5) {
-                try {
-                    const jobs = JSON.parse(fs.readFileSync(evalPath, 'utf8'));
-                    if (pipeline) {
-                        pipeline.logs.push(`[Evaluator] Using recently generated evaluation (${Math.round(ageMinutes)}m old)`);
-                    }
-                    resolve({ count: jobs.length, message: 'Using recent evaluation' });
-                    return;
-                } catch (err) {
-                    // Continue to error case
-                }
-            }
+        // Check for API key
+        const keyEnvVar = `${model.toUpperCase()}_API_KEY`;
+        if (!process.env[keyEnvVar]) {
+            reject({ 
+                message: `${keyEnvVar} not set. Set it with: export ${keyEnvVar}="your-key"`,
+                setup: true
+            });
+            return;
         }
         
-        // OpenCode evaluator needs to be run manually - it requires user interaction
-        reject({ 
-            message: 'Evaluator requires manual execution. Run: cd evaluator && opencode .',
-            manual: true
+        const args = [
+            'evaluator/direct-evaluator.mjs',
+            `--model=${model}`
+        ];
+        
+        const proc = spawn('node', args, {
+            cwd: PROJECT_ROOT,
+            stdio: ['ignore', 'pipe', 'pipe'],
+            env: { ...process.env }
+        });
+        
+        if (pipeline) {
+            pipeline.process = proc;
+        }
+        
+        let stdout = '';
+        let stderr = '';
+        
+        proc.stdout.on('data', (data) => {
+            stdout += data.toString();
+            const lines = data.toString().trim().split('\n');
+            lines.forEach(line => {
+                if (line.trim() && pipeline) {
+                    pipeline.logs.push(`[Evaluator] ${line.trim()}`);
+                }
+            });
+        });
+        
+        proc.stderr.on('data', (data) => {
+            stderr += data.toString();
+            const lines = data.toString().trim().split('\n');
+            lines.forEach(line => {
+                if (line.trim() && pipeline) {
+                    pipeline.logs.push(`[Evaluator Error] ${line.trim()}`);
+                }
+            });
+        });
+        
+        proc.on('close', (code) => {
+            if (pipeline) pipeline.process = null;
+            
+            // Read results regardless of exit code
+            try {
+                const evalPath = path.join(DATA_DIR, 'jobs_evaluated.json');
+                if (!fs.existsSync(evalPath)) {
+                    reject({ message: 'No evaluated jobs file generated', stderr });
+                    return;
+                }
+                const jobs = JSON.parse(fs.readFileSync(evalPath, 'utf8'));
+                const evaluatedCount = jobs.filter(j => j._evaluated).length;
+                resolve({ 
+                    count: evaluatedCount, 
+                    total: jobs.length,
+                    message: `Evaluated ${evaluatedCount}/${jobs.length} jobs` 
+                });
+            } catch (err) {
+                reject({ message: `Evaluation failed: ${err.message}`, stderr });
+            }
+        });
+        
+        proc.on('error', (err) => {
+            if (pipeline) pipeline.process = null;
+            reject({ message: `Failed to start evaluator: ${err.message}` });
         });
     });
 }
