@@ -1,8 +1,8 @@
-# OpenCode Setup Guide - MiniMax M2.5 or Local LLM
+# OpenCode Setup Guide - Free Models (MiniMax M2.5, Nemotron 3) or Local LLM
 
-## Option 1: MiniMax M2.5 (Recommended - Faster/Better)
+## Option 1: MiniMax M2.5 (Recommended)
 
-MiniMax M2.5 is available free in OpenCode and likely performs better than local Gemma 4.
+MiniMax M2.5 is available free in OpenCode.
 
 ### VS Code Settings:
 ```json
@@ -23,11 +23,36 @@ MiniMax M2.5 is available free in OpenCode and likely performs better than local
 }
 ```
 
-**Note:** MiniMax M2.5 is pre-configured in OpenCode - just select it from the provider dropdown.
+---
+
+## Option 2: Nemotron 3 (NVIDIA) - Also Free
+
+Nemotron 3 is NVIDIA's model, available free in OpenCode. Good for evaluation tasks.
+
+### VS Code Settings:
+```json
+{
+  "opencode.ai.provider": "nemotron",
+  "opencode.ai.model": "nemotron-3",
+  "opencode.ai.temperature": 0.3
+}
+```
+
+### OpenCode Standalone:
+```json
+{
+  "ai": {
+    "provider": "nemotron",
+    "model": "nemotron-3"
+  }
+}
+```
+
+**Note:** Select from OpenCode provider dropdown.
 
 ---
 
-## Option 2: Local LLM (Gemma 4 via LM Studio)
+## Option 3: Local LLM (Gemma 4 via LM Studio)
 
 ### Option A: OpenCode Settings UI
 1. Open OpenCode (VS Code extension or standalone)
@@ -120,26 +145,59 @@ Or paste a job description.
 
 ## Model Comparison
 
-| Feature | MiniMax M2.5 | Gemma 4 (Local) | Claude Code |
-|---------|--------------|-----------------|-------------|
-| **Speed** | ✅ Fast | ⚠️ Slow (thinking) | ✅ Fast |
-| **Quality** | ✅ Good | ⚠️ Mediocre | ✅ Excellent |
-| **Tool use** | ⚠️ Limited | ⚠️ Limited | ✅ Full |
-| **Cost** | ✅ Free | ✅ Free | $ |
-| **Setup** | ✅ Easy | ⚠️ Complex (LM Studio) | N/A |
-| **Career Ops** | ✅ Works | ✅ Works | ✅ Works |
+| Feature | MiniMax M2.5 | Nemotron 3 | Gemma 4 (Local) | Claude Code |
+|---------|--------------|------------|-----------------|-------------|
+| **Speed** | ✅ Fast | ✅ Fast | ⚠️ Slow (thinking) | ✅ Fast |
+| **Quality** | ✅ Good | ✅ Good | ⚠️ Mediocre | ✅ Excellent |
+| **Tool use** | ⚠️ Limited | ⚠️ Limited | ⚠️ Limited | ✅ Full |
+| **Cost** | ✅ Free | ✅ Free | ✅ Free | $ |
+| **Setup** | ✅ Easy | ✅ Easy | ⚠️ Complex (LM Studio) | N/A |
+| **Career Ops** | ✅ Works | ✅ Works | ✅ Works | ✅ Works |
 
-**Recommendation:** Use **MiniMax M2.5** in OpenCode - best balance of speed/quality for free.
+**Recommendation:** Try **Nemotron 3** first - NVIDIA's model may have better reasoning for job evaluation.
+
+---
+
+## Quick Test: Compare Models
+
+Run this test in OpenCode with each model:
+
+```
+Evaluate this job fit for an AI/ML Engineer with Python, ML, and LLM experience:
+
+Job: Senior AI Engineer at Anthropic
+Requirements: Python, PyTorch, LLM fine-tuning, AI Safety
+Location: Remote
+Salary: $200k-$300k
+
+Give score 0-100 and brief reasoning.
+```
+
+**Expected good response:**
+- Score: 85-95
+- Mentions Python/LLM match
+- Notes AI Safety as growth area
+- One paragraph, clear reasoning
+
+**Bad signs:**
+- Empty response
+- No specific score
+- Generic fluff
+- Takes >2 minutes
 
 ## Recommendation
 
-OpenCode + Gemma 4 gives you:
-- ✅ Custom LLM (free, local)
-- ✅ Career Ops slash commands
-- ⚠️ Slower responses
-- ⚠️ Less tool integration
+**Best free option for Career Ops:**
+1. **Nemotron 3** - Try first (NVIDIA quality)
+2. **MiniMax M2.5** - Fast backup
+3. **Gemma 4** - Only if others fail (slow)
 
-Good for testing, but may be slower than Claude Code for complex tasks.
+All give you:
+- ✅ Career Ops slash commands
+- ⚠️ Limited tools vs Claude Code
+- ✅ 100% free
+
+**For production use:** Claude Code ($) has best tool integration.
 
 ## Next Steps
 
