@@ -581,12 +581,20 @@
                             <option value="all">All</option>
                             <option value="APPLY" selected>Apply</option>
                             <option value="CONSIDER">Consider</option>
+                            <option value="APPLIED">Applied</option>
+                            <option value="SKIP">Skip</option>
                         </select>
                     </div>
                     <div class="filter filter-checkbox">
                         <label>
                             <input type="checkbox" id="showPending" checked onchange="filterJobs()">
                             Show Pending (<span id="pendingCount">0</span>)
+                        </label>
+                    </div>
+                    <div class="filter filter-checkbox">
+                        <label>
+                            <input type="checkbox" id="showApplied" onchange="filterJobs()">
+                            Show Applied (<span id="appliedCount">0</span>)
                         </label>
                     </div>
                 </div>

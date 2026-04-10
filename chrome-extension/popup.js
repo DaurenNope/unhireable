@@ -321,6 +321,12 @@ function setupEventListeners() {
     if (fillBtn) {
         fillBtn.addEventListener('click', handleFillClick);
     }
+    
+    // Mark as Applied button
+    const markAppliedBtn = document.getElementById('markAppliedBtn');
+    if (markAppliedBtn) {
+        markAppliedBtn.addEventListener('click', markCurrentJobAsApplied);
+    }
 
     // Schedule config listeners
     const scheduleToggle = document.getElementById('scheduleEnabledToggle');
@@ -891,6 +897,13 @@ async function handleFillClick() {
             }
 
             fillBtn.innerHTML = '<span>✅</span><span>Sent!</span>';
+            
+            // Show "Mark as Applied" button
+            const markAppliedBtn = document.getElementById('markAppliedBtn');
+            if (markAppliedBtn) {
+                markAppliedBtn.style.display = 'flex';
+            }
+            
             setTimeout(() => {
                 fillBtn.innerHTML = '<span>⚡</span><span>Auto-Fill Application</span>';
                 fillBtn.disabled = false;
@@ -904,6 +917,88 @@ async function handleFillClick() {
         console.error('Fill error:', err);
         fillBtn.innerHTML = '<span>❌</span><span>Error - Retry</span>';
         fillBtn.disabled = false;
+    }
+}
+
+// Mark current job as applied
+async function markCurrentJobAsApplied() {
+    try {
+        // Get current tab info
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (!tab || !tab.url) {
+            alert('❌ Could not determine current job URL');
+            return;
+        }
+
+        const currentUrl = tab.url;
+
+        // Get matched jobs and applied jobs
+        const result = await chrome.storage.local.get(['matchedJobs', 'appliedJobs']);
+        const matchedJobs = result.matchedJobs || [];
+        const appliedJobs = result.appliedJobs || [];
+
+        // Find job in matched jobs
+        const job = matchedJobs.find(j => {
+            const jobUrl = j.url?.toLowerCase() || '';
+            const current = currentUrl.toLowerCase();
+            return jobUrl === current || current.includes(jobUrl);
+        });
+
+        if (!job) {
+            alert('⚠️ This job was not found in your evaluated jobs list');
+            return;
+        }
+
+        // Check if already applied
+        const alreadyApplied = appliedJobs.some(a => a.url === job.url);
+        if (alreadyApplied) {
+            alert('ℹ️ This job is already marked as applied');
+            return;
+        }
+
+        // Add to applied jobs
+        const appliedJob = {
+            ...job,
+            status: 'applied',
+            appliedAt: new Date().toISOString(),
+            appliedFrom: 'extension_popup'
+        };
+
+        appliedJobs.push(appliedJob);
+
+        // Update storage
+        await chrome.storage.local.set({ appliedJobs });
+
+        // Update matched jobs status
+        const updatedMatchedJobs = matchedJobs.map(j => {
+            if (j.url === job.url) {
+                return { ...j, status: 'applied', appliedAt: new Date().toISOString() };
+            }
+            return j;
+        });
+        await chrome.storage.local.set({ matchedJobs: updatedMatchedJobs });
+
+        // Hide the button and show success
+        const markAppliedBtn = document.getElementById('markAppliedBtn');
+        if (markAppliedBtn) {
+            markAppliedBtn.style.display = 'none';
+        }
+
+        const successMessage = document.getElementById('successMessage');
+        if (successMessage) {
+            successMessage.textContent = '✅ Marked as applied!';
+            successMessage.classList.add('show');
+        }
+
+        // Update stats
+        await loadApplicationStats();
+        await loadJobsQueueSummary();
+
+        console.log('[Unhireable] Marked job as applied:', job);
+
+    } catch (err) {
+        console.error('[Unhireable] Failed to mark as applied:', err);
+        alert('❌ Failed to mark as applied: ' + err.message);
     }
 }
 
