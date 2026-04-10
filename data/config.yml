@@ -1,9 +1,9 @@
 ai:
-  # Options: openai, anthropic, gemini, ollama, lmstudio
-  provider: lmstudio
-  base_url: "http://localhost:1234/v1"  # LM Studio local server
-  model: "google/gemma-4-e4b"  # Model identifier in LM Studio
-  api_key: "lm-studio"  # Dummy key for LM Studio
+  # RECOMMENDED: opencode (free, fast, best quality)
+  # Options: opencode, openai, anthropic, gemini, ollama, lmstudio
+  provider: opencode
+  model: "opencode/minimax-m2.5-free"  # or "opencode/nemotron-3-super-free"
+  # No api_key needed for opencode (free tier)
 
 cv:
   name: "Dauren Nox"

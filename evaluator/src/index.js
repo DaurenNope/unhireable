@@ -48,10 +48,10 @@ function loadConfig() {
   if (!existsSync(options.config)) {
     const defaultConfig = {
       ai: {
-        provider: 'lmstudio', // openai, anthropic, google, ollama, lmstudio
-        api_key: 'lm-studio',
-        model: 'google/gemma-4-e4b',
-        base_url: 'http://localhost:1234/v1'
+        provider: 'opencode', // RECOMMENDED: opencode (free, fast), openai, anthropic, google, ollama, lmstudio
+        model: 'opencode/minimax-m2.5-free', // or 'opencode/nemotron-3-super-free'
+        // For other providers, add api_key below
+        // api_key: 'your-api-key'
       },
       cv: {
         name: 'Your Name',
@@ -191,6 +191,8 @@ async function callAI(prompt, aiConfig) {
     case 'lmstudio':
     case 'lm-studio':
       return await callLMStudio(prompt, aiConfig);
+    case 'opencode':
+      return await callOpenCode(prompt, aiConfig);
     default:
       throw new Error(`Unknown provider: ${aiConfig.provider}`);
   }
@@ -307,6 +309,38 @@ async function callLMStudio(prompt, config) {
   
   const data = await response.json();
   return data.choices[0].message.content;
+}
+
+// OpenCode CLI integration - uses MiniMax M2.5 (free, best quality)
+async function callOpenCode(prompt, config) {
+  const { execSync } = await import('child_process');
+  const model = config.model || 'opencode/minimax-m2.5-free';
+  
+  try {
+    // Escape the prompt for shell safety
+    const escapedPrompt = prompt.replace(/"/g, '\\"').replace(/\$/g, '\\$');
+    
+    // Call opencode CLI
+    const result = execSync(
+      `opencode run --model ${model} "${escapedPrompt}"`,
+      { 
+        encoding: 'utf8',
+        timeout: 120000, // 2 minute timeout
+        maxBuffer: 10 * 1024 * 1024 // 10MB buffer
+      }
+    );
+    
+    // Clean up the output (remove model banner if present)
+    return result.replace(/\n> build · .+\n/g, '').trim();
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      throw new Error('OpenCode CLI not found. Install with: npm install -g opencode');
+    }
+    if (error.status === 124) {
+      throw new Error('OpenCode request timed out (2 minutes)');
+    }
+    throw new Error(`OpenCode error: ${error.message}`);
+  }
 }
 
 function parseAIResponse(text, job) {
