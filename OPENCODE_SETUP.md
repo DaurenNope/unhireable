@@ -1,6 +1,33 @@
-# OpenCode + Gemma 4 Setup Guide
+# OpenCode Setup Guide - MiniMax M2.5 or Local LLM
 
-## Step 1: Configure OpenCode to Use LM Studio
+## Option 1: MiniMax M2.5 (Recommended - Faster/Better)
+
+MiniMax M2.5 is available free in OpenCode and likely performs better than local Gemma 4.
+
+### VS Code Settings:
+```json
+{
+  "opencode.ai.provider": "minimax",
+  "opencode.ai.model": "MiniMax-M2.5",
+  "opencode.ai.temperature": 0.3
+}
+```
+
+### OpenCode Standalone:
+```json
+{
+  "ai": {
+    "provider": "minimax",
+    "model": "MiniMax-M2.5"
+  }
+}
+```
+
+**Note:** MiniMax M2.5 is pre-configured in OpenCode - just select it from the provider dropdown.
+
+---
+
+## Option 2: Local LLM (Gemma 4 via LM Studio)
 
 ### Option A: OpenCode Settings UI
 1. Open OpenCode (VS Code extension or standalone)
@@ -26,7 +53,7 @@ Add to your VS Code settings.json:
 }
 ```
 
-Or for OpenCode standalone app, edit:
+### OpenCode Standalone (for local LLM):
 - **Mac**: `~/Library/Application Support/opencode/settings.json`
 - **Windows**: `%APPDATA%/opencode/settings.json`
 - **Linux**: `~/.config/opencode/settings.json`
@@ -91,16 +118,18 @@ Or paste a job description.
 - Check `.opencode/commands/` folder exists
 - Verify files have `.md` extension
 
-## Comparison: OpenCode vs Claude Code
+## Model Comparison
 
-| Feature | OpenCode + Gemma | Claude Code |
-|---------|-----------------|-------------|
-| Provider | ✅ Custom LLMs | ❌ Claude only |
-| Tool use | ⚠️ Limited | ✅ Full |
-| Browser | ⚠️ Basic | ✅ Advanced |
-| Speed | ⚠️ Slow | ✅ Fast |
-| Cost | ✅ Free | $ |
-| Career Ops | ✅ Works | ✅ Works |
+| Feature | MiniMax M2.5 | Gemma 4 (Local) | Claude Code |
+|---------|--------------|-----------------|-------------|
+| **Speed** | ✅ Fast | ⚠️ Slow (thinking) | ✅ Fast |
+| **Quality** | ✅ Good | ⚠️ Mediocre | ✅ Excellent |
+| **Tool use** | ⚠️ Limited | ⚠️ Limited | ✅ Full |
+| **Cost** | ✅ Free | ✅ Free | $ |
+| **Setup** | ✅ Easy | ⚠️ Complex (LM Studio) | N/A |
+| **Career Ops** | ✅ Works | ✅ Works | ✅ Works |
+
+**Recommendation:** Use **MiniMax M2.5** in OpenCode - best balance of speed/quality for free.
 
 ## Recommendation
 
