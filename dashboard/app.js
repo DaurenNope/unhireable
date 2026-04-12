@@ -228,6 +228,9 @@ function renderJobs() {
                         <button class="btn btn-small" style="background: linear-gradient(135deg, #22c55e, #16a34a); color: white;" onclick="applyToJob('${escapeHtml(job.url)}', '${escapeHtml(job.title)}', '${escapeHtml(job.company)}')">
                             ⚡ Apply Now
                         </button>
+                        <button class="btn btn-small" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white;" onclick="generateCV('${escapeHtml(job.url)}')">
+                            📄 Generate CV
+                        </button>
                     ` : ''}
                     <button class="btn btn-ghost btn-small" onclick="toggleExpand('${escapeHtml(job.url)}')">
                         ${isExpanded ? 'Less' : 'More'}
@@ -297,6 +300,47 @@ function escapeHtml(text) {
     const d = document.createElement('div');
     d.textContent = text;
     return d.innerHTML;
+}
+
+// Generate CV for a specific job
+async function generateCV(jobUrl) {
+    const job = allJobs.find(j => j.url === jobUrl);
+    if (!job) {
+        toast('❌ Job not found');
+        return;
+    }
+    
+    logPipeline(`📄 Generating CV for ${job.company}...`);
+    
+    try {
+        // Check if backend is running
+        const healthRes = await fetch(`${API_URL}/api/health`).catch(() => null);
+        if (!healthRes || !healthRes.ok) {
+            toast('❌ Backend not running. Start it first: cd backend && npm run pipeline');
+            return;
+        }
+        
+        // Call API to generate CV
+        const res = await fetch(`${API_URL}/api/cv/generate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ jobUrl })
+        });
+        
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Failed to generate CV');
+        }
+        
+        const result = await res.json();
+        toast(`✅ CV generated: ${result.filename}`);
+        logPipeline(`✅ CV saved: ${result.path}`);
+        
+    } catch (err) {
+        console.error('CV generation error:', err);
+        toast('❌ Failed to generate CV: ' + err.message);
+        logPipeline(`❌ CV error: ${err.message}`);
+    }
 }
 
 // Apply to job - opens in new tab and triggers extension

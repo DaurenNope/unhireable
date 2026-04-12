@@ -176,6 +176,53 @@ app.post('/api/import', async (req, res) => {
 });
 
 /**
+ * POST /api/cv/generate - Generate CV for a specific job
+ */
+app.post('/api/cv/generate', async (req, res) => {
+    const { jobUrl } = req.body;
+    
+    if (!jobUrl) {
+        return res.status(400).json({ error: 'jobUrl is required' });
+    }
+    
+    try {
+        // Check if cv-generator dependencies are installed
+        const cvGenDir = path.join(PROJECT_ROOT, 'cv-generator');
+        if (!fs.existsSync(path.join(cvGenDir, 'node_modules'))) {
+            return res.status(500).json({ 
+                error: 'CV generator not ready. Run: cd cv-generator && npm install' 
+            });
+        }
+        
+        // Run CV generator
+        const result = await runCVGenerator(jobUrl);
+        res.json(result);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/**
+ * POST /api/cv/generate-all - Generate CVs for all APPLY jobs
+ */
+app.post('/api/cv/generate-all', async (req, res) => {
+    try {
+        const cvGenDir = path.join(PROJECT_ROOT, 'cv-generator');
+        if (!fs.existsSync(path.join(cvGenDir, 'node_modules'))) {
+            return res.status(500).json({ 
+                error: 'CV generator not ready. Run: cd cv-generator && npm install' 
+            });
+        }
+        
+        // Run CV generator with --all flag
+        const result = await runCVGenerator(null, true);
+        res.json(result);
+    } catch (err) {
+        res.status(500).json({ error: err.message, details: err.stderr });
+    }
+});
+
+/**
  * GET /api/jobs - Get jobs data
  */
 app.get('/api/jobs', (req, res) => {
@@ -480,6 +527,61 @@ function runImport(options = {}, pipeline = null) {
         proc.on('error', (err) => {
             if (pipeline) pipeline.process = null;
             reject({ message: `Failed to start import: ${err.message}` });
+        });
+    });
+}
+
+function runCVGenerator(jobUrl, generateAll = false) {
+    return new Promise((resolve, reject) => {
+        const args = ['cv-generator/generate-cv.mjs'];
+        
+        if (generateAll) {
+            args.push('--all');
+        } else if (jobUrl) {
+            args.push(`--job=${jobUrl}`);
+        }
+        
+        const proc = spawn('node', args, {
+            cwd: PROJECT_ROOT,
+            stdio: ['ignore', 'pipe', 'pipe']
+        });
+        
+        let stdout = '';
+        let stderr = '';
+        
+        proc.stdout.on('data', (data) => {
+            stdout += data.toString();
+        });
+        
+        proc.stderr.on('data', (data) => {
+            stderr += data.toString();
+        });
+        
+        proc.on('close', (code) => {
+            if (code !== 0) {
+                reject({ message: `CV generator exited with code ${code}`, stderr });
+            } else {
+                // Read manifest for results
+                try {
+                    const manifestPath = path.join(DATA_DIR, 'generated-cvs', 'cv-manifest.json');
+                    if (!fs.existsSync(manifestPath)) {
+                        resolve({ count: 0, message: 'CV generation complete but no manifest found' });
+                        return;
+                    }
+                    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+                    resolve({
+                        count: manifest.count,
+                        files: manifest.cvs,
+                        message: `Generated ${manifest.count} CV(s)`
+                    });
+                } catch (err) {
+                    resolve({ count: 0, message: 'CV generation complete' });
+                }
+            }
+        });
+        
+        proc.on('error', (err) => {
+            reject({ message: `Failed to start CV generator: ${err.message}` });
         });
     });
 }

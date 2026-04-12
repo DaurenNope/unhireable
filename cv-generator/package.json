@@ -1,0 +1,23 @@
+{
+  "name": "unhireable-cv-generator",
+  "version": "1.0.0",
+  "description": "ATS-optimized PDF CV generator with job tailoring",
+  "type": "module",
+  "scripts": {
+    "generate": "node generate-cv.mjs",
+    "generate:all": "node generate-cv.mjs --all",
+    "test": "echo 'Error: no test specified' && exit 1"
+  },
+  "dependencies": {
+    "puppeteer": "^21.0.0"
+  },
+  "keywords": [
+    "cv",
+    "resume",
+    "pdf",
+    "ats",
+    "generator"
+  ],
+  "author": "",
+  "license": "MIT"
+}
