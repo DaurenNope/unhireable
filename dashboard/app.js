@@ -482,6 +482,29 @@ async function pollPipelineStatus(pipelineId) {
         }
 
         if (status.status === 'error') {
+            // Check if this is a manual step (OpenCode evaluation needed)
+            if (status.error === 'MANUAL_STEP_REQUIRED') {
+                // Don't stop polling - just pause and show instructions
+                logPipeline('⏸️ Manual step required - OpenCode evaluation');
+                logPipeline('');
+                logPipeline('📋 Run in terminal:');
+                logPipeline('   cd ../evaluator && opencode .');
+                logPipeline('');
+                logPipeline('💬 Then say: "Evaluate all jobs"');
+                logPipeline('');
+                logPipeline('👆 Click "Resume Pipeline" when done');
+                
+                document.getElementById('pipelineStatus').textContent = '⏸️ Waiting for OpenCode...';
+                
+                // Show resume button
+                const resumeBtn = document.getElementById('resumePipelineBtn');
+                if (resumeBtn) resumeBtn.style.display = 'inline-block';
+                
+                // Stop polling for now, will resume when user clicks
+                clearInterval(pipelinePollInterval);
+                return;
+            }
+            
             clearInterval(pipelinePollInterval);
             logPipeline(`❌ Error: ${status.error}`);
             document.getElementById('pipelineStatus').textContent = '❌ Error';
@@ -512,6 +535,42 @@ async function stopPipeline() {
         logPipeline('⏹ Stopping pipeline...');
     } catch (err) {
         console.error('Failed to stop pipeline:', err);
+    }
+}
+
+async function resumePipeline() {
+    if (!currentPipelineId) return;
+    
+    logPipeline('▶ Resuming pipeline...');
+    
+    // Hide resume button
+    const resumeBtn = document.getElementById('resumePipelineBtn');
+    if (resumeBtn) resumeBtn.style.display = 'none';
+    
+    // Update status
+    document.getElementById('pipelineStatus').textContent = '⏳ Continuing pipeline...';
+    
+    // Check if evaluator output exists
+    try {
+        const checkRes = await fetch(`${API_URL}/api/status`);
+        const status = await checkRes.json();
+        
+        if (status.files.evaluatedJobs) {
+            logPipeline('✅ Found evaluated jobs!');
+            updateStep('Evaluate', 'complete');
+            updateProgress(60);
+            
+            // Resume polling - backend will continue with import
+            pipelinePollInterval = setInterval(() => pollPipelineStatus(currentPipelineId), 1000);
+        } else {
+            logPipeline('⚠️ No evaluation found yet...');
+            logPipeline('Have you run OpenCode? Try again in a moment.');
+            
+            // Show button again
+            if (resumeBtn) resumeBtn.style.display = 'inline-block';
+        }
+    } catch (err) {
+        logPipeline(`❌ Error checking status: ${err.message}`);
     }
 }
 
